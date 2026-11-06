@@ -1628,8 +1628,9 @@
   @apply sticky top-0 z-10;
 }
 
+/* min-w-0: in a laid-out header's row (bz-table-head-content) it shrinks, truncating its title. */
 .bz-table-sort-button {
-  @apply inline-flex items-center gap-1.5 whitespace-nowrap outline-none transition-colors;
+  @apply inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap outline-none transition-colors;
 }
 
 .bz-table-sort-icon {
@@ -1666,6 +1667,221 @@
 
 .bz-data-table-columns-trigger {
   @apply gap-2;
+}
+
+/* Editable data table (keyboard grid). The cursor: ts/dataTable.ts writes data-active on one cell,
+   painted once the grid has had focus - a thin ring while focus is elsewhere, the full ring while
+   the cell holds it. */
+.bz-table-cell:focus {
+  @apply outline-none;
+}
+
+.bz-table-cell[data-active] {
+  @apply inset-ring-ring/60 inset-ring-1;
+}
+
+.bz-table-cell[data-active]:focus {
+  @apply inset-ring-ring inset-ring-2;
+}
+
+.bz-table-head:focus {
+  @apply outline-none;
+}
+
+.bz-table-head[data-active] {
+  @apply inset-ring-ring/60 inset-ring-1;
+}
+
+.bz-table-head[data-active]:focus {
+  @apply inset-ring-ring inset-ring-2;
+}
+
+/* A cell being edited: the frame its editor is laid over. */
+.bz-table-cell[data-editing] {
+  @apply relative;
+}
+
+.bz-table-cell[data-invalid] {
+  @apply bg-destructive/10 relative;
+}
+
+/* A committed value whose OnEdit (a save) is still running. */
+.bz-table-cell[data-pending] {
+  @apply text-muted-foreground;
+}
+
+/* The idle display under an editor: invisible, but still sizing the cell. */
+.bz-table-cell-ghost {
+  @apply invisible;
+}
+
+/* The editor: a Blaizio control laid over the cell, a hair inside its edges. Absolute, so it adds no
+   width: the column keeps its size whatever the control holds. The control itself is sized to fill
+   it by utility classes (DataTableEditorHost), which win over the styles' form heights. */
+.bz-table-cell-editor {
+  @apply absolute inset-0 z-[1] flex items-center p-0.5;
+}
+
+.bz-table-cell-editor[data-align=center] {
+  @apply justify-center;
+}
+
+.bz-table-cell-editor[data-align=end] {
+  @apply justify-end;
+}
+
+/* A checkbox or switch sits where the idle one did. */
+.bz-table-cell-editor[data-bz-cell-editor=checkbox],
+.bz-table-cell-editor[data-bz-cell-editor=switch] {
+  @apply p-[inherit];
+}
+
+/* Why a value was refused, under its cell. */
+.bz-table-cell-error {
+  @apply border-destructive/40 bg-popover text-destructive absolute start-0 top-full z-20 mt-1 w-max max-w-64 rounded-md border px-2 py-1 text-xs font-normal whitespace-normal shadow-md;
+}
+
+.bz-data-table-live {
+  @apply sr-only;
+}
+
+/* The dialog editor: its header, the fields, its footer, never taller than the viewport. */
+.bz-data-table-edit-dialog {
+  @apply max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto];
+}
+
+/* The form lays out as its two parts, straight in the dialog's grid: the field list and the footer. */
+.bz-data-table-edit-form {
+  @apply contents;
+}
+
+/* The field list scrolls when the fields outgrow the room; a hair of padding keeps their focus
+   rings clear of its edges. */
+.bz-data-table-edit-body {
+  @apply -m-1 min-h-0 overflow-y-auto p-1;
+}
+
+.bz-data-table-edit-message {
+  @apply text-destructive mb-4 text-sm;
+}
+
+/* Columns: sizing, pinning and moving. ts/dataTable.ts lays the widths out (the colgroup), keeps
+   the pinned columns' insets current and runs every drag. */
+
+/* Laid-out widths: content wider than its column is cut off with an ellipsis. */
+.bz-table-head-fixed {
+  @apply overflow-hidden text-ellipsis;
+}
+
+/* A laid-out header's content: one row that may shrink, so a long title truncates and the sort
+   icon stays in view. */
+.bz-table-head-content {
+  @apply flex min-w-0 items-center;
+}
+
+.bz-table-head-content[data-align=center] {
+  @apply justify-center;
+}
+
+.bz-table-head-content[data-align=end] {
+  @apply justify-end;
+}
+
+.bz-table-cell-fixed {
+  @apply overflow-hidden text-ellipsis;
+}
+
+/* An editing cell keeps its message, which hangs below it. */
+.bz-table-cell-fixed[data-editing] {
+  @apply overflow-visible;
+}
+
+/* A header that can be resized or moved frames its drag handle: sticky without an inset stays in
+   place, and a sticky header's cells stay stuck. */
+.bz-table-head[data-resizable],
+.bz-table-head[data-reorderable] {
+  @apply sticky;
+}
+
+/* The drag handle on a resizable header's end edge: a hairline that firms up under the pointer. */
+.bz-table-resizer {
+  @apply absolute inset-y-0 end-0 z-[1] w-2 cursor-col-resize touch-none select-none after:absolute after:inset-y-2 after:end-0 after:w-px after:bg-border after:transition-colors hover:after:bg-ring data-active:after:w-0.5 data-active:after:bg-ring;
+}
+
+/* A header being dragged to a new place, and its column. */
+.bz-table-head[data-moving] {
+  @apply cursor-grabbing opacity-60;
+}
+
+.bz-table-col[data-moving] {
+  @apply bg-muted/50;
+}
+
+.bz-data-table[data-bz-moving],
+.bz-data-table[data-bz-resizing] {
+  @apply select-none;
+}
+
+/* A pinned column stays in place while the rows scroll under it (the inset comes inline, from the
+   widths the script measures). Its cells are opaque: a backdrop in the page's color, with the
+   row's own tint (hover, selection) laid over it - the cell takes the tint from its row. */
+.bz-table-head[data-pinned],
+.bz-table-cell[data-pinned] {
+  @apply sticky;
+}
+
+/* Over the pinned body cells, and over a sticky header's other cells (doubled: it outranks each
+   style's sticky-header rule). */
+.bz-table-head.bz-table-head[data-pinned] {
+  @apply z-[11];
+}
+
+.bz-table-cell[data-pinned] {
+  @apply z-[1] bg-inherit;
+}
+
+.bz-table-cell[data-pinned]::before {
+  content: "";
+  @apply bg-background pointer-events-none absolute inset-0 -z-1;
+}
+
+.bz-table-cell[data-pinned]::after {
+  content: "";
+  @apply pointer-events-none absolute inset-0 -z-1 bg-inherit;
+}
+
+/* An invalid pinned cell shows its tint over the backdrop. An editing or invalid one rises over the
+   rows below it, so its message is not hidden under their pinned cells. */
+.bz-table-cell[data-pinned][data-invalid]::after {
+  @apply bg-destructive/10;
+}
+
+.bz-table-cell[data-pinned][data-editing],
+.bz-table-cell[data-pinned][data-invalid] {
+  @apply sticky z-[3];
+}
+
+/* A pinned header: a sticky header already paints its cells; one that scrolls away gets the
+   backdrop too, with the header's own tint over it (each style sets that tint). */
+.bz-table-head[data-pinned]::after {
+  content: "";
+  @apply pointer-events-none absolute inset-0 -z-1;
+}
+
+.bz-table-head[data-pin-backdrop]::before {
+  content: "";
+  @apply bg-background pointer-events-none absolute inset-0 -z-1;
+}
+
+/* The divider on the inner edge of each pinned group. */
+.bz-table-cell[data-pinned-edge=start]::after,
+.bz-table-head[data-pinned-edge=start]::after {
+  @apply border-border border-e;
+}
+
+.bz-table-cell[data-pinned-edge=end]::after,
+.bz-table-head[data-pinned-edge=end]::after {
+  @apply border-border border-s;
 }
 
 /* MARK: Toast */

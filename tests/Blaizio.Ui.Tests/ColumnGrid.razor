@@ -1,0 +1,58 @@
+@* Test host: a BzDataTable over Person rows with the column features (sizing, pinning, moving),
+   recording every ColumnWidthsChanged / ColumnOrderChanged. Bind keeps the state here (as
+   @bind-* does); Reject hears the change but keeps the old value, a controlled parent saying no. *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" Selectable="Selectable" StickyHeader="Sticky"
+             ResizableColumns="Resizable" ReorderableColumns="Reorderable" EditMode="DataTableEditMode.Cell"
+             ColumnWidths="Widths" DefaultColumnWidths="DefaultWidths"
+             ColumnWidthsChanged="@(Bind ? EventCallback.Factory.Create<IReadOnlyDictionary<string, double>?>(this, OnWidths) : default)"
+             ColumnOrder="Order" DefaultColumnOrder="DefaultOrder"
+             ColumnOrderChanged="@(Bind ? EventCallback.Factory.Create<IReadOnlyList<string>?>(this, OnOrder) : default)">
+    <BzPropertyColumn Property="@(p => p.Name)" Width="NameWidth" MinWidth="NameMin" MaxWidth="NameMax" Pinned="NamePin" Sortable Editable="Editable" />
+    <BzPropertyColumn Property="@(p => p.Age)" Pinned="AgePin" Editable="Editable" />
+    <BzPropertyColumn Property="@(p => p.Score)" Fill="FillScore" Visible="ScoreVisible" />
+    <BzPropertyColumn Property="@(p => p.Code)" Pinned="CodePin" Reorderable="CodeReorderable" Resizable="CodeResizable" Visible="CodeVisible" />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+    [Parameter] public bool Selectable { get; set; }
+    [Parameter] public bool Sticky { get; set; }
+    [Parameter] public bool Resizable { get; set; }
+    [Parameter] public bool Reorderable { get; set; }
+    [Parameter] public bool Editable { get; set; }
+    [Parameter] public bool Bind { get; set; } = true;
+    [Parameter] public bool Reject { get; set; }
+    [Parameter] public double? NameWidth { get; set; }
+    [Parameter] public double? NameMin { get; set; }
+    [Parameter] public double? NameMax { get; set; }
+    [Parameter] public bool FillScore { get; set; }
+    [Parameter] public bool ScoreVisible { get; set; } = true;
+    [Parameter] public DataTablePin NamePin { get; set; }
+    [Parameter] public DataTablePin AgePin { get; set; }
+    [Parameter] public DataTablePin CodePin { get; set; }
+    [Parameter] public bool CodeReorderable { get; set; } = true;
+    [Parameter] public bool CodeResizable { get; set; } = true;
+    [Parameter] public bool CodeVisible { get; set; } = true;
+    [Parameter] public IReadOnlyDictionary<string, double>? Widths { get; set; }
+    [Parameter] public IReadOnlyDictionary<string, double>? DefaultWidths { get; set; }
+    [Parameter] public IReadOnlyList<string>? Order { get; set; }
+    [Parameter] public IReadOnlyList<string>? DefaultOrder { get; set; }
+
+    public BzDataTable<Person>? Table;
+
+    public List<IReadOnlyDictionary<string, double>?> WidthChanges { get; } = [];
+
+    public List<IReadOnlyList<string>?> OrderChanges { get; } = [];
+
+    private void OnWidths(IReadOnlyDictionary<string, double>? widths)
+    {
+        WidthChanges.Add(widths);
+        if (!Reject) Widths = widths;
+    }
+
+    private void OnOrder(IReadOnlyList<string>? order)
+    {
+        OrderChanges.Add(order);
+        if (!Reject) Order = order;
+    }
+}

@@ -44,6 +44,42 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     /// <summary>Custom header content; when unset the <see cref="Title"/> text is rendered.</summary>
     [Parameter] public RenderFragment? HeaderContent { get; set; }
 
+    /// <summary>
+    /// The column's starting width in pixels. Unset, the column sizes to its content, or takes the
+    /// room left in the row with <see cref="Fill"/>. A width the user drags to (see the table's
+    /// <c>ResizableColumns</c> and <c>ColumnWidths</c>) replaces it.
+    /// </summary>
+    [Parameter] public double? Width { get; set; }
+
+    /// <summary>The narrowest the column gets in pixels, however it is sized: resizing, fitting or filling.</summary>
+    [Parameter] public double? MinWidth { get; set; }
+
+    /// <summary>The widest the column gets in pixels, however it is sized: resizing, fitting or filling.</summary>
+    [Parameter] public double? MaxWidth { get; set; }
+
+    /// <summary>
+    /// Take the room the other columns leave in the row, shared with any other filling column and
+    /// kept between <see cref="MinWidth"/> and <see cref="MaxWidth"/>. The other columns then keep
+    /// their own widths instead of stretching.
+    /// </summary>
+    [Parameter] public bool Fill { get; set; }
+
+    /// <summary>
+    /// Keep the column in place while the rows scroll sideways: at the start edge or the end edge,
+    /// which flip in a right-to-left page. Pinned columns sit before (or after) the others.
+    /// </summary>
+    [Parameter] public DataTablePin Pinned { get; set; }
+
+    /// <summary>Whether a user can resize this column when the table's <c>ResizableColumns</c> is on. Defaults to <see langword="true"/>.</summary>
+    [Parameter] public bool Resizable { get; set; } = true;
+
+    /// <summary>
+    /// Whether a user can move this column when the table's <c>ReorderableColumns</c> is on.
+    /// Defaults to <see langword="true"/>. A column that stays put also keeps the others from
+    /// crossing it.
+    /// </summary>
+    [Parameter] public bool Reorderable { get; set; } = true;
+
     private bool _registered;
 
     /// <inheritdoc />
@@ -65,10 +101,21 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     string? IGridColumn<TItem>.HeaderClass => HeaderClass;
     string? IGridColumn<TItem>.CellClass => CellClass;
     RenderFragment? IGridColumn<TItem>.Header => HeaderContent;
+    double? IGridColumn<TItem>.Width => Width;
+    double? IGridColumn<TItem>.MinWidth => MinWidth;
+    double? IGridColumn<TItem>.MaxWidth => MaxWidth;
+    bool IGridColumn<TItem>.Fill => Fill;
+    DataTablePin IGridColumn<TItem>.Pinned => Pinned;
+    bool IGridColumn<TItem>.Resizable => Resizable;
+    bool IGridColumn<TItem>.Reorderable => Reorderable;
     RenderFragment IGridColumn<TItem>.RenderCell(TItem item) => RenderCell(item);
     int IGridColumn<TItem>.Compare(TItem a, TItem b) =>
         Sort is { } sort ? sort.Compare(a, b) : CanSort ? CompareCore(a, b) : 0;
     string? IGridColumn<TItem>.GetText(TItem item) => GetTextCore(item);
+    IGridEditor<TItem>? IGridColumn<TItem>.Editor => GridEditor;
+
+    /// <summary>The column's editing surface; <see langword="null"/> (read-only) unless a column type opts in.</summary>
+    internal virtual IGridEditor<TItem>? GridEditor => null;
 
     /// <summary>The cell content for one row.</summary>
     protected abstract RenderFragment RenderCell(TItem item);

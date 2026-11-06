@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="bunit" />
+    <!-- Direct pin: bunit's transitive AngleSharp carries GHSA-pgww-w46g-26qg (see Blaizio.Base.Tests). -->
+    <PackageReference Include="AngleSharp" />
+  </ItemGroup>
+
+  <!-- The styled components (registry source) rendered through bUnit, with the headless layer under them. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Blaizio.Base\Blaizio.Base.csproj" />
+    <ProjectReference Include="..\..\src\Blaizio.Ui\Blaizio.Ui.csproj" />
+  </ItemGroup>
+
+</Project>

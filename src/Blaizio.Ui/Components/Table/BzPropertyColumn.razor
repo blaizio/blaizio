@@ -9,6 +9,12 @@
     directly; the cell renders the (optionally formatted) value, or your own ChildContent template.
     Title defaults to the property name. The grid cascades TItem, so usually only Property is needed:
         <BzPropertyColumn Property="@(p => p.Name)" Sortable />
+    Editable makes the cell editable in the grid's EditMode with a Blaizio control picked from the
+    property's type: a text box, a number field, a pick list (an enum, or Options), a checkbox, a date
+    or a time field. Editor picks another control where it fits (a Switch for a bool, say);
+    EditorContent swaps in any control. Values parse in the current culture, pass the property's
+    DataAnnotations and Validate, then go through the property's setter (records and init properties
+    leave that to the grid's OnEdit).
 *@
 
 @code {
@@ -21,9 +27,59 @@
     /// <summary>Custom cell content; when unset the formatted property value is rendered.</summary>
     [Parameter] public RenderFragment<TItem>? ChildContent { get; set; }
 
+    /// <summary>
+    /// Lets the grid edit this column (see <c>EditMode</c> on the table) with the control
+    /// <see cref="Editor"/> names: by default a text box for text and ids, a number field for
+    /// numbers, a pick list for an enum, a checkbox for a bool, and a date or time field for
+    /// <c>DateOnly</c>, <c>DateTime</c> and <c>TimeOnly</c>. Other types need an
+    /// <see cref="EditorContent"/>.
+    /// </summary>
+    [Parameter] public bool Editable { get; set; }
+
+    /// <summary>
+    /// The control an <see cref="Editable"/> column edits with, in its cells, an open row and the
+    /// dialog. <see cref="DataTableEditor.Auto"/> (the default) picks it from the property's type;
+    /// name another where it fits the type, for example <see cref="DataTableEditor.Switch"/> for a
+    /// bool, or <see cref="DataTableEditor.Text"/> to type a number as plain text.
+    /// </summary>
+    [Parameter] public DataTableEditor Editor { get; set; }
+
+    /// <summary>
+    /// The values a pick list offers, for a column of any type: setting it makes the editor a
+    /// <see cref="DataTableEditor.Select"/>. Each option reads as its cell does (the
+    /// <see cref="Format"/>, or the value's text), and a typed or pasted value must match one.
+    /// </summary>
+    [Parameter] public IEnumerable<TProp>? Options { get; set; }
+
+    /// <summary>
+    /// Your own editor control for this column, replacing the built-in one. Bind it to
+    /// <c>context.Value</c> and spread <c>context.Attributes</c> onto it; a pick-style control can
+    /// commit as soon as it changes with <c>@bind-Value:after="context.Commit"</c>. Used in the
+    /// cell, the row and the dialog editor alike (<c>context.InDialog</c> tells them apart).
+    /// </summary>
+    [Parameter] public RenderFragment<DataTableCellEditor<TItem, TProp>>? EditorContent { get; set; }
+
+    /// <summary>
+    /// A rule the new value must pass before it is committed, after the property's own
+    /// DataAnnotations: return an error message, or <see langword="null"/> when the value is fine.
+    /// </summary>
+    [Parameter] public Func<TProp, string?>? Validate { get; set; }
+
+    private static readonly Type s_type = Nullable.GetUnderlyingType(typeof(TProp)) ?? typeof(TProp);
+
     private Func<TItem, TProp>? _compiled;
     private Expression<Func<TItem, TProp>>? _lastProperty;
     private string? _memberName;
+    private CellBinding<TItem, TProp>? _binding;
+    private PropertyEditor? _editor;
+
+    // The resolved control and its options, worked out again only when what they depend on changes.
+    private DataTableEditor _kind;
+    private DataTableEditorOption<TProp>[] _options = [];
+    private CellBinding<TItem, TProp>? _resolvedFor;
+    private DataTableEditor _resolvedEditor;
+    private IEnumerable<TProp>? _resolvedOptions;
+    private string? _resolvedFormat;
 
     protected override void OnParametersSet()
     {
@@ -32,8 +88,31 @@
             _lastProperty = Property;
             _compiled = Property.Compile();
             _memberName = MemberName(Property);
+            _binding = null;
+        }
+
+        // The setter and the parse / validate rules compile only for editable columns.
+        if (Editable && Property is not null)
+        {
+            _binding ??= new CellBinding<TItem, TProp>(Property);
+            _editor ??= new PropertyEditor(this);
+            if (!ReferenceEquals(_binding, _resolvedFor) || Editor != _resolvedEditor ||
+                !ReferenceEquals(Options, _resolvedOptions) || Format != _resolvedFormat)
+            {
+                _resolvedFor = _binding;
+                _resolvedEditor = Editor;
+                _resolvedOptions = Options;
+                _resolvedFormat = Format;
+                _kind = ResolveKind();
+                _options = BuildOptions();
+            }
+            if (_kind == DataTableEditor.Auto && EditorContent is null)
+                throw new InvalidOperationException(
+                    $"The {ResolveTitle() ?? "property"} column is Editable, but a {s_type.Name} value has no built-in editor. Give the column an EditorContent.");
         }
     }
+
+    internal override IGridEditor<TItem>? GridEditor => Editable && _binding is not null ? _editor : null;
 
     protected override string? ResolveTitle() => Title ?? _memberName;
 
@@ -49,14 +128,87 @@
 
     protected override bool HasText => _compiled is not null;
 
-    private string FormatValue(TItem item)
+    private string FormatValue(TItem item) => _compiled is null ? string.Empty : FormatOne(_compiled(item));
+
+    private string FormatOne(TProp value)
     {
-        if (_compiled is null) return string.Empty;
-        var value = _compiled(item);
         if (value is null) return string.Empty;
         return !string.IsNullOrEmpty(Format) && value is IFormattable formattable
             ? formattable.ToString(Format, CultureInfo.CurrentCulture)
             : value.ToString() ?? string.Empty;
+    }
+
+    // ---- the editor: which control, and the options of a pick list ----
+
+    private DataTableEditor ResolveKind()
+    {
+        if (Editor == DataTableEditor.Auto) return Infer();
+        if (!Fits(Editor))
+            throw new InvalidOperationException(
+                $"The {ResolveTitle() ?? "property"} column's Editor is {Editor}, which does not fit a {s_type.Name} value. {FitHint(Editor)}");
+        return Editor;
+    }
+
+    private DataTableEditor Infer()
+    {
+        if (Options is not null) return DataTableEditor.Select;
+        if (s_type == typeof(bool)) return DataTableEditor.Checkbox;
+        if (IsPlainEnum) return DataTableEditor.Select;
+        if (IsNumber) return DataTableEditor.Number;
+        if (s_type == typeof(DateOnly) || s_type == typeof(DateTime)) return DataTableEditor.Date;
+        if (s_type == typeof(TimeOnly)) return DataTableEditor.Time;
+        return _binding!.Kind == CellEditorKind.None ? DataTableEditor.Auto : DataTableEditor.Text;
+    }
+
+    private bool Fits(DataTableEditor editor) => editor switch
+    {
+        DataTableEditor.Text => _binding!.Kind != CellEditorKind.None,
+        DataTableEditor.Number => IsNumber,
+        DataTableEditor.Select => Options is not null || IsPlainEnum,
+        DataTableEditor.Checkbox or DataTableEditor.Switch => s_type == typeof(bool),
+        DataTableEditor.Date => s_type == typeof(DateOnly) || s_type == typeof(DateTime),
+        DataTableEditor.Time => s_type == typeof(TimeOnly),
+        _ => true,
+    };
+
+    private static string FitHint(DataTableEditor editor) => editor switch
+    {
+        DataTableEditor.Text => "A text box needs a value that parses from text: text, numbers, dates, times or ids.",
+        DataTableEditor.Number => "A number field takes int, long, short, float, double or decimal.",
+        DataTableEditor.Select => "A pick list takes an enum, or any type given Options.",
+        DataTableEditor.Checkbox or DataTableEditor.Switch => "It takes a bool.",
+        DataTableEditor.Date => "A date field takes DateOnly or DateTime.",
+        DataTableEditor.Time => "A time field takes TimeOnly.",
+        _ => "",
+    };
+
+    // GetTypeCode reports an enum as its underlying integer type: rule enums out first.
+    private static bool IsNumber =>
+        !s_type.IsEnum && Type.GetTypeCode(s_type) is TypeCode.Int16 or TypeCode.Int32 or TypeCode.Int64
+            or TypeCode.Single or TypeCode.Double or TypeCode.Decimal;
+
+    private static bool IsPlainEnum => s_type.IsEnum && !s_type.IsDefined(typeof(FlagsAttribute), inherit: false);
+
+    // A pick list's options: the Options given (keyed by position), or an enum's names (a nullable
+    // enum leads with a blank one).
+    private DataTableEditorOption<TProp>[] BuildOptions()
+    {
+        if (_kind != DataTableEditor.Select) return [];
+        var options = new List<DataTableEditorOption<TProp>>();
+        if (Options is { } given)
+        {
+            foreach (var value in given)
+                options.Add(new(options.Count.ToString(CultureInfo.InvariantCulture), FormatOne(value), value));
+            return [.. options];
+        }
+        foreach (var choice in _binding!.Choices)
+        {
+            if (choice.Value.Length == 0)
+                options.Add(new(string.Empty, string.Empty, default!));
+            else if (_binding.TryParse(choice.Value, out var value, out _))
+                options.Add(new(choice.Value, choice.Label, value));
+        }
+        return [.. options];
     }
 
     // The member name behind p => p.Name (or a boxing/convert cast around it), for the default Title.
@@ -66,4 +218,111 @@
         UnaryExpression { Operand: MemberExpression member } => member.Member.Name,
         _ => null,
     };
+
+    // The grid's boxed view of this column's binding. Reads Validate and EditorContent live, so a
+    // parameter change applies without re-registering.
+    private sealed class PropertyEditor(BzPropertyColumn<TItem, TProp> column) : IGridEditor<TItem>
+    {
+        private CellBinding<TItem, TProp> Binding => column._binding!;
+
+        public DataTableEditor Kind => column._kind;
+        public bool HasTemplate => column.EditorContent is not null;
+        public bool HasDisplayTemplate => column.ChildContent is not null;
+        public bool CanWrite => Binding.CanWrite;
+        public Type ValueType => typeof(TProp);
+        public bool AllowsNull => !typeof(TProp).IsValueType || Binding.AllowsNull;
+
+        public object? Read(TItem item) => Binding.Read(item);
+
+        public string Format(object? value) => value is TProp typed ? Binding.Format(typed) : string.Empty;
+
+        public bool TryParse(string? text, string displayName, out object? value,
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string? error)
+        {
+            // A pick list over Options takes one of its options, matched by label.
+            if (column.Options is not null && column._kind == DataTableEditor.Select)
+            {
+                if (TryMatchOption(text ?? string.Empty, prefix: false, out value))
+                {
+                    error = null;
+                    return true;
+                }
+                error = $"The {displayName} field must be one of: {string.Join(", ", column._options.Select(o => o.Label))}.";
+                return false;
+            }
+
+            var ok = Binding.TryParse(text, out var parsed, out error, displayName);
+            value = parsed;
+            return ok;
+        }
+
+        public bool TryMatchOption(string text, bool prefix, out object? value)
+        {
+            var wanted = text.Trim();
+            foreach (var option in column._options)
+            {
+                if (!string.Equals(option.Label, wanted, StringComparison.CurrentCultureIgnoreCase)) continue;
+                value = option.Value;
+                return true;
+            }
+            if (prefix && wanted.Length > 0)
+            {
+                foreach (var option in column._options)
+                {
+                    if (!option.Label.StartsWith(wanted, StringComparison.CurrentCultureIgnoreCase)) continue;
+                    value = option.Value;
+                    return true;
+                }
+            }
+            value = null;
+            return false;
+        }
+
+        public string? Validate(TItem item, object? value, string displayName)
+        {
+            var typed = Unbox(value);
+            return Binding.Validate(item, typed, displayName) ?? column.Validate?.Invoke(typed);
+        }
+
+        public void Write(TItem item, object? value) => Binding.Write(item, Unbox(value));
+
+        public bool TryGetClearValue(out object? value)
+        {
+            var ok = Binding.TryGetClearValue(out var cleared);
+            value = cleared;
+            return ok;
+        }
+
+        public bool ValuesEqual(object? a, object? b) => CellBinding<TItem, TProp>.ValuesEqual(Unbox(a), Unbox(b));
+
+        public RenderFragment RenderControl(DataTableEditorRequest request) => builder =>
+        {
+            builder.OpenComponent<DataTableEditorHost<TItem, TProp>>(0);
+            builder.AddComponentParameter(1, nameof(DataTableEditorHost<TItem, TProp>.Request), request);
+            builder.AddComponentParameter(2, nameof(DataTableEditorHost<TItem, TProp>.Kind), column._kind);
+            builder.AddComponentParameter(3, nameof(DataTableEditorHost<TItem, TProp>.Options), column._options);
+            builder.AddComponentParameter(4, nameof(DataTableEditorHost<TItem, TProp>.InputMode), Binding.InputMode);
+            builder.CloseComponent();
+        };
+
+        public RenderFragment RenderTemplate(
+            TItem item,
+            string columnKey,
+            string? title,
+            string? error,
+            bool inDialog,
+            IReadOnlyDictionary<string, object> attributes,
+            Func<object?> read,
+            Action<object?> write,
+            Func<Task> commit,
+            Func<Task> cancel)
+        {
+            var context = new DataTableCellEditor<TItem, TProp>(
+                item, columnKey, title, error, inDialog, attributes,
+                () => Unbox(read()), value => write(value), commit, cancel);
+            return column.EditorContent!(context);
+        }
+
+        private static TProp Unbox(object? value) => value is TProp typed ? typed : default!;
+    }
 }

@@ -1,0 +1,44 @@
+@* Width, MinWidth and MaxWidth in pixels; Customer fills the rest of the row. Drag a header's
+   edge to resize, double-click it to fit the content. The widths users choose land in _widths. *@
+<div class="w-full max-w-3xl space-y-3">
+    <BzDataTable TItem="Order" Items="_orders" RowKey="@(o => o.Id)" ResizableColumns @bind-ColumnWidths="_widths">
+        <BzPropertyColumn Title="Order" Property="@(o => o.Number)" Width="96" MinWidth="72" CellClass="tabular-nums" />
+        <BzPropertyColumn Property="@(o => o.Customer)" Fill MinWidth="140" Sortable />
+        <BzPropertyColumn Property="@(o => o.Placed)" Format="MMM d, yyyy" Width="128" Sortable />
+        <BzTemplateColumn Title="Status" Width="148" SortBy="@(o => o.Status)" Sortable>
+            <BzBadge Variant="@(context.Status == "Shipped" ? BadgeVariant.Default : BadgeVariant.Secondary)">@context.Status</BzBadge>
+        </BzTemplateColumn>
+        <BzPropertyColumn Property="@(o => o.Total)" Format="C" Align="end" Width="112" MaxWidth="200" Sortable />
+    </BzDataTable>
+    <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <p class="text-muted-foreground">
+            @if (_widths is { Count: > 0 } widths)
+            {
+                @($"Saved: {string.Join(", ", widths.Select(w => $"{w.Key} {w.Value:0}px"))}")
+            }
+            else
+            {
+                @("Drag an edge between two headers.")
+            }
+        </p>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@(_widths is null)" OnClick="@(() => _widths = null)">
+            Reset widths
+        </BzButton>
+    </div>
+</div>
+
+@code {
+    private sealed record Order(int Id, string Number, string Customer, DateOnly Placed, string Status, decimal Total);
+
+    // Bind it to keep what users choose (local storage, a user profile); null goes back to the columns' own widths.
+    private IReadOnlyDictionary<string, double>? _widths;
+
+    private static readonly Order[] _orders =
+    [
+        new(1, "10421", "Amara Okafor", new(2026, 10, 2), "Shipped", 129.00m),
+        new(2, "10422", "Lucas Ferreira", new(2026, 10, 3), "Packing", 48.50m),
+        new(3, "10423", "Mei Tanaka and Daniel Brooks, Northwind Studio", new(2026, 10, 5), "Shipped", 1240.00m),
+        new(4, "10424", "Priya Raman", new(2026, 10, 6), "Awaiting payment", 75.25m),
+        new(5, "10425", "Liam Johnson", new(2026, 10, 8), "Shipped", 310.00m),
+    ];
+}

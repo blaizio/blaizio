@@ -1,0 +1,51 @@
+@* 10,000 editable rows, virtualized in a scroll box, with every column feature on: # and Item
+   pinned to the start, Total to the end, and the columns between resizable and movable. *@
+<div class="w-full max-w-3xl">
+    <BzDataTable TItem="Line" Items="_lines" RowKey="@(l => l.Id)" Virtualize ItemSize="49" MaxHeight="24rem" StickyHeader
+                 ResizableColumns ReorderableColumns>
+        <BzPropertyColumn Title="#" Property="@(l => l.Id)" Pinned="DataTablePin.Start" Width="72" Align="end"
+                          Resizable="false" Reorderable="false" CellClass="text-muted-foreground tabular-nums" />
+        <BzPropertyColumn Property="@(l => l.Item)" Pinned="DataTablePin.Start" Width="140" Editable />
+        <BzPropertyColumn Property="@(l => l.Sku)" Title="SKU" Width="120" CellClass="tabular-nums" />
+        <BzPropertyColumn Property="@(l => l.Warehouse)" Width="140" Options="@Warehouses" Editable />
+        <BzPropertyColumn Property="@(l => l.Quantity)" Width="112" Align="end" Editable />
+        <BzPropertyColumn Title="Unit price" Property="@(l => l.UnitPrice)" Format="C" Width="128" Align="end" Editable />
+        <BzPropertyColumn Title="Discount" Property="@(l => l.Discount)" Format="0'%'" Width="112" Align="end" Editable
+                          Validate="@(d => d is < 0 or > 50 ? "A discount runs from 0 to 50%." : null)" />
+        <BzPropertyColumn Property="@(l => l.Total)" Format="C" Pinned="DataTablePin.End" Width="128" Align="end" />
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed class Line
+    {
+        public int Id { get; init; }
+        public string Item { get; set; } = "";
+        public string Sku { get; init; } = "";
+        public string Warehouse { get; set; } = "";
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public int Discount { get; set; }
+        public decimal Total => Math.Round(Quantity * UnitPrice * (100 - Discount) / 100m, 2);
+    }
+
+    private static readonly string[] Warehouses = ["Lisbon", "Osaka", "Toronto", "Nairobi"];
+
+    // Built once per session: edits made here survive a visit to another page and back.
+    private readonly IReadOnlyList<Line> _lines = DemoRows.Cached<Line, Line>(() =>
+    {
+        var items = new[] { "Cable", "Adapter", "Charger", "Case", "Stand", "Hub", "Mouse", "Keyboard" };
+        return Enumerable.Range(1, 10_000)
+            .Select(i => new Line
+            {
+                Id = i,
+                Item = items[DemoRows.Pick(i, 1, items.Length)],
+                Sku = $"SK-{10_000 + i * 7}",
+                Warehouse = Warehouses[DemoRows.Pick(i, 4, Warehouses.Length)],
+                Quantity = 1 + DemoRows.Pick(i, 2, 20),
+                UnitPrice = 5 + DemoRows.Pick(i, 3, 95),
+                Discount = DemoRows.Pick(i, 5, 4) * 5,
+            })
+            .ToList();
+    });
+}

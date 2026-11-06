@@ -33,6 +33,46 @@ lockstep under one version.
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
   the nav on pages added in the last couple of months, and previous and next arrows next to each
   page's title.
+- **Data Table editing** (`blaizio update table`): mark a `BzPropertyColumn` `Editable` and the
+  table becomes a keyboard grid, one tab stop that Tab reaches as soon as the table renders.
+  `EditMode` picks how it edits. `Cell` (the default) works like a spreadsheet, one cell at a time:
+  the arrows, Tab and Enter move the cursor (Enter goes down, back to the column where a run of
+  Tabs began, and Shift+Enter up); typing replaces a cell and an arrow then commits and moves; F2
+  or a double-click edits it in place; Escape cancels. Space flips a bool, Delete clears a cell, and
+  a block copied from a spreadsheet pastes across cells. `Row` opens an editor in every editable
+  cell of the row and commits the row as one change. `Dialog` edits the row as a form in a dialog,
+  hidden columns included, whose fields scroll between a fixed title and buttons;
+  `EditDialogContent` swaps in a dialog, sheet or drawer of your own, with `context.Field(key)`
+  for any built-in field and `GetValue` / `SetValue` for your own controls. Cells, rows and the
+  dialog edit with the library's own controls, picked from the property's type: a text box, a
+  number field, a pick list for an enum (or any type given `Options`), a checkbox, a date field or
+  a time field. `Editor` picks another where it fits (a `Switch` for a bool, say), and
+  `EditorContent` swaps in any control. An editor lays over its cell, so the columns keep their
+  widths while it is open. Values parse in the current culture and pass the property's
+  DataAnnotations and the column's `Validate` before they are written through the property's
+  setter. `OnEdit` hears every change once per action, and `Reject` puts the old values back.
+  Moving the cursor never calls .NET, so it stays instant on Blazor Server, and it works with
+  `Virtualize`. `BeginEditAsync`, `CommitEditAsync`, `CancelEditAsync` and `IsEditing` drive it
+  from code. In an editable table a click on a row no longer toggles its selection; use the
+  checkbox or Shift+Space. Needs Blaizio.Base 0.3.6 (`CellBinding`, `TabSeparatedText` and the
+  grid script).
+- **Data Table column sizing, pinning and moving** (`blaizio update table`). On any column (a
+  `BzPropertyColumn`, a `BzTemplateColumn` or a `DataTableColumn`): `Width`, `MinWidth` and
+  `MaxWidth` in pixels, and `Fill` to take the room the other columns leave in the row (without
+  one, the content-sized columns stretch to fill it, as before). `Pinned` keeps a column in place
+  while the rows scroll sideways, `DataTablePin.Start` or `End`, which flip in a right-to-left
+  page; the selection column joins the start group, and pinning works with `StickyHeader`,
+  `MaxHeight`, `Virtualize` and editing. `ResizableColumns` lets users drag the end edge of a
+  header, double-click it to fit the content, or press Alt+Shift+Left / Right on a focused header
+  (Alt+Shift+Enter fits). `ReorderableColumns` lets users drag a header to a new place, or press
+  Ctrl+Shift+Left / Right (Cmd on a Mac), within its pinned group; a column's `Resizable` or
+  `Reorderable` opts it out, and one that cannot move keeps the others from crossing it. Bind
+  `ColumnWidths` (the widths users chose, by column key) and `ColumnOrder` (every key, in order) to
+  save them; `DefaultColumnWidths` and `DefaultColumnOrder` seed an uncontrolled table. The script
+  lays out the widths and runs every drag and key without calling .NET, and reports a finished
+  resize or move once. A laid-out column clips what does not fit with an ellipsis, a narrowed
+  sortable header truncates its title and keeps the sort icon, and an editor never changes a
+  column's width. Needs Blaizio.Base 0.3.6 (the column script).
 - **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
   optional description and a status (done, running with a shimmering title, error, pending). A
   line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's

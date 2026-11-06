@@ -1,0 +1,38 @@
+@* 10,000 editable rows in a 24rem scroll box. Only the visible band is in the DOM, there is one
+   editor at a time, and moving the cursor never calls .NET. *@
+<div class="w-full max-w-3xl [&_[data-slot=table]]:table-fixed">
+    <BzDataTable TItem="Line" Items="_lines" RowKey="@(l => l.Id)"
+                 Virtualize ItemSize="49" MaxHeight="24rem" StickyHeader>
+        <BzPropertyColumn Title="#" Property="@(l => l.Id)" Align="end" HeaderClass="w-16" CellClass="text-muted-foreground tabular-nums" />
+        <BzPropertyColumn Property="@(l => l.Item)" Editable />
+        <BzPropertyColumn Property="@(l => l.Quantity)" Align="end" HeaderClass="w-28" Editable />
+        <BzPropertyColumn Title="Unit price" Property="@(l => l.UnitPrice)" Format="C" Align="end" HeaderClass="w-32" Editable />
+        <BzPropertyColumn Property="@(l => l.Total)" Format="C" Align="end" HeaderClass="w-32" />
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed class Line
+    {
+        public int Id { get; init; }
+        public string Item { get; set; } = "";
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal Total => Quantity * UnitPrice;
+    }
+
+    // Built once per session: edits made here survive a visit to another page and back.
+    private readonly IReadOnlyList<Line> _lines = DemoRows.Cached<Line, Line>(() =>
+    {
+        var items = new[] { "Cable", "Adapter", "Charger", "Case", "Stand", "Hub", "Mouse", "Keyboard" };
+        return Enumerable.Range(1, 10_000)
+            .Select(i => new Line
+            {
+                Id = i,
+                Item = items[DemoRows.Pick(i, 1, items.Length)],
+                Quantity = 1 + DemoRows.Pick(i, 2, 20),
+                UnitPrice = 5 + DemoRows.Pick(i, 3, 95),
+            })
+            .ToList();
+    });
+}

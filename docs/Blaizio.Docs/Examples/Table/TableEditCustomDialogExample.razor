@@ -1,0 +1,69 @@
+@* Dialog mode with an editor of your own, here a side sheet. context.Field renders a column's
+   built-in field (label, editor, message), so only the layout is yours. *@
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable TItem="Ticket" Items="_tickets" RowKey="@(t => t.Id)" EditMode="DataTableEditMode.Dialog" OnEdit="OnEdit">
+        <ChildContent>
+            <BzPropertyColumn Property="@(t => t.Title)" Editable />
+            <BzPropertyColumn Property="@(t => t.Status)" Editable />
+            <BzPropertyColumn Property="@(t => t.Due)" Format="d MMM" Editable />
+            <BzPropertyColumn Title="Estimate" Property="@(t => t.Hours)" Align="end" Editable
+                              Validate="@(hours => hours is < 1 or > 40 ? "Estimate between 1 and 40 hours." : null)" />
+            <BzPropertyColumn Property="@(t => t.Urgent)" Editor="DataTableEditor.Switch" Editable />
+        </ChildContent>
+        <EditDialogContent>
+            <BzSheet Open="@context.Open" OpenChanged="@context.OpenChanged">
+                <BzSheetContent Class="flex flex-col">
+                    <BzSheetHeader>
+                        <BzSheetTitle>@context.Item.Title</BzSheetTitle>
+                        <BzSheetDescription>Ticket #@context.Item.Id. Nothing changes until you save.</BzSheetDescription>
+                    </BzSheetHeader>
+                    <form class="flex min-h-0 flex-1 flex-col" novalidate
+                          @onsubmit="@(() => context.SaveAsync())" @onsubmit:preventDefault>
+                        <div class="scrollbar-thin flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-1">
+                            @context.Field("Title")
+                            <div class="grid grid-cols-2 gap-4">
+                                @context.Field("Status")
+                                @context.Field("Estimate")
+                            </div>
+                            @context.Field("Due")
+                            @context.Field("Urgent")
+                        </div>
+                        <BzSheetFooter>
+                            <BzButton Type="ButtonType.Submit" Loading="@context.Busy">Save ticket</BzButton>
+                            <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Outline" OnClick="@(() => context.CancelAsync())">
+                                Cancel
+                            </BzButton>
+                        </BzSheetFooter>
+                    </form>
+                </BzSheetContent>
+            </BzSheet>
+        </EditDialogContent>
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_status</p>
+</div>
+
+@code {
+    private enum TicketStatus { Open, Blocked, Done }
+
+    private sealed class Ticket
+    {
+        public int Id { get; init; }
+        public string Title { get; set; } = "";
+        public TicketStatus Status { get; set; }
+        public DateOnly Due { get; set; }
+        public int Hours { get; set; }
+        public bool Urgent { get; set; }
+    }
+
+    private readonly List<Ticket> _tickets =
+    [
+        new() { Id = 101, Title = "Fix login redirect", Status = TicketStatus.Open, Due = new(2026, 11, 12), Hours = 3, Urgent = true },
+        new() { Id = 102, Title = "Export to CSV", Status = TicketStatus.Blocked, Due = new(2026, 11, 20), Hours = 8 },
+        new() { Id = 103, Title = "Dark mode charts", Status = TicketStatus.Done, Due = new(2026, 11, 2), Hours = 5 },
+    ];
+
+    private string _status = "Press Enter on a row to open its sheet.";
+
+    private void OnEdit(DataTableEditEventArgs<Ticket> e) =>
+        _status = $"Saved ticket #{e.Changes[0].Item.Id}: {string.Join(", ", e.Changes.Select(c => c.ColumnKey))}.";
+}

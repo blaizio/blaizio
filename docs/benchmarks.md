@@ -11,6 +11,52 @@ ceiling is exceeded - allocations are deterministic per runtime version, so this
 per-item component, dictionary or class merge without the flakiness of timing thresholds. Update
 a ceiling deliberately, in the same commit as the change that moves it, and re-record the table.
 
+## 2026-11-06 - DataTable column sizing, pinning and moving
+
+Column widths live in a `colgroup` the script fills in, so the body rows carry no width at all; a
+pinned cell carries its pin, its inset (a constant string per column) and, on the group's inner
+edge, the divider mark. Resizing and moving cost nothing until used: the script runs every drag and
+key, and a finished resize or move is one call. The read-only scenarios did not move (1000 rows:
+3.6 MB, 10,000 rows: 34.3 MB).
+
+| Scenario | Median render (ms) | Allocated (MB) |
+|----------|-------------------:|---------------:|
+| DataTable 1000 x 3 (pinned, sized, movable columns) | 12.8 | 5.2 |
+
+Readings:
+
+- **+1.6 MB over the plain 1000 x 3 table**, about 1.6 KB a row: the pinned cell's three
+  attributes and the clipping class on every cell, nearly all of it the harness parsing the longer
+  markup. No per-cell component, dictionary or class merge (the cell classes still resolve once per
+  column per render).
+
+## 2026-11-04 - DataTable editing
+
+An editable column turns the table into a keyboard grid (`ts/dataTable.ts`). The cursor moves in
+the browser with no .NET call and no render; one editor exists at a time; starting and committing
+an edit each re-render the body once. The read-only scenarios above did not move (1000 rows: 3.6 MB,
+10,000 rows: 34.3 MB), so the editing code costs a read-only table nothing.
+
+| Scenario | Median render (ms) | Allocated (MB) |
+|----------|-------------------:|---------------:|
+| DataTable 1000 x 3 property columns | 7.3 | 4.1 |
+| DataTable 1000 x 3 property columns (editable) | 8.4 | 4.5 |
+| DataTable 1000 x 3 (editable): open + commit a cell | 17.2 | 8.5 |
+
+Readings:
+
+- **Idle editable table**: +0.4 MB over the same table read-only, about 400 bytes a row: the row
+  address (`data-bz-row-index`) the grid script navigates by, and the harness parsing it. No
+  per-cell component, dictionary or class merge.
+- **Open + commit**: the first render plus two body passes (the editor in, the editor out with the
+  new value). At 1000 rows that is O(rows); with `Virtualize` or `PageSize` it is O(rows in view).
+  A save handed to `OnEdit` runs after the commit returns, so a slow save never holds up the cursor.
+- **Library controls as editors** (re-measured the same day): the cell editor is now the library's
+  own text box, number field, pick list, date or time field, hosted by one small component that
+  re-renders itself (never the table) as its value changes. Open + commit stayed under the first
+  measurement. The idle table did not move: a bool column's checkbox or switch was already a
+  component per cell.
+
 ## 2026-10-25 - Code Block syntax highlighting
 
 `SyntaxText` (Blaizio.Syntax, in Blaizio.Base when measured) tokenizes in C#; `BzCodeBlockContent Language="..."` renders one

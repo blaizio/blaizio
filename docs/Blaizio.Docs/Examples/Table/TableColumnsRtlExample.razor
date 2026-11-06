@@ -1,0 +1,27 @@
+@* Right to left, the start edge is on the right: the pinned Name column stays there, the resize
+   handles sit on each header's left edge, and Alt+Shift+Left widens a column. *@
+<RtlDemo Context="t">
+    <BzDirectionProvider Dir="Direction.Rtl">
+        <div class="w-full max-w-md">
+            <BzDataTable TItem="Member" Items="_members" Selectable RowKey="@(m => m.Id)" ResizableColumns ReorderableColumns>
+                <BzPropertyColumn Title='@t["الاسم", "שם"]' ColumnKey="name" Property="@(m => m.Name)" Pinned="DataTablePin.Start" Sortable />
+                <BzPropertyColumn Title='@t["البريد الإلكتروني", "דוא״ל"]' ColumnKey="email" Property="@(m => m.Email)" />
+                <BzPropertyColumn Title='@t["المدينة", "עיר"]' ColumnKey="city" Property="@(m => m.City)" Sortable />
+                <BzPropertyColumn Title='@t["الفريق", "צוות"]' ColumnKey="team" Property="@(m => m.Team)" Sortable />
+                <BzPropertyColumn Title='@t["الرصيد", "יתרה"]' ColumnKey="balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            </BzDataTable>
+        </div>
+    </BzDirectionProvider>
+</RtlDemo>
+
+@code {
+    private sealed record Member(int Id, string Name, string Email, string City, string Team, decimal Balance);
+
+    private static readonly Member[] _members =
+    [
+        new(1, "Amara Okafor", "amara.okafor@example.com", "Lisbon", "Platform", 1999.00m),
+        new(2, "Lucas Ferreira", "lucas.ferreira@example.com", "Osaka", "Design", 39.00m),
+        new(3, "Mei Tanaka", "mei.tanaka@example.com", "Toronto", "Billing", 299.00m),
+        new(4, "Daniel Brooks", "daniel.brooks@example.com", "Nairobi", "Support", 99.00m),
+    ];
+}

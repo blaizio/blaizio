@@ -1,0 +1,10 @@
+@* Test host: an editable column over a record (no setter) and no OnEdit - a configuration error. *@
+<BzDataTable TItem="Tag" Items="Items">
+    <BzPropertyColumn Property="@(t => t.Label)" Editable />
+</BzDataTable>
+
+@code {
+    public sealed record Tag(string Label);
+
+    [Parameter] public List<Tag> Items { get; set; } = [new("one")];
+}

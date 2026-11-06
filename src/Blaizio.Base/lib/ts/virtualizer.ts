@@ -18,6 +18,16 @@ interface DotNetObjectReference {
 const clamp = (value: number, min: number, max: number): number =>
   value < min ? min : value > max ? max : value;
 
+// Live instances by content root, so a module driving the same rows (the data table's keyboard
+// grid) can bring an unrendered row into the window without a .NET round trip. esbuild splits this
+// module into a shared chunk for both entries, so they see one map.
+const instances = new WeakMap<HTMLElement, Virtualizer>();
+
+/** The virtualizer attached to <paramref>root</paramref> (the element holding the rows), if any. */
+export function virtualizerFor(root: Element | null | undefined): Pick<Virtualizer, 'scrollToIndex'> | undefined {
+  return root instanceof HTMLElement ? instances.get(root) : undefined;
+}
+
 class Virtualizer {
   private readonly viewport: HTMLElement | Window;
   private frame = 0;
@@ -39,6 +49,7 @@ class Virtualizer {
     this.viewport = this.resolveViewport();
     this.viewport.addEventListener('scroll', this.onScroll, { passive: true });
     window.addEventListener('resize', this.onScroll, { passive: true });
+    instances.set(root, this);
     this.measure();
   }
 
@@ -248,6 +259,7 @@ class Virtualizer {
     if (this.frame) cancelAnimationFrame(this.frame);
     this.viewport.removeEventListener('scroll', this.onScroll);
     window.removeEventListener('resize', this.onScroll);
+    if (instances.get(this.root) === this) instances.delete(this.root);
   };
 }
 

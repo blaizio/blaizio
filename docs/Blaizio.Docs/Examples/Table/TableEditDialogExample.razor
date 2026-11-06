@@ -1,0 +1,63 @@
+<div class="w-full max-w-4xl">
+    <BzDataTable @ref="_table" TItem="Member" Items="_members" RowKey="@(m => m.Id)" ColumnToggle
+                 EditMode="DataTableEditMode.Dialog" EditDialogTitle="Edit member"
+                 EditDialogDescription="Changes apply when you save." OnEdit="OnEdit">
+        <BzPropertyColumn Property="@(m => m.Name)" Editable />
+        <BzPropertyColumn Property="@(m => m.Email)" Editable />
+        <BzPropertyColumn Property="@(m => m.Team)" Options="Teams" Editable />
+        <BzPropertyColumn Property="@(m => m.Access)" Editable />
+        <BzPropertyColumn Property="@(m => m.Started)" Format="d MMM yyyy" Editable Visible="false" />
+        <BzPropertyColumn Property="@(m => m.Active)" Editor="DataTableEditor.Switch" Editable Visible="false" />
+        <BzPropertyColumn Property="@(m => m.Notes)" Editable Visible="false">
+            <EditorContent>
+                <BzInputText @bind-Value="context.Value" Rows="3" @attributes="context.Attributes" />
+            </EditorContent>
+        </BzPropertyColumn>
+        <BzTemplateColumn Align="end" CellClass="w-[1%]">
+            <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _table!.BeginEditAsync(context))">
+                Edit
+            </BzButton>
+        </BzTemplateColumn>
+    </BzDataTable>
+</div>
+
+@code {
+    private static readonly string[] Teams = ["Design", "Engineering", "Sales", "Support"];
+
+    private enum Access { Viewer, Editor, Owner }
+
+    // A record: no setters, so OnEdit applies the change.
+    private sealed record Member(int Id, string Name, string Email, string Team, Access Access, DateOnly Started, bool Active, string? Notes);
+
+    private BzDataTable<Member>? _table;
+
+    private readonly List<Member> _members =
+    [
+        new(1, "Amara Okafor", "amara.okafor@example.com", "Design", Access.Owner, new(2023, 3, 6), true, null),
+        new(2, "Lucas Ferreira", "lucas.ferreira@example.com", "Engineering", Access.Editor, new(2022, 9, 12), true, "Leads the platform team."),
+        new(3, "Mei Tanaka", "mei.tanaka@example.com", "Sales", Access.Viewer, new(2024, 1, 15), true, null),
+        new(4, "Priya Raman", "priya.raman@example.com", "Support", Access.Editor, new(2021, 11, 2), false, "Weekend rota."),
+    ];
+
+    // Replace the row before any await, so the table shows the saved values at once.
+    private void OnEdit(DataTableEditEventArgs<Member> e)
+    {
+        var member = e.Changes[0].Item;
+        var updated = member;
+        foreach (var change in e.Changes)
+        {
+            updated = change.ColumnKey switch
+            {
+                "Name" => updated with { Name = (string)change.NewValue! },
+                "Email" => updated with { Email = (string)change.NewValue! },
+                "Team" => updated with { Team = (string)change.NewValue! },
+                "Access" => updated with { Access = (Access)change.NewValue! },
+                "Started" => updated with { Started = (DateOnly)change.NewValue! },
+                "Active" => updated with { Active = (bool)change.NewValue! },
+                "Notes" => updated with { Notes = (string?)change.NewValue },
+                _ => updated,
+            };
+        }
+        _members[_members.IndexOf(member)] = updated;
+    }
+}

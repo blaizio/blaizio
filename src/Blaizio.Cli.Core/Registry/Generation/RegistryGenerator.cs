@@ -67,6 +67,9 @@ public sealed class GeneratorOptions
             // find-in-page into closed rows) arrived in 0.3.6; an older Base would take it as a plain
             // HTML attribute and silently drop the behaviour.
             ["trace"] = "0.3.6",
+            // Editing (CellBinding, TabSeparatedText and the keyboard grid in dist/dataTable.js)
+            // arrived in 0.3.6; the table does not compile against an older Base.
+            ["table"] = "0.3.6",
         };
 
     /// <summary>

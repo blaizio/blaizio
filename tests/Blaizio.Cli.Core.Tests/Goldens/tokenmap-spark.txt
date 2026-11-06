@@ -157,8 +157,13 @@ bz-combobox-trigger-icon => text-muted-foreground size-4
 bz-command => bg-popover text-popover-foreground rounded-lg
 bz-command-item => rounded-md px-2 py-1.5 in-data-[slot=dialog-content]:rounded-lg!
 bz-context-menu-content => bg-popover text-popover-foreground text-sm ring-1 outline-none min-w-[8rem] rounded-lg p-1 shadow-md ring-foreground/10
-bz-data-table => w-full space-y-3
+bz-data-table => w-full data-bz-moving:select-none data-bz-resizing:select-none space-y-3
 bz-data-table-columns-trigger => gap-2
+bz-data-table-edit-body => -m-1 min-h-0 overflow-y-auto p-1
+bz-data-table-edit-dialog => max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto]
+bz-data-table-edit-form => contents
+bz-data-table-edit-message => text-destructive mb-4 text-sm
+bz-data-table-live => sr-only
 bz-data-table-search => w-full max-w-xs
 bz-data-table-status => text-muted-foreground text-sm
 bz-data-table-toolbar => flex flex-wrap items-center gap-2
@@ -291,17 +296,25 @@ bz-switch-thumb-icon => text-foreground/70 dark:in-data-[state=unchecked]:text-b
 bz-table => w-full caption-bottom border-collapse text-sm font-medium
 bz-table-body => [&_tr:last-child]:border-0
 bz-table-caption => text-muted-foreground mt-4 text-sm
-bz-table-cell => align-middle whitespace-nowrap px-3 py-2.5
+bz-table-cell => align-middle whitespace-nowrap focus:outline-none data-active:inset-ring-ring/60 data-active:inset-ring-1 data-active:focus:inset-ring-ring data-active:focus:inset-ring-2 data-editing:relative data-invalid:bg-destructive/10 data-invalid:relative data-pending:text-muted-foreground data-pinned:sticky data-pinned:z-[1] data-pinned:bg-inherit data-pinned:before:[content:''] data-pinned:before:bg-background data-pinned:before:pointer-events-none data-pinned:before:absolute data-pinned:before:inset-0 data-pinned:before:-z-1 data-pinned:after:[content:''] data-pinned:after:pointer-events-none data-pinned:after:absolute data-pinned:after:inset-0 data-pinned:after:-z-1 data-pinned:after:bg-inherit data-pinned:data-invalid:after:bg-destructive/10 data-pinned:data-editing:sticky data-pinned:data-editing:z-[3] data-pinned:data-invalid:sticky data-pinned:data-invalid:z-[3] data-[pinned-edge=start]:after:border-border data-[pinned-edge=start]:after:border-e data-[pinned-edge=end]:after:border-border data-[pinned-edge=end]:after:border-s px-3 py-2.5
+bz-table-cell-editor => absolute inset-0 z-[1] flex items-center p-0.5 data-[align=center]:justify-center data-[align=end]:justify-end data-[bz-cell-editor=checkbox]:p-[inherit] data-[bz-cell-editor=switch]:p-[inherit]
+bz-table-cell-error => border-destructive/40 bg-popover text-destructive absolute start-0 top-full z-20 mt-1 w-max max-w-64 rounded-md border px-2 py-1 text-xs font-normal whitespace-normal shadow-md
+bz-table-cell-fixed => overflow-hidden text-ellipsis data-editing:overflow-visible
+bz-table-cell-ghost => invisible
+bz-table-col => data-moving:bg-muted/50
 bz-table-container => scrollbar-thin relative w-full overflow-x-auto rounded-lg border
 bz-table-container-scroll => overflow-y-auto
 bz-table-container-virtual => overflow-visible
 bz-table-empty => text-muted-foreground text-center align-middle h-24
 bz-table-footer => bg-accent/60 border-t font-semibold
-bz-table-head => text-start align-middle whitespace-nowrap text-accent-foreground h-10 px-3 font-semibold
+bz-table-head => text-start align-middle whitespace-nowrap focus:outline-none data-active:inset-ring-ring/60 data-active:inset-ring-1 data-active:focus:inset-ring-ring data-active:focus:inset-ring-2 data-resizable:sticky data-reorderable:sticky data-moving:cursor-grabbing data-moving:opacity-60 data-pinned:sticky data-pinned:z-[11] data-pinned:after:[content:''] data-pinned:after:pointer-events-none data-pinned:after:absolute data-pinned:after:inset-0 data-pinned:after:-z-1 data-pin-backdrop:before:[content:''] data-pin-backdrop:before:bg-background data-pin-backdrop:before:pointer-events-none data-pin-backdrop:before:absolute data-pin-backdrop:before:inset-0 data-pin-backdrop:before:-z-1 data-[pinned-edge=start]:after:border-border data-[pinned-edge=start]:after:border-e data-[pinned-edge=end]:after:border-border data-[pinned-edge=end]:after:border-s text-accent-foreground h-10 px-3 font-semibold data-pin-backdrop:after:bg-accent/60
+bz-table-head-content => flex min-w-0 items-center data-[align=center]:justify-center data-[align=end]:justify-end
+bz-table-head-fixed => overflow-hidden text-ellipsis
 bz-table-header => bg-accent/60 [&_tr]:border-b
+bz-table-resizer => absolute inset-y-0 end-0 z-[1] w-2 cursor-col-resize touch-none select-none after:absolute after:inset-y-2 after:end-0 after:w-px after:bg-border after:transition-colors hover:after:bg-ring data-active:after:w-0.5 data-active:after:bg-ring
 bz-table-row => transition-colors hover:bg-accent/40 data-[state=selected]:bg-accent border-b
 bz-table-select-cell => w-[1%] whitespace-nowrap
-bz-table-sort-button => inline-flex items-center gap-1.5 whitespace-nowrap outline-none transition-colors hover:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_5%)] focus-visible:ring-ring/50 focus-visible:border-ring dark:focus-visible:border-ring -ms-2 h-8 rounded-lg border border-transparent px-2.5 font-semibold focus-visible:ring-2
+bz-table-sort-button => inline-flex min-w-0 items-center gap-1.5 whitespace-nowrap outline-none transition-colors hover:bg-[color-mix(in_oklch,var(--accent),var(--foreground)_5%)] focus-visible:ring-ring/50 focus-visible:border-ring dark:focus-visible:border-ring -ms-2 h-8 rounded-lg border border-transparent px-2.5 font-semibold focus-visible:ring-2
 bz-table-sort-icon => shrink-0 size-3.5 opacity-70
 bz-table-sticky => [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-accent
 bz-tabs => gap-2

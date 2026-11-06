@@ -1,0 +1,52 @@
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable TItem="Booking" Items="_bookings" RowKey="@(b => b.Id)" EditMode="DataTableEditMode.Row" OnEdit="SaveAsync">
+        <BzPropertyColumn Property="@(b => b.Guest)" Editable />
+        <BzPropertyColumn Property="@(b => b.Room)" Editable />
+        <BzPropertyColumn Title="Check-in" Property="@(b => b.CheckIn)" Format="d MMM" Editable />
+        <BzPropertyColumn Title="Check-out" Property="@(b => b.CheckOut)" Format="d MMM" Editable />
+        <BzPropertyColumn Property="@(b => b.Nights)" Align="end" />
+        <BzPropertyColumn Property="@(b => b.Paid)" Editable />
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_status</p>
+</div>
+
+@code {
+    private enum RoomType { Single, Double, Suite }
+
+    private sealed class Booking
+    {
+        public int Id { get; init; }
+        public string Guest { get; set; } = "";
+        public RoomType Room { get; set; }
+        public DateOnly CheckIn { get; set; }
+        public DateOnly CheckOut { get; set; }
+        public int Nights => CheckOut.DayNumber - CheckIn.DayNumber;
+        public bool Paid { get; set; }
+    }
+
+    private readonly List<Booking> _bookings =
+    [
+        new() { Id = 1, Guest = "Amara Okafor", Room = RoomType.Suite, CheckIn = new(2026, 11, 12), CheckOut = new(2026, 11, 15), Paid = true },
+        new() { Id = 2, Guest = "Lucas Ferreira", Room = RoomType.Double, CheckIn = new(2026, 11, 14), CheckOut = new(2026, 11, 16) },
+        new() { Id = 3, Guest = "Mei Tanaka", Room = RoomType.Single, CheckIn = new(2026, 11, 20), CheckOut = new(2026, 11, 21), Paid = true },
+        new() { Id = 4, Guest = "Daniel Brooks", Room = RoomType.Double, CheckIn = new(2026, 12, 2), CheckOut = new(2026, 12, 9) },
+    ];
+
+    private string _status = "Press Enter on a row to edit it. Enter saves the row, Escape cancels it.";
+
+    // The whole row arrives at once, already written into the booking, so a rule can span fields.
+    private async Task SaveAsync(DataTableEditEventArgs<Booking> e)
+    {
+        var booking = e.Changes[0].Item;
+        if (booking.CheckOut <= booking.CheckIn)
+        {
+            var field = e.Changes.FirstOrDefault(c => c.ColumnKey == "Check-out") ?? e.Changes[0];
+            e.Reject(field, "Check-out must be after check-in.");
+            return;
+        }
+
+        _status = $"Saving {booking.Guest}...";
+        await Task.Delay(400); // your API call
+        _status = $"Saved {booking.Guest}: {booking.Nights} night(s).";
+    }
+}

@@ -1,0 +1,18 @@
+@* Test host: columns that pick their editor - a pick list over Options, a switch, a date - in any edit mode. *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" EditMode="Mode"
+             OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Person>>(this, e => Edits.Add(e)))">
+    <BzPropertyColumn Property="@(p => p.Name)" Editable Options="Names" />
+    <BzPropertyColumn Property="@(p => p.Active)" Editable Editor="DataTableEditor.Switch" />
+    <BzPropertyColumn Property="@(p => p.Joined)" Editable />
+</BzDataTable>
+
+@code {
+    public static readonly string[] Names = ["Ada", "Bo", "Cy", "Dee"];
+
+    [Parameter] public List<Person> Items { get; set; } = [];
+    [Parameter] public DataTableEditMode Mode { get; set; }
+
+    public BzDataTable<Person>? Table;
+
+    public List<DataTableEditEventArgs<Person>> Edits { get; } = [];
+}

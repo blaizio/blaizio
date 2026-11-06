@@ -1,0 +1,34 @@
+@* Drag a header to move its column, or focus one and press Ctrl+Shift+Left / Right. The # column
+   stays put (Reorderable="false"), so the others never cross it. The order lands in _order. *@
+<div class="w-full max-w-3xl space-y-3">
+    <BzDataTable TItem="WorkItem" Items="_tasks" RowKey="@(t => t.Id)" ReorderableColumns @bind-ColumnOrder="_order">
+        <BzPropertyColumn Title="#" Property="@(t => t.Id)" Reorderable="false" CellClass="text-muted-foreground tabular-nums" />
+        <BzPropertyColumn Property="@(t => t.Title)" Sortable />
+        <BzPropertyColumn Property="@(t => t.Owner)" Sortable />
+        <BzPropertyColumn Property="@(t => t.Due)" Format="MMM d" Sortable />
+        <BzPropertyColumn Property="@(t => t.Estimate)" Align="end" Format="0.# h" />
+    </BzDataTable>
+    <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <p class="text-muted-foreground">Order: @string.Join(", ", _order ?? DeclaredOrder)</p>
+        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@(_order is null)" OnClick="@(() => _order = null)">
+            Reset order
+        </BzButton>
+    </div>
+</div>
+
+@code {
+    private sealed record WorkItem(int Id, string Title, string Owner, DateOnly Due, double Estimate);
+
+    // Every column key in display order; save it with the rest of a user's settings.
+    private IReadOnlyList<string>? _order;
+
+    private static readonly string[] DeclaredOrder = ["#", "Title", "Owner", "Due", "Estimate"];
+
+    private static readonly WorkItem[] _tasks =
+    [
+        new(1, "Draft the release notes", "Mei Tanaka", new(2026, 11, 12), 3),
+        new(2, "Review the billing changes", "Lucas Ferreira", new(2026, 11, 14), 1.5),
+        new(3, "Update the onboarding guide", "Amara Okafor", new(2026, 11, 18), 5),
+        new(4, "Fix the export timeout", "Daniel Brooks", new(2026, 11, 20), 2),
+    ];
+}

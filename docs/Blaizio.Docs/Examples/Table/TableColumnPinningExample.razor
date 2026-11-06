@@ -1,0 +1,50 @@
+@* Name is pinned to the start edge (the selection column goes with it) and the row actions to the
+   end edge; the columns between scroll under them. Works with StickyHeader in a scroll box. *@
+<div class="w-full max-w-3xl">
+    <BzDataTable TItem="Person" Items="_people" RowKey="@(p => p.Id)" Selectable @bind-SelectedItems="_selected"
+                 MaxHeight="20rem" StickyHeader ResizableColumns>
+        <BzPropertyColumn Property="@(p => p.Name)" Pinned="DataTablePin.Start" Width="168" Sortable />
+        <BzPropertyColumn Property="@(p => p.Email)" Sortable />
+        <BzPropertyColumn Property="@(p => p.Team)" Sortable />
+        <BzPropertyColumn Property="@(p => p.Location)" Sortable />
+        <BzPropertyColumn Property="@(p => p.Role)" />
+        <BzPropertyColumn Property="@(p => p.Started)" Format="MMM yyyy" Sortable />
+        <BzPropertyColumn Property="@(p => p.Salary)" Format="C0" Align="end" Sortable />
+        <BzTemplateColumn Title="Status" SortBy="@(p => p.Status)" Sortable>
+            <BzBadge Variant="@(context.Status == "Active" ? BadgeVariant.Default : BadgeVariant.Secondary)">@context.Status</BzBadge>
+        </BzTemplateColumn>
+        <BzTemplateColumn Pinned="DataTablePin.End" Align="end" Resizable="false">
+            <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" aria-label="@($"Message {context.Name}")">
+                <BzIcon Icon="@Tabler.Outline.Mail" Class="size-4" />
+            </BzButton>
+        </BzTemplateColumn>
+    </BzDataTable>
+</div>
+
+@code {
+    private sealed record Person(int Id, string Name, string Email, string Team, string Location, string Role, DateOnly Started, decimal Salary, string Status);
+
+    private IReadOnlyCollection<Person> _selected = [];
+
+    private static readonly Person[] _people = Build();
+
+    private static Person[] Build()
+    {
+        string[] names = ["Amara Okafor", "Lucas Ferreira", "Mei Tanaka", "Daniel Brooks", "Priya Raman", "Liam Johnson", "Emma Wilson", "Noah Brown", "Sofia Rossi", "Kenji Sato", "Fatima Zahra", "Oliver Smith"];
+        string[] teams = ["Platform", "Design", "Billing", "Mobile", "Support"];
+        string[] places = ["Lisbon", "Osaka", "Toronto", "Nairobi", "Berlin", "Austin"];
+        string[] roles = ["Engineer", "Designer", "Manager", "Analyst", "Writer"];
+        return names
+            .Select((name, i) => new Person(
+                i + 1,
+                name,
+                $"{name.ToLowerInvariant().Replace(' ', '.')}@example.com",
+                teams[i % teams.Length],
+                places[(i * 5) % places.Length],
+                roles[(i * 3) % roles.Length],
+                new DateOnly(2019 + i % 7, 1 + (i * 7) % 12, 1),
+                62_000 + i * 4_350,
+                i % 4 == 3 ? "On leave" : "Active"))
+            .ToArray();
+    }
+}

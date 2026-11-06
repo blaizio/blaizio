@@ -34,6 +34,14 @@ Measure("Plain markup table 1000 rows x 3 cols", () => RenderPlainTable(1000), a
 Measure("Plain markup table 10000 rows x 3 cols", () => RenderPlainTable(10_000), allocCeilingMb: 12);
 Measure("DataTable 10000 x 3 (PageSize 50)", () => RenderDataTable(10_000, pageSize: 50), allocCeilingMb: 5);
 Measure("DataTable 10000 x 3 (Virtualize)", () => RenderDataTable(10_000, virtualize: true), allocCeilingMb: 5);
+// Editing: an editable table renders like a read-only one (the editors, the keyboard and the
+// cursor cost nothing until used), and opening + committing a cell is two passes over the body.
+Measure("DataTable 1000 x 3 property columns", () => RenderPropertyTable(1000, editable: false), allocCeilingMb: 8);
+Measure("DataTable 1000 x 3 property columns (editable)", () => RenderPropertyTable(1000, editable: true), allocCeilingMb: 8);
+Measure("DataTable 1000 x 3 (editable): open + commit a cell", () => EditPropertyTable(1000), allocCeilingMb: 20);
+// Column features: a pinned, sized, resizable and movable table renders like a plain one (the
+// widths live in a colgroup; a pinned cell is two constant attributes).
+Measure("DataTable 1000 x 3 (pinned, sized, movable columns)", () => RenderDataTable(1000, columnFeatures: true), allocCeilingMb: 8);
 // Syntax highlighting: the tokenizer alone, a highlighted block's first render, and output
 // streaming in a line at a time (each update must re-render only the new line).
 Measure("SyntaxText C# 600 lines", () => SyntaxText.Tokenize(CSharpSample(50), "csharp"), allocCeilingMb: 1);
@@ -181,15 +189,16 @@ static void RenderTree(bool virtualize)
         throw new InvalidOperationException("tree scenario rendered wrong node count");
 }
 
-static void RenderDataTable(int rows, int? pageSize = null, bool virtualize = false)
+static void RenderDataTable(int rows, int? pageSize = null, bool virtualize = false, bool columnFeatures = false)
 {
     var data = Enumerable.Range(0, rows)
         .Select(i => new Row($"Name {i}", $"user{i}@example.com", i % 100))
         .ToList();
     IReadOnlyList<DataTableColumn<Row>> columns =
     [
-        new() { Title = "Name", Cell = r => b => b.AddContent(0, r.Name), SortBy = r => r.Name },
-        new() { Title = "Email", Cell = r => b => b.AddContent(0, r.Email), Text = r => r.Email },
+        new() { Title = "Name", Cell = r => b => b.AddContent(0, r.Name), SortBy = r => r.Name,
+                Pinned = columnFeatures ? DataTablePin.Start : DataTablePin.None, Width = columnFeatures ? 160 : null },
+        new() { Title = "Email", Cell = r => b => b.AddContent(0, r.Email), Text = r => r.Email, Fill = columnFeatures },
         new() { Title = "Age", Cell = r => b => b.AddContent(0, r.Age), SortBy = r => r.Age },
     ];
 
@@ -199,6 +208,7 @@ static void RenderDataTable(int rows, int? pageSize = null, bool virtualize = fa
         p.Add(x => x.Items, data).Add(x => x.Columns, columns);
         if (pageSize is { } size) p.Add(x => x.PageSize, size);
         if (virtualize) p.Add(x => x.Virtualize, true);
+        if (columnFeatures) p.Add(x => x.ResizableColumns, true).Add(x => x.ReorderableColumns, true);
     });
     if (!cut.Markup.Contains("Name 0", StringComparison.Ordinal))
         throw new InvalidOperationException("table scenario rendered no rows");
@@ -286,6 +296,58 @@ static void StreamCodeBlock(string code)
         throw new InvalidOperationException($"a line that turned empty kept old content: '{lineTexts.ElementAtOrDefault(1)}'");
 }
 
+static IRenderedComponent<BzDataTable<EditRow>> RenderPropertyTableCore(BunitContext ctx, int rows, bool editable)
+{
+    var data = Enumerable.Range(0, rows)
+        .Select(i => new EditRow { Name = $"Name {i}", Email = $"user{i}@example.com", Age = i % 100 })
+        .ToList();
+    RenderFragment columns = b =>
+    {
+        b.OpenComponent<BzPropertyColumn<EditRow, string>>(0);
+        b.AddComponentParameter(1, "Property", (System.Linq.Expressions.Expression<Func<EditRow, string>>)(r => r.Name));
+        b.AddComponentParameter(2, "Editable", editable);
+        b.CloseComponent();
+        b.OpenComponent<BzPropertyColumn<EditRow, string>>(3);
+        b.AddComponentParameter(4, "Property", (System.Linq.Expressions.Expression<Func<EditRow, string>>)(r => r.Email));
+        b.AddComponentParameter(5, "Editable", editable);
+        b.CloseComponent();
+        b.OpenComponent<BzPropertyColumn<EditRow, int>>(6);
+        b.AddComponentParameter(7, "Property", (System.Linq.Expressions.Expression<Func<EditRow, int>>)(r => r.Age));
+        b.AddComponentParameter(8, "Editable", editable);
+        b.CloseComponent();
+    };
+    var cut = ctx.Render<BzDataTable<EditRow>>(p => p.Add(x => x.Items, data).Add(x => x.ChildContent, columns));
+    if (!cut.Markup.Contains("Name 0", StringComparison.Ordinal))
+        throw new InvalidOperationException("property table scenario rendered no rows");
+    if (editable != cut.Markup.Contains("role=\"grid\"", StringComparison.Ordinal))
+        throw new InvalidOperationException("property table scenario rendered the wrong role");
+    return cut;
+}
+
+static void RenderPropertyTable(int rows, bool editable)
+{
+    using var ctx = NewContext();
+    RenderPropertyTableCore(ctx, rows, editable);
+}
+
+static void EditPropertyTable(int rows)
+{
+    using var ctx = NewContext();
+    var cut = RenderPropertyTableCore(ctx, rows, editable: true);
+    var table = cut.Instance;
+    cut.InvokeAsync(() => table.BeginEdit(0, 0, "N")).GetAwaiter().GetResult();
+    cut.InvokeAsync(() => table.EndEdit(true, new Dictionary<string, string?> { ["Name"] = "Renamed" }, false)).GetAwaiter().GetResult();
+    if (!cut.Markup.Contains("Renamed", StringComparison.Ordinal))
+        throw new InvalidOperationException("edit scenario did not commit");
+}
+
 internal sealed record Node(string Id, List<Node> Children);
 
 internal sealed record Row(string Name, string Email, int Age);
+
+internal sealed class EditRow
+{
+    public string Name { get; set; } = "";
+    public string Email { get; set; } = "";
+    public int Age { get; set; }
+}

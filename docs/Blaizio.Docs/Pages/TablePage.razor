@@ -11,7 +11,8 @@
         <p>
             A responsive data table. Compose the styled primitives directly, or hand rows to
             <code>BzDataTable&lt;TItem&gt;</code> for sorting, search, column visibility, selection,
-            pagination and virtualization - inside a fixed-height scroll box (<code>MaxHeight</code>)
+            editing, column sizing, pinning and moving, pagination and virtualization - inside a
+            fixed-height scroll box (<code>MaxHeight</code>)
             or, by default, against the page itself with no height restriction. For server-side data, swap
             <code>Items</code> for an async <code>ItemsProvider</code>.
         </p>
@@ -63,6 +64,42 @@
           Description="For server-side data, give an ItemsProvider instead of Items: it receives the page window, sort and filter and returns that page plus the total count, so sorting, search and paging all happen at the source. Here it queries 10,000 rows behind a simulated 300ms latency (skeleton rows hold the page shape while the first load is in flight - LoadingContent swaps in your own); stale requests are canceled as you click."
           Example="typeof(TableProviderExample)" />
 
+    <Demo Title="Editing cells"
+          Description="Mark a BzPropertyColumn Editable and the table becomes a spreadsheet-style grid that edits with the library's own controls, picked from each property's type: a text box for Name, a pick list for the Category enum, number fields for Price and Stock, a date field for Restock, and a switch for Listed, chosen with Editor. Tab in and move with the arrows, Tab and Enter. Type over a cell to replace it (an arrow then commits and moves), or press F2 or double-click to edit it in place. Enter commits and moves down, Escape puts the old value back, Space flips the switch, Delete clears a cell, and a block copied from a spreadsheet pastes across cells. Values pass the property's DataAnnotations (Stock's Range, Name's Required) and the column's Validate (Price) before they are written into the row. OnEdit hears every change once per action."
+          Example="typeof(TableEditCellExample)" />
+
+    <Demo Title="Editing rows"
+          Description="EditMode Row edits the whole row in place: Enter, F2 or a double-click opens an editor in every editable cell (a pick list for Room, date fields for the stay, a checkbox for Paid). Tab walks the fields, Enter commits the row as one change and Escape cancels it. The row is already written when OnEdit runs, so a rule can span fields: here a check-out before the check-in is refused with Reject, which puts the old values back and keeps the row open with the message under the field."
+          Example="typeof(TableEditRowExample)" />
+
+    <Demo Title="Editing in a dialog"
+          Description="EditMode Dialog edits the row as a form: Enter on a row, a double-click, or BeginEditAsync from a row action opens it, with a field for every editable column, the hidden Started, Active and Notes columns included. When there are more fields than room, they scroll between the title and the buttons. Options turns Team's strings into a pick list, Editor makes Active a switch, and EditorContent swaps in any control, here a multi-line text box for Notes; it binds context.Value and serves the cell, row and dialog editors alike. The rows are records with no setters, so OnEdit applies the change by replacing the row."
+          Example="typeof(TableEditDialogExample)" />
+
+    <Demo Title="Editing in your own dialog"
+          Description="EditDialogContent replaces the built-in dialog with a surface of your own, here a side sheet: bind its Open and OpenChanged to the context and save with context.SaveAsync. context.Field renders a column's built-in field (its label, editor and message), so the fields behave as they do in the dialog while the layout is yours, with Status and Estimate sharing a row. For controls of your own, context.GetValue and SetValue reach the drafts, and ErrorFor and Message say why a save was refused."
+          Example="typeof(TableEditCustomDialogExample)" />
+
+    <Demo Title="Editing large tables"
+          Description="Editing works with Virtualize: here 10,000 rows in a scroll box, with only the visible band rendered. Moving the cursor never calls .NET, and PageDown, Ctrl+End or an arrow past the edge scrolls the box to bring the row in. There is one editor at a time, and starting or committing an edit re-renders only the rows in view. Total follows Quantity and Unit price as you commit."
+          Example="typeof(TableEditVirtualExample)" />
+
+    <Demo Title="Column sizing"
+          Description="Width, MinWidth and MaxWidth size a column in pixels, and Fill gives one the room the others leave, here Customer. With ResizableColumns, drag the edge between two headers to resize a column, double-click it to fit the content, or focus a header and press Alt+Shift+Left or Right (Alt+Shift+Enter fits). The columns before the one you resize keep their widths; a filling column after it gives or takes the difference. Bind ColumnWidths to keep what users choose: it holds the widths they set, by column key, and setting it to null goes back to the columns' own widths."
+          Example="typeof(TableColumnSizingExample)" />
+
+    <Demo Title="Pinned columns"
+          Description="Pinned keeps a column in place while the rows scroll sideways: Start columns sit at the start edge (the selection column joins them) and End columns at the end edge, each group in its own order, with a divider on its inner edge. Pinned cells take each row's hover and selection tint, and they work with StickyHeader, a MaxHeight scroll box, resizing (the offsets follow the widths), Virtualize and editing."
+          Example="typeof(TableColumnPinningExample)" />
+
+    <Demo Title="Moving columns"
+          Description="With ReorderableColumns, drag a header to move its column, or focus one and press Ctrl+Shift+Left or Right (the focus moves with it). A column moves within its pinned group, and one whose Reorderable is off stays put and keeps the others from crossing it, here the # column. A plain click still sorts. Bind ColumnOrder to keep the order: it lists every column key, hidden ones included, and a column missing from a saved order keeps its declared place."
+          Example="typeof(TableColumnReorderExample)" />
+
+    <Demo Title="Columns in a large editable table"
+          Description="Every column feature at once on 10,000 virtualized, editable rows: # and Item pinned to the start, Total to the end, the columns between resizable and movable. The widths live in a colgroup, so the rows the virtualizer adds as you scroll take them with no work of their own, and an editor never changes a column's width. Moving the cursor still never calls .NET, and the cursor scrolls a cell out from under the pinned columns."
+          Example="typeof(TableColumnsVirtualExample)" />
+
     <Demo Title="Customization"
           Description="Restyle the primitives via Class - here the header row gets an indigo tint and white text, and the caption an indigo accent."
           Example="typeof(TableCustomExample)" />
@@ -71,9 +108,107 @@
           Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - alignment, the select column and the sort affordance all flip to the opposite side."
           Example="typeof(TableRtlExample)" />
 
+    <Demo Title="Columns, right to left"
+          Description="Pinning, resizing and moving follow the direction: the start edge is on the right, so the pinned Name column (and the selection column) stay there, each resize handle sits on its header's left edge, and Alt+Shift+Left widens a column. Ctrl+Shift+Left still moves a column to the left on screen."
+          Example="typeof(TableColumnsRtlExample)" />
+
+    <section class="space-y-3">
+        <h2 id="keyboard" data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Keyboard</h2>
+        <p>
+            An editable table is one tab stop: Tab moves into it and the arrow keys move between cells.
+            Cell mode follows spreadsheet conventions: Enter moves down, typing replaces a cell and F2
+            edits it in place. Moving the cursor never calls .NET; only starting and committing an
+            edit do. In right-to-left pages the left and right arrows swap.
+        </p>
+        <BzTable>
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Key</BzTableHead>
+                    <BzTableHead>On a cell</BzTableHead>
+                    <BzTableHead>While editing</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                @foreach (var (keys, onCell, editing) in KeyboardRows)
+                {
+                    <BzTableRow>
+                        <BzTableCell>
+                            <span class="inline-flex flex-wrap gap-1">
+                                @foreach (var key in keys)
+                                {
+                                    <BzKbd>@key</BzKbd>
+                                }
+                            </span>
+                        </BzTableCell>
+                        <BzTableCell><div class="min-w-48 max-w-md whitespace-normal">@onCell</div></BzTableCell>
+                        <BzTableCell><div class="min-w-48 max-w-md whitespace-normal">@editing</div></BzTableCell>
+                    </BzTableRow>
+                }
+            </BzTableBody>
+        </BzTable>
+        <p>
+            Column keys work on a focused header in any table, editable or not: Tab reaches a header
+            through its sort button (or the header itself), and an editable table's cursor reaches it
+            with the arrows. Each resize or move is reported to .NET once, when it is done.
+        </p>
+        <BzTable>
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Key</BzTableHead>
+                    <BzTableHead>On a header</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                @foreach (var (keys, onHeader) in HeaderKeyboardRows)
+                {
+                    <BzTableRow>
+                        <BzTableCell>
+                            <span class="inline-flex flex-wrap gap-1">
+                                @foreach (var key in keys)
+                                {
+                                    <BzKbd>@key</BzKbd>
+                                }
+                            </span>
+                        </BzTableCell>
+                        <BzTableCell><div class="min-w-48 max-w-xl whitespace-normal">@onHeader</div></BzTableCell>
+                    </BzTableRow>
+                }
+            </BzTableBody>
+        </BzTable>
+    </section>
+
 </div>
 
 @code {
+    // The editable table's keys: what each does on a cell, and inside an open editor.
+    private static readonly (string[] Keys, string OnCell, string Editing)[] KeyboardRows =
+    [
+        (["Arrows"], "Move one cell. Up from the first row reaches the header.", "After typing over a cell: commit and move. After F2 or a double-click they stay in the editor: they move the caret, step a number or a date part, or open a pick list."),
+        (["Ctrl", "Arrow"], "Jump to the first or last row or column.", "Moves the caret."),
+        (["Home", "End"], "First or last cell of the row. With Ctrl, of the table.", "Moves the caret."),
+        (["PageUp", "PageDown"], "Move a screenful of rows.", "-"),
+        (["Tab"], "Next cell, wrapping to the next row. Leaves the table after the last cell. With Shift, back.", "The editor's next part (a date's day, month and year; a row's fields), then commit and move right. With Shift, left."),
+        (["Enter"], "Cell mode: move down, back to the column where a run of Tabs started. With Shift, up. Row mode: edit the row. Dialog mode: open the form.", "Commit and move down, back to the column where a run of Tabs started. With Shift, up."),
+        (["A", "1"], "Typing replaces the cell; a pick list jumps to the first option that matches.", "Types."),
+        (["F2"], "Edit the cell in place, caret at the end.", "Switch between moving on with the arrows (after typing over a cell) and editing in place."),
+        (["Ctrl", "Enter"], "-", "Commit and stay."),
+        (["Escape"], "-", "Cancel and put the old value back."),
+        (["Space"], "Flip a checkbox or switch cell. With Shift, select the row.", "Types a space, or opens a pick list."),
+        (["Delete"], "Clear the cell.", "Deletes text."),
+        (["Backspace"], "Clear the cell and start typing.", "Deletes text."),
+        (["Ctrl", "C"], "Copy the cell's text.", "Copies the selected text."),
+        (["Ctrl", "V"], "Paste one value, or a block copied from a spreadsheet.", "Pastes text."),
+    ];
+
+    // The column keys (ResizableColumns, ReorderableColumns), on a focused header of any table.
+    private static readonly (string[] Keys, string OnHeader)[] HeaderKeyboardRows =
+    [
+        (["Alt", "Shift", "Arrow"], "Narrow or widen the column by 10 pixels: the arrow moves its end edge, so Right widens it in a left-to-right page and Left in a right-to-left one."),
+        (["Alt", "Shift", "Enter"], "Fit the column to its content, as a double-click on its edge does."),
+        (["Ctrl", "Shift", "Arrow"], "Move the column one place left or right on screen, within its pinned group. The focus moves with it. On a Mac, Cmd works too."),
+        (["Escape"], "While dragging an edge or a header: put it back."),
+    ];
+
     // The anatomy drawn by the Composition section - CompositionTree computes the connectors.
     private static readonly CompositionNode Anatomy = new("BzTable",
         new CompositionNode("BzTableCaption"),

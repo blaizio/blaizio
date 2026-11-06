@@ -11,8 +11,19 @@
     cascade TItem and register in document order) or via the Columns list. Gives single-column sorting
     (header click cycles asc → desc → off), a search filter across the searchable columns, a
     column-visibility menu, optional row selection, and - the headline - optional WINDOW virtualization
-    with no height restriction: set Virtualize and the body mounts only the rows in view (ItemSize =
+    with no height restriction: set Virtualize and the body renders only the rows in view (ItemSize =
     fixed estimate, DynamicRowHeight to measure variable rows) while the page itself scrolls.
+
+    Editing: mark a BzPropertyColumn Editable and the table becomes a keyboard grid (role=grid). EditMode
+    picks Cell (spreadsheet-style, one cell at a time), Row (every editor in the row at once) or Dialog
+    (the row as a form in a dialog). ts/dataTable.ts owns the cursor - moving costs no .NET call and no
+    render - and .NET owns the data: one editor exists at a time (one row of them in Row mode), a commit
+    parses, validates, writes through the property setter and raises OnEdit once per user action.
+
+    Columns: Width / MinWidth / MaxWidth / Fill size them, Pinned keeps them in place while the rows
+    scroll sideways, and ResizableColumns / ReorderableColumns let users resize and move them. The
+    script (ts/dataTable.ts) lays the widths out and runs every drag and key without calling .NET; it
+    reports a finished resize or move once, and .NET keeps the result in ColumnWidths / ColumnOrder.
 *@
 
 @* Columns register through this cascade; the fragment itself renders nothing visible. *@
@@ -21,13 +32,21 @@
 </CascadingValue>
 
 @{
+    // The display order, settled per render: the columns' keys and pins are final by now.
+    ArrangeColumns();
     var columns = VisibleColumns;
     var colSpan = columns.Count + (Selectable ? 1 : 0);
+    // Sizing, pinning and moving, settled per render (null for a table that uses none of them,
+    // which then renders exactly as before).
+    var frame = _frame = BuildColumnFrame(columns);
     // Per-column cell classes resolve ONCE per render: Tw.Merge per cell was a measurable share
     // of the 10k-row hotspot (see docs/benchmarks.md), and the result is identical down a column.
     var cellClasses = new string[columns.Count];
     for (var c = 0; c < columns.Count; c++)
-        cellClasses[c] = Tw.Merge("bz-table-cell", ColumnClass(columns[c], header: false));
+        cellClasses[c] = Tw.Merge("bz-table-cell", frame is { Sized: true } ? "bz-table-cell-fixed" : null, ColumnClass(columns[c], header: false));
+    // Whether any column edits, settled per render: a column's editor exists only once its own
+    // parameters have been set, which is after it registers.
+    var editing = _editing = _effectiveColumns.Exists(c => c.Editor is not null);
 }
 
 <div @ref="_root" @attributes="RootAttributes()">
@@ -49,24 +68,51 @@
         </div>
     }
 
+    @* An editable table is a keyboard grid: its cells are the tab stop (ts/dataTable.ts roves it), so
+       the scroll container stops being one. *@
     <BzTable ContainerClass="@ResolveContainerClass()" ContainerId="@(Scrollable ? _scrollId : null)" ContainerStyle="@ResolveContainerStyle()"
-             ContainerFocusable="@(Scrollable || Virtualize)">
+             ContainerFocusable="@((Scrollable || Virtualize) && !editing)" Attributes="@(editing ? GridAttributes() : null)">
         @if (Caption is not null)
         {
             <BzTableCaption>@Caption</BzTableCaption>
+        }
+        @if (frame is { Sized: true })
+        {
+            @* One col per column: the script writes the widths here, so rows the virtualizer adds
+               later take them with no work of their own. *@
+            @RenderColumnGroup(columns)
         }
         <BzTableHeader Class="@(StickyHeader ? "bz-table-sticky" : null)">
             <BzTableRow>
                 @if (Selectable)
                 {
-                    <BzTableHead Class="bz-table-select-cell">
+                    <BzTableHead Class="bz-table-select-cell" @attributes="SelectHeadAttributes(editing, frame)">
                         <BzCheckbox Checked="@SelectAllState" CheckedChanged="@(_ => ToggleAll())" aria-label="Select all rows" />
                     </BzTableHead>
                 }
-                @foreach (var col in columns)
+                @for (var c = 0; c < columns.Count; c++)
                 {
-                    <BzTableHead Class="@ColumnClass(col, header: true)" aria-sort="@AriaSort(col)">
-                        @RenderHeader(col)
+                    var col = columns[c];
+                    // The header's content renders later, after the loop has moved on: it reads its own copy.
+                    var resizable = frame is not null && frame.Resizable[c];
+                    <BzTableHead Class="@HeadClass(col, frame)" @attributes="HeadAttributes(col, c, editing, frame)">
+                        @if (frame is { Sized: true })
+                        {
+                            @* A laid-out column can be narrower than its header: the title truncates
+                               inside this row, and the sort icon keeps its place. *@
+                            <div class="bz-table-head-content" data-align="@(col.Align is "center" or "end" ? col.Align : null)">
+                                @RenderHeader(col)
+                            </div>
+                        }
+                        else
+                        {
+                            @RenderHeader(col)
+                        }
+                        @if (resizable)
+                        {
+                            @* The drag handle on the end edge; the keys live on the header itself. *@
+                            <span class="bz-table-resizer" data-bz-resizer aria-hidden="true"></span>
+                        }
                     </BzTableHead>
                 }
             </BzTableRow>
@@ -78,7 +124,7 @@
                (Element="tbody") with tr/td spacers. RenderBodyRow still tags each row with its virtual index
                + fixed-mode height, so the body row keeps its existing click / selection wiring.
                Paging and virtualizing are alternatives, so a paged table takes the plain-body path. *@
-            <BzVirtualizer TItem="TItem" Element="tbody" Class="bz-table-body"
+            <BzVirtualizer @ref="_virtualizer" TItem="TItem" Element="tbody" Class="bz-table-body"
                          Items="_view" ItemSize="@ItemSize" Dynamic="@DynamicRowHeight"
                          Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)">
                 <ChildContent Context="row">
@@ -130,6 +176,18 @@
         <div class="bz-data-table-status" aria-live="polite">
             @SelectedInViewCount of @_rendered.Count row(s) selected.
         </div>
+    }
+
+    @if (editing)
+    {
+        @* Edit outcomes for screen readers: a rejected value, a failed save. Always rendered, so the
+           region exists before its text changes. *@
+        <div class="bz-data-table-live" role="status" aria-live="polite">@_liveMessage</div>
+    }
+
+    @if (editing && EditMode == DataTableEditMode.Dialog)
+    {
+        @RenderEditDialog
     }
 </div>
 
@@ -183,6 +241,49 @@
 
     /// <summary>Label for the column-visibility trigger. Defaults to "Columns".</summary>
     [Parameter] public string ColumnToggleLabel { get; set; } = "Columns";
+
+    /// <summary>
+    /// Let users resize columns: drag the end edge of a header, double-click it to fit the content,
+    /// or press Alt+Shift+Left / Right on a focused header (Alt+Shift+Enter fits). A column's
+    /// <c>MinWidth</c> and <c>MaxWidth</c> still hold, and <c>Resizable</c> opts one out. Bind
+    /// <see cref="ColumnWidths"/> to keep what users choose.
+    /// </summary>
+    [Parameter] public bool ResizableColumns { get; set; }
+
+    /// <summary>
+    /// Let users move columns: drag a header to a new place, or press Ctrl+Shift+Left / Right on a
+    /// focused header. Pinned columns move among their own group, and a column whose
+    /// <c>Reorderable</c> is off stays put. Bind <see cref="ColumnOrder"/> to keep the order.
+    /// </summary>
+    [Parameter] public bool ReorderableColumns { get; set; }
+
+    /// <summary>
+    /// Controlled column widths in pixels, by column key: the columns a user resized. A width here
+    /// replaces the column's own <c>Width</c> (kept within its <c>MinWidth</c> and <c>MaxWidth</c>).
+    /// Use with <c>@bind-ColumnWidths</c> to save them; set it to <see langword="null"/> to go back
+    /// to the columns' own widths.
+    /// </summary>
+    [Parameter] public IReadOnlyDictionary<string, double>? ColumnWidths { get; set; }
+
+    /// <summary>Initial column widths when uncontrolled (see <see cref="ColumnWidths"/>).</summary>
+    [Parameter] public IReadOnlyDictionary<string, double>? DefaultColumnWidths { get; set; }
+
+    /// <summary>Raised when a user finishes resizing a column, with every width set so far. Enables <c>@bind-ColumnWidths</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyDictionary<string, double>?> ColumnWidthsChanged { get; set; }
+
+    /// <summary>
+    /// Controlled column order: column keys, first to last. Use with <c>@bind-ColumnOrder</c> to save
+    /// it; set it to <see langword="null"/> to go back to the declared order. Keys that name no
+    /// column are ignored, and a column the list leaves out keeps its declared place. Pinned
+    /// columns still sit at their edge.
+    /// </summary>
+    [Parameter] public IReadOnlyList<string>? ColumnOrder { get; set; }
+
+    /// <summary>Initial column order when uncontrolled (see <see cref="ColumnOrder"/>).</summary>
+    [Parameter] public IReadOnlyList<string>? DefaultColumnOrder { get; set; }
+
+    /// <summary>Raised when a user moves a column, with every column key in the new order (hidden columns included). Enables <c>@bind-ColumnOrder</c>.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<string>?> ColumnOrderChanged { get; set; }
 
     /// <summary>Add a leading checkbox column for row selection. Clicking a row (outside an interactive cell control) also toggles it.</summary>
     [Parameter] public bool Selectable { get; set; }
@@ -259,6 +360,43 @@
     /// <summary>Returns an extra CSS class for a row based on its data, applied to that row's <c>tr</c>. Return <see langword="null"/> for none.</summary>
     [Parameter] public Func<TItem, string?>? RowClass { get; set; }
 
+    /// <summary>
+    /// How <c>Editable</c> columns edit: one cell at a time, spreadsheet-style (the default), the
+    /// whole row in place, or the row as a form in a dialog. Any editable column turns the table
+    /// into a keyboard grid: arrows, Home / End, PageUp / PageDown and Tab move between cells, and
+    /// in Cell mode so does Enter (Row and Dialog modes open the row with it).
+    /// </summary>
+    [Parameter] public DataTableEditMode EditMode { get; set; } = DataTableEditMode.Cell;
+
+    /// <summary>
+    /// Raised once per user action that changed cells: a committed cell, row or dialog, a toggled
+    /// checkbox, a paste or a clear. Properties with a setter already hold the new values; call
+    /// <c>Reject</c> on the arguments to put the old ones back. Required when an editable property
+    /// has no setter (a record or an <c>init</c> property): apply the change there.
+    /// </summary>
+    [Parameter] public EventCallback<DataTableEditEventArgs<TItem>> OnEdit { get; set; }
+
+    /// <summary>The dialog editor's title (Dialog mode). Defaults to "Edit row".</summary>
+    [Parameter] public string EditDialogTitle { get; set; } = "Edit row";
+
+    /// <summary>An optional line under the dialog editor's title.</summary>
+    [Parameter] public string? EditDialogDescription { get; set; }
+
+    /// <summary>The dialog editor's save button. Defaults to "Save".</summary>
+    [Parameter] public string EditDialogSaveLabel { get; set; } = "Save";
+
+    /// <summary>The dialog editor's cancel button. Defaults to "Cancel".</summary>
+    [Parameter] public string EditDialogCancelLabel { get; set; } = "Cancel";
+
+    /// <summary>
+    /// Your own editor for Dialog mode, in place of the built-in dialog: a dialog, sheet or drawer
+    /// laid out as you like. The context carries the row, a draft per editable column, the
+    /// validation messages, and Save / Cancel. Bind your surface's <c>Open</c> and
+    /// <c>OpenChanged</c> to <c>context.Open</c> and <c>context.OpenChanged</c>, and render any field
+    /// you keep as built with <c>context.Field(key)</c>.
+    /// </summary>
+    [Parameter] public RenderFragment<DataTableEditDialog<TItem>>? EditDialogContent { get; set; }
+
     /// <summary>Extra classes for the data-table wrapper.</summary>
     [Parameter] public string? Class { get; set; }
 
@@ -266,12 +404,15 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private readonly List<IGridColumn<TItem>> _registered = [];
+    private List<IGridColumn<TItem>> _declared = [];
     private List<IGridColumn<TItem>> _effectiveColumns = [];
     private readonly HashSet<string> _hidden = [];
     private readonly HashSet<string> _seenColumns = [];
     private readonly ControllableState<SortState?> _sort = new();
     private readonly ControllableState<string?> _filter = new();
     private readonly ControllableState<int> _page = new();
+    private readonly ControllableState<IReadOnlyDictionary<string, double>?> _widths = new();
+    private readonly ControllableState<IReadOnlyList<string>?> _order = new();
     private HashSet<TItem> _selected = [];
     private readonly string _scrollId = "bz-dt-scroll-" + Guid.NewGuid().ToString("N")[..8];
     private IEqualityComparer<TItem> _rowComparer = EqualityComparer<TItem>.Default;
@@ -320,11 +461,22 @@
         _sort.Sync(SortChanged.HasDelegate, Sort, DefaultSort);
         _filter.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
         _page.Sync(PageChanged.HasDelegate, Page, DefaultPage);
+        _widths.Sync(ColumnWidthsChanged.HasDelegate, ColumnWidths, DefaultColumnWidths);
+        _order.Sync(ColumnOrderChanged.HasDelegate, ColumnOrder, DefaultColumnOrder);
 
         // In-memory: run the filter/sort/page pipeline now. Server-driven: just refresh the column set;
         // the data is fetched asynchronously in OnParametersSetAsync (and on sort/filter/page changes).
+        // The parent re-rendering in answer to OnEdit keeps the current row order instead: an edit
+        // never moves the row under the cursor (the next sort or search orders it again).
         if (ServerDriven) RebuildColumns();
+        else if (_editEcho > 0 || _editEchoPending)
+        {
+            _editEchoPending = false;
+            RefreshAfterEdit();
+        }
         else Recompute();
+
+        SyncEditSession();
     }
 
     protected override Task OnParametersSetAsync() => ServerDriven ? LoadAsync() : Task.CompletedTask;
@@ -364,6 +516,8 @@
         }
 
         _view = rows.ToList();
+        _lastItems = Items;
+        _lastItemsCount = Items is IReadOnlyCollection<TItem> counted ? counted.Count : -1;
         ApplyPage();
     }
 
@@ -439,18 +593,54 @@
         }
     }
 
-    // The effective column list = data columns (Columns) then registered child columns; default-hidden
-    // columns are folded into the hidden set the first time they appear.
+    // The declared columns = data columns (Columns) then registered child columns, in declaration
+    // order; ArrangeColumns turns them into the display order.
     private void RebuildColumns()
     {
-        _effectiveColumns = [];
+        _declared = [];
         if (Columns is { Count: > 0 })
         {
-            for (var i = 0; i < Columns.Count; i++) _effectiveColumns.Add(new DataTableColumnAdapter<TItem>(Columns[i], i));
+            for (var i = 0; i < Columns.Count; i++) _declared.Add(new DataTableColumnAdapter<TItem>(Columns[i], i));
         }
-        _effectiveColumns.AddRange(_registered);
+        _declared.AddRange(_registered);
+        ArrangeColumns();
+    }
 
-        foreach (var col in _effectiveColumns)
+    // The display order, always worked out from the declared one (so it never drifts render to
+    // render). The order (ColumnOrder) reshuffles the columns it names among the places those
+    // columns hold, so a column it leaves out (one added after the order was saved) keeps its
+    // declared place. Then the pins: start columns first, end columns last, each group in its own
+    // order. Default-hidden columns are folded into the hidden set the first time they appear.
+    // Also run at each render: a child column's key (its property's name) is only known once its
+    // own parameters are set, which is after it registers.
+    private void ArrangeColumns()
+    {
+        var columns = _declared;
+        if (_order.Value is { Count: > 0 } order)
+        {
+            var rank = new Dictionary<string, int>(order.Count, StringComparer.Ordinal);
+            for (var i = 0; i < order.Count; i++) rank.TryAdd(order[i], i);
+            var listed = columns.Where(c => rank.ContainsKey(c.Key)).OrderBy(c => rank[c.Key]).ToList();
+            columns = [.. columns];
+            var next = 0;
+            for (var i = 0; i < columns.Count && next < listed.Count; i++)
+            {
+                if (rank.ContainsKey(columns[i].Key)) columns[i] = listed[next++];
+            }
+        }
+
+        if (columns.Exists(c => c.Pinned is DataTablePin.Start or DataTablePin.End))
+        {
+            columns =
+            [
+                .. columns.Where(c => c.Pinned == DataTablePin.Start),
+                .. columns.Where(c => c.Pinned is not (DataTablePin.Start or DataTablePin.End)),
+                .. columns.Where(c => c.Pinned == DataTablePin.End),
+            ];
+        }
+        _effectiveColumns = columns;
+
+        foreach (var col in columns)
         {
             if (_seenColumns.Add(col.Key) && col.DefaultHidden) _hidden.Add(col.Key);
         }
@@ -581,6 +771,303 @@
         StateHasChanged();
     }
 
+    // ---- columns: sizing, pinning and moving ----
+    //
+    // ts/dataTable.ts (createColumns) owns the layout: it measures the content, works out every
+    // width, writes them into the colgroup, keeps pinned columns' offsets current and runs each
+    // resize and move. .NET owns the state - the widths users chose, the order, the pins - and hears
+    // about a finished resize or move once.
+
+    // The narrowest any column gets when it names no MinWidth (the script uses the same floor).
+    private const double ColumnFloor = 32;
+
+    private const string SelectPinInset = "inset-inline-start:0px";
+
+    private static readonly IReadOnlyDictionary<string, double> NoWidths = new Dictionary<string, double>();
+
+    private ColumnFrame? _frame;
+    private IJSObjectReference? _columns;
+    private string? _columnsSignature;
+    private bool _columnsCreating;
+
+    // What one render knows about the column features. Null when the table uses none of them.
+    private sealed class ColumnFrame
+    {
+        // The script lays the widths out (a colgroup is rendered, the cells clip).
+        public bool Sized { get; init; }
+
+        // The selection column stays at the start edge, before the start columns.
+        public bool PinSelect { get; init; }
+
+        // Per visible column: "start" or "end", the inset that keeps it there, and the group's
+        // inner edge ("start" on the last start column, "end" on the first end column).
+        public required string?[] Pin { get; init; }
+
+        public required string?[] PinInset { get; init; }
+
+        public required string?[] Edge { get; init; }
+
+        public required bool[] Resizable { get; init; }
+
+        public required bool[] Reorderable { get; init; }
+    }
+
+    // Whether the script lays out the widths: any sizing parameter, a width a user chose, or resizing.
+    private bool ColumnsSized =>
+        ResizableColumns || _widths.Value is { Count: > 0 } ||
+        _effectiveColumns.Exists(c => c.Width is not null || c.MinWidth is not null || c.MaxWidth is not null || c.Fill);
+
+    private ColumnFrame? BuildColumnFrame(List<IGridColumn<TItem>> columns)
+    {
+        var sized = ColumnsSized;
+        var pinned = columns.Exists(c => c.Pinned is DataTablePin.Start or DataTablePin.End);
+        if (!sized && !pinned && !ReorderableColumns) return null;
+
+        var count = columns.Count;
+        var pin = new string?[count];
+        var inset = new string?[count];
+        var edge = new string?[count];
+        var resizable = new bool[count];
+        var reorderable = new bool[count];
+        var pinSelect = Selectable && columns.Exists(c => c.Pinned == DataTablePin.Start);
+
+        // The columns arrive grouped (ApplyColumnOrder): start ones first, end ones last. Offsets
+        // count from each edge: the first start column (or the selection column) sits at 0.
+        var fromStart = pinSelect ? 1 : 0;
+        var lastStart = -1;
+        for (var c = 0; c < count; c++)
+        {
+            resizable[c] = ResizableColumns && columns[c].Resizable;
+            reorderable[c] = ReorderableColumns && columns[c].Reorderable;
+            if (columns[c].Pinned != DataTablePin.Start) continue;
+            pin[c] = "start";
+            inset[c] = PinInset("start", fromStart++);
+            lastStart = c;
+        }
+        var fromEnd = 0;
+        var firstEnd = -1;
+        for (var c = count - 1; c >= 0; c--)
+        {
+            if (columns[c].Pinned != DataTablePin.End) continue;
+            pin[c] = "end";
+            inset[c] = PinInset("end", fromEnd++);
+            firstEnd = c;
+        }
+        if (lastStart >= 0) edge[lastStart] = "start";
+        if (firstEnd >= 0) edge[firstEnd] = "end";
+
+        return new ColumnFrame
+        {
+            Sized = sized,
+            PinSelect = pinSelect,
+            Pin = pin,
+            PinInset = inset,
+            Edge = edge,
+            Resizable = resizable,
+            Reorderable = reorderable,
+        };
+    }
+
+    // The k-th pinned cell from an edge sits past the widths of the ones before it, which the script
+    // measures and writes onto the table as --bz-pin-s<k> / --bz-pin-e<k>.
+    private static string PinInset(string side, int k) => k == 0
+        ? $"inset-inline-{side}:0px"
+        : $"inset-inline-{side}:var(--bz-pin-{side[0]}{k.ToString(CultureInfo.InvariantCulture)},0px)";
+
+    private static string HeadClass(IGridColumn<TItem> col, ColumnFrame? frame) =>
+        frame is { Sized: true } ? Tw.Merge("bz-table-head-fixed", ColumnClass(col, header: true)) : ColumnClass(col, header: true);
+
+    private IReadOnlyDictionary<string, object> HeadAttributes(IGridColumn<TItem> col, int index, bool editing, ColumnFrame? frame)
+    {
+        var attributes = new Dictionary<string, object>();
+        if (AriaSort(col) is { } sort) attributes["aria-sort"] = sort;
+        if (HeadTabStop(editing, index + (Selectable ? 1 : 0)) is { } stop) attributes["tabindex"] = stop;
+        if (frame is null) return attributes;
+
+        attributes["data-bz-column"] = col.Key;
+        if (frame.Pin[index] is { } pin)
+        {
+            attributes["data-pinned"] = pin;
+            attributes["style"] = frame.PinInset[index]!;
+            // A header that is not sticky has no fill of its own to cover the rows scrolling under it.
+            if (!StickyHeader) attributes["data-pin-backdrop"] = "";
+            if (frame.Edge[index] is { } edge) attributes["data-pinned-edge"] = edge;
+        }
+        if (frame.Resizable[index]) attributes["data-resizable"] = "";
+        if (frame.Reorderable[index]) attributes["data-reorderable"] = "";
+        // The keys act on a focused header: one with no sort button gets a tab stop of its own (an
+        // editable table's cursor reaches every header already).
+        if (!editing && col.Header is null && !col.Sortable && (frame.Resizable[index] || frame.Reorderable[index]))
+            attributes["tabindex"] = "0";
+        return attributes;
+    }
+
+    private IReadOnlyDictionary<string, object> SelectHeadAttributes(bool editing, ColumnFrame? frame)
+    {
+        var attributes = new Dictionary<string, object>();
+        if (HeadTabStop(editing, 0) is { } stop) attributes["tabindex"] = stop;
+        if (frame is { PinSelect: true })
+        {
+            attributes["data-pinned"] = "start";
+            attributes["style"] = SelectPinInset;
+            if (!StickyHeader) attributes["data-pin-backdrop"] = "";
+        }
+        return attributes;
+    }
+
+    private RenderFragment RenderColumnGroup(List<IGridColumn<TItem>> columns) => builder =>
+    {
+        builder.OpenElement(0, "colgroup");
+        if (Selectable)
+        {
+            builder.OpenElement(1, "col");
+            builder.AddAttribute(2, "class", "bz-table-col");
+            builder.CloseElement();
+        }
+        for (var c = 0; c < columns.Count; c++)
+        {
+            builder.OpenElement(3, "col");
+            builder.AddAttribute(4, "class", "bz-table-col");
+            // A known width is written before the script attaches, so the first paint is close.
+            if (EffectiveWidth(columns[c]) is { } width) builder.AddAttribute(5, "style", $"width:{Px(width)}");
+            builder.CloseElement();
+        }
+        builder.CloseElement();
+    };
+
+    // The width a column starts at: the one a user chose, else its own Width, within its bounds.
+    private double? EffectiveWidth(IGridColumn<TItem> column)
+    {
+        double? width = _widths.Value is { } chosen && chosen.TryGetValue(column.Key, out var user) ? user : column.Width;
+        return width is { } w ? ClampWidth(column, w) : null;
+    }
+
+    // MaxWidth wins over a MinWidth above it.
+    private static double ClampWidth(IGridColumn<TItem> column, double width)
+    {
+        var min = column.MinWidth ?? ColumnFloor;
+        if (width < min) width = min;
+        if (column.MaxWidth is { } max && width > max) width = max;
+        return width;
+    }
+
+    /// <summary>
+    /// Called by the column script when a user finishes resizing a column (a drag, a double-click
+    /// fit, or a run of Alt+Shift+arrow presses): stores the width and raises
+    /// <see cref="ColumnWidthsChanged"/>.
+    /// </summary>
+    [JSInvokable]
+    public async Task ColumnResized(string key, double width)
+    {
+        // The script follows whatever this answers with, even a controlled parent keeping the old width.
+        _columnsSignature = null;
+        var column = _effectiveColumns.Find(c => c.Key == key);
+        if (column is null || !double.IsFinite(width))
+        {
+            StateHasChanged();
+            return;
+        }
+        var next = new Dictionary<string, double>(_widths.Value ?? NoWidths, StringComparer.Ordinal)
+        {
+            [key] = ClampWidth(column, Math.Round(width)),
+        };
+        await _widths.SetAsync(next, ColumnWidthsChanged);
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called by the column script when a user moves a column (a drop, or a Ctrl+Shift+arrow press)
+    /// with the visible columns' keys in their new order: stores the order, hidden columns keeping
+    /// their places, and raises <see cref="ColumnOrderChanged"/>.
+    /// </summary>
+    [JSInvokable]
+    public async Task ColumnsReordered(string[] visibleOrder)
+    {
+        _columnsSignature = null;
+        var visible = VisibleColumns;
+        var known = visible.Select(c => c.Key).Order(StringComparer.Ordinal);
+        if (visibleOrder.Length != visible.Count || !known.SequenceEqual(visibleOrder.Order(StringComparer.Ordinal), StringComparer.Ordinal))
+        {
+            // Out of step with this render (a column came or went mid-drag): the script re-syncs.
+            StateHasChanged();
+            return;
+        }
+
+        var next = new List<string>(_effectiveColumns.Count);
+        var v = 0;
+        foreach (var column in _effectiveColumns)
+            next.Add(_hidden.Contains(column.Key) ? column.Key : visibleOrder[v++]);
+        await _order.SetAsync(next, ColumnOrderChanged);
+        if (!_order.IsControlled) RebuildColumns();
+        StateHasChanged();
+    }
+
+    // The column script: created on the first render that uses a column feature, then told only when
+    // its inputs change - the visible columns and their widths, bounds, pins and switches.
+    private async Task SyncColumnsAsync()
+    {
+        if (_frame is null && _columns is null) return;
+        // The frame belongs to the last render: a column shown or hidden since then waits for the next one.
+        if (_frame is not null && _frame.Pin.Length != VisibleColumns.Count) return;
+        var options = ColumnsOptions(out var signature);
+        if (_columns is not null)
+        {
+            if (signature == _columnsSignature) return;
+            _columnsSignature = signature;
+            try
+            {
+                await _columns.InvokeVoidAsync("update", options);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit gone.
+            }
+            return;
+        }
+        if (_columnsCreating) return;
+        _columnsCreating = true;
+        try
+        {
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _rowClicksModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dataTable.js");
+            _columnsSignature = signature;
+            _columns = await _rowClicksModule.InvokeAsync<IJSObjectReference>("createColumns", _root, _selfRef, options);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the wiring landed.
+        }
+        finally
+        {
+            _columnsCreating = false;
+        }
+    }
+
+    private object ColumnsOptions(out string signature)
+    {
+        var columns = VisibleColumns;
+        var frame = _frame;
+        var hasRows = NavRows.Count > 0;
+        var list = new object[columns.Count];
+        var key = new System.Text.StringBuilder()
+            .Append(frame?.Sized == true).Append('|').Append(Selectable).Append('|').Append(hasRows);
+        for (var i = 0; i < columns.Count; i++)
+        {
+            var col = columns[i];
+            var width = frame is null ? null : EffectiveWidth(col);
+            var pin = frame?.Pin[i];
+            var resizable = frame?.Resizable[i] == true;
+            var reorderable = frame?.Reorderable[i] == true;
+            var title = col.Title ?? col.Key;
+            list[i] = new { key = col.Key, title, width, min = col.MinWidth, max = col.MaxWidth, fill = col.Fill, pin, resizable, reorderable };
+            key.Append('|').Append(col.Key).Append(':').Append(title).Append(':').Append(width).Append(':')
+                .Append(col.MinWidth).Append(':').Append(col.MaxWidth).Append(':').Append(col.Fill).Append(':')
+                .Append(pin).Append(':').Append(resizable).Append(':').Append(reorderable);
+        }
+        signature = key.ToString();
+        return new { sized = frame?.Sized == true, selectable = Selectable, hasRows, columns = list };
+    }
+
     // ---- selection ----
 
     private bool IsSelected(TItem item) => _selected.Contains(item);
@@ -624,14 +1111,15 @@
         }
         else if (col.Sortable)
         {
-            <button type="button" class="bz-table-sort-button" @onclick="@(() => ToggleSort(col))">
-                <span>@col.Title</span>
+            <button type="button" class="bz-table-sort-button" data-bz-sort @onclick="@(() => ToggleSort(col))">
+                @* Truncates in a column narrowed below its title (bz-table-head-content). *@
+                <span class="truncate">@col.Title</span>
                 <BzIcon Icon="@SortIcon(col)" Class="bz-table-sort-icon" />
             </button>
         }
         else
         {
-            @col.Title
+            <span class="truncate">@col.Title</span>
         }
     </text>;
 
@@ -642,6 +1130,11 @@
     // row-click delegation see the same DOM. The selection checkbox stays a real component.
     private RenderFragment RenderBodyRow(TItem item, int index, List<IGridColumn<TItem>> columns, string[] cellClasses) => builder =>
     {
+        var editing = _editing;
+        var session = editing ? _edit : null;
+        var rowEditing = session is { Mode: not DataTableEditMode.Dialog } && SameRow(item, session.Item);
+        var indexText = Virtualize || RowsClickable || editing ? index.ToString(CultureInfo.InvariantCulture) : null;
+
         builder.OpenElement(0, "tr");
 
         // Key virtualized rows by their absolute index. Without a key the diff is positional, so a
@@ -657,41 +1150,981 @@
             builder.AddAttribute(2, "data-state", "selected");
         if (Virtualize)
         {
-            builder.AddAttribute(3, "data-bz-virtual-index", index.ToString(CultureInfo.InvariantCulture));
+            builder.AddAttribute(3, "data-bz-virtual-index", indexText);
             if (!DynamicRowHeight)
                 builder.AddAttribute(4, "style", $"height:{Px(ItemSize)}");
         }
-        if (RowsClickable)
-            builder.AddAttribute(5, "data-bz-row-index", index.ToString(CultureInfo.InvariantCulture));
-        builder.AddAttribute(6, "class", RowClass is null ? "bz-table-row" : Tw.Merge("bz-table-row", RowClass(item)));
+        // The row index is also the keyboard grid's row address (ts/dataTable.ts).
+        if (RowsClickable || editing)
+            builder.AddAttribute(5, "data-bz-row-index", indexText);
+        if (editing && (Virtualize || Paged))
+            builder.AddAttribute(6, "aria-rowindex", AriaRowIndex(index));
+        if (rowEditing && session!.Mode == DataTableEditMode.Row)
+            builder.AddAttribute(7, "data-editing", "");
+        builder.AddAttribute(8, "class", RowClass is null ? "bz-table-row" : Tw.Merge("bz-table-row", RowClass(item)));
 
+        var frame = _frame;
         if (Selectable)
         {
-            builder.OpenElement(7, "td");
-            builder.AddAttribute(8, "data-slot", "table-cell");
-            builder.AddAttribute(9, "class", SelectCellClasses);
-            builder.OpenComponent<BzCheckbox>(10);
-            builder.AddComponentParameter(11, nameof(BzCheckbox.Checked),
+            builder.OpenElement(9, "td");
+            builder.AddAttribute(10, "data-slot", "table-cell");
+            builder.AddAttribute(11, "class", SelectCellClasses);
+            if (frame is { PinSelect: true })
+            {
+                builder.AddAttribute(12, "data-pinned", "start");
+                builder.AddAttribute(13, "style", SelectPinInset);
+            }
+            builder.OpenComponent<BzCheckbox>(14);
+            builder.AddComponentParameter(15, nameof(BzCheckbox.Checked),
                 IsSelected(item) ? CheckedState.Checked : CheckedState.Unchecked);
-            builder.AddComponentParameter(12, nameof(BzCheckbox.CheckedChanged),
+            builder.AddComponentParameter(16, nameof(BzCheckbox.CheckedChanged),
                 EventCallback.Factory.Create<CheckedState>(this, _ => ToggleRow(item)));
-            builder.AddAttribute(13, "aria-label", "Select row");
+            builder.AddAttribute(17, "aria-label", "Select row");
             builder.CloseComponent();
             builder.CloseElement();
         }
 
         for (var c = 0; c < columns.Count; c++)
         {
-            builder.OpenElement(14, "td");
-            builder.AddAttribute(15, "data-slot", "table-cell");
-            builder.AddAttribute(16, "class", cellClasses[c]);
-            builder.AddContent(17, columns[c].RenderCell(item));
+            var column = columns[c];
+            builder.OpenElement(18, "td");
+            builder.AddAttribute(19, "data-slot", "table-cell");
+            builder.AddAttribute(20, "class", cellClasses[c]);
+            // A pinned cell: where it stays (the script measures the offsets) and, on the group's
+            // inner edge, the divider.
+            if (frame?.Pin[c] is { } pin)
+            {
+                builder.AddAttribute(21, "data-pinned", pin);
+                builder.AddAttribute(22, "style", frame.PinInset[c]);
+                if (frame.Edge[c] is { } edge) builder.AddAttribute(23, "data-pinned-edge", edge);
+            }
+
+            if (!editing)
+            {
+                // The read-only path: frames identical to a table without editing.
+                builder.AddContent(24, column.RenderCell(item));
+                builder.CloseElement();
+                continue;
+            }
+
+            var editor = column.Editor;
+            var key = column.Key;
+            var editingCell = rowEditing && editor is not null &&
+                (session!.Mode == DataTableEditMode.Row || session.FocusKey == key);
+            var error = editingCell ? session!.Errors.GetValueOrDefault(key) : null;
+            var mark = _cellMarks.Count > 0 ? MarkOf(item, key) : default;
+
+            // The grid's first tab stop, rendered here so Tab reaches the table before its script
+            // has attached; from then on the script roves it (and drops copies a re-render adds).
+            if (index == 0 && c == 0) builder.AddAttribute(25, "tabindex", "0");
+            if (editingCell) builder.AddAttribute(26, "data-editing", "");
+            if (mark.Pending > 0 || (editingCell && session!.Busy)) builder.AddAttribute(27, "data-pending", "");
+            if (error is not null || mark.Error is not null)
+            {
+                builder.AddAttribute(28, "data-invalid", "");
+                builder.AddAttribute(29, "aria-invalid", "true");
+            }
+            if (!editingCell && mark.Error is not null) builder.AddAttribute(30, "title", mark.Error);
+
+            builder.AddContent(31, editingCell
+                ? RenderCellEditor(item, column, editor!, key, c, session!, error)
+                : RenderDisplay(item, column, editor));
             builder.CloseElement();
         }
         builder.CloseElement();
     };
 
     private static readonly string SelectCellClasses = Tw.Merge("bz-table-cell", "bz-table-select-cell");
+
+    // ---- editing: ts/dataTable.ts drives the keyboard, this side owns the data ----
+
+    private bool _editing;
+    private DataTableEditSession<TItem>? _edit;
+    // The dialog's session outlives _edit by the dialog's exit animation, so its fields stay drawn.
+    private DataTableEditSession<TItem>? _dialogSession;
+    private string? _liveMessage;
+    // OnEdit re-renders the parent, which sets this table's parameters again: while one runs (or
+    // until that render lands) the rows keep their order instead of re-sorting under the cursor.
+    private int _editEcho;
+    private bool _editEchoPending;
+    private IEnumerable<TItem>? _lastItems;
+    private int _lastItemsCount = -1;
+    private readonly Dictionary<(object? Row, string Column), CellMark> _cellMarks = [];
+    private BzVirtualizer<TItem>? _virtualizer;
+
+    private const string DefaultRejection = "The change was not saved.";
+
+    private readonly record struct CellMark(int Pending, string? Error);
+
+    private readonly record struct CellWrite(TItem Item, IGridColumn<TItem> Column, object? Value);
+
+    private readonly record struct PendingWrite(TItem Item, IGridColumn<TItem> Column, string Key, object? Old, object? New);
+
+    private readonly record struct CommitOutcome(bool Ok, string? FocusKey = null, string? Message = null);
+
+    /// <summary>
+    /// Opens the editor on <paramref name="item"/>: in Cell mode the cell in
+    /// <paramref name="columnKey"/> (by default the first editable column), in Row and Dialog modes
+    /// the row, focusing that column's field. For a row action ("Edit"), or right after adding a row.
+    /// </summary>
+    public async Task BeginEditAsync(TItem item, string? columnKey = null)
+    {
+        var column = columnKey is null ? null : _effectiveColumns.Find(c => c.Key == columnKey);
+        if (EditMode == DataTableEditMode.Cell)
+            column ??= VisibleColumns.Find(c => c.Editor is { } e && !FlipsInPlace(e));
+        if (!await OpenEditAsync(item, column, seed: null)) return;
+
+        // A virtualized row outside the window: scroll it in, so its editor renders (the grid script
+        // then focuses it).
+        if (EditMode != DataTableEditMode.Dialog && Virtualize && !Paged && _virtualizer is not null)
+        {
+            var index = _view.FindIndex(row => SameRow(row, item));
+            if (index >= 0) await _virtualizer.ScrollToIndexAsync(index);
+        }
+    }
+
+    /// <summary>
+    /// Commits the open edit, as Enter (or the dialog's Save) would. Returns <see langword="false"/>
+    /// when nothing is open or a value is invalid; the editor then stays open, showing why.
+    /// </summary>
+    public async Task<bool> CommitEditAsync()
+    {
+        if (_edit is not { } session) return false;
+        Dictionary<string, string?>? values = null;
+        if (session.Mode != DataTableEditMode.Dialog && _grid is not null)
+        {
+            try
+            {
+                // The built-in editors hold their text in the browser until a commit sends it.
+                values = await _grid.InvokeAsync<Dictionary<string, string?>>("values");
+            }
+            catch (JSDisconnectedException)
+            {
+                return false;
+            }
+        }
+        return (await CommitSessionAsync(session, values)).Ok;
+    }
+
+    /// <summary>Closes the open edit without saving it.</summary>
+    public Task CancelEditAsync()
+    {
+        if (_edit is null) return Task.CompletedTask;
+        _edit = null;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    /// <summary>Whether <paramref name="item"/>'s row (or one of its cells) has an editor open.</summary>
+    public bool IsEditing(TItem item) => _edit is { } session && SameRow(item, session.Item);
+
+    // ---- interop: called by ts/dataTable.ts ----
+
+    /// <summary>Called by the keyboard grid to open an editor on a cell (<paramref name="col"/> is its cell index). Returns whether one opened.</summary>
+    [JSInvokable]
+    public Task<bool> BeginEdit(int row, int col, string? seed) =>
+        TryCell(row, col, out var item, out var column) ? OpenEditAsync(item, column, seed) : Task.FromResult(false);
+
+    /// <summary>
+    /// Called by the keyboard grid to commit (<paramref name="commit"/>) or cancel the open edit;
+    /// <paramref name="values"/> carries the built-in editors' text by column key. The result's
+    /// <c>ok</c> is false when a value is invalid: the editor stays open and <c>focus</c> names the
+    /// first invalid column. With <paramref name="discardOnError"/> (focus left the table) an
+    /// invalid edit is dropped instead.
+    /// </summary>
+    [JSInvokable]
+    public async Task<object> EndEdit(bool commit, Dictionary<string, string?>? values, bool discardOnError)
+    {
+        if (_edit is not { } session) return EditAccepted;
+        if (!commit)
+        {
+            _edit = null;
+            StateHasChanged();
+            return EditAccepted;
+        }
+
+        var outcome = await CommitSessionAsync(session, values);
+        if (outcome.Ok) return EditAccepted;
+        if (discardOnError && ReferenceEquals(_edit, session) && !session.Busy)
+        {
+            _liveMessage = $"{outcome.Message} The edit was discarded.";
+            _edit = null;
+            StateHasChanged();
+            return EditAccepted;
+        }
+        return new { ok = false, focus = outcome.FocusKey };
+    }
+
+    private static readonly object EditAccepted = new { ok = true, focus = (string?)null };
+
+    /// <summary>Called by the keyboard grid when Space flips a bool cell.</summary>
+    [JSInvokable]
+    public Task Toggle(int row, int col) =>
+        TryCell(row, col, out var item, out var column) && column?.Editor is { Kind: DataTableEditor.Checkbox or DataTableEditor.Switch }
+            ? ToggleCellAsync(item, column)
+            : Task.CompletedTask;
+
+    /// <summary>Called by the keyboard grid when Delete clears a cell (Cell mode).</summary>
+    [JSInvokable]
+    public Task Clear(int row, int col)
+    {
+        if (EditMode != DataTableEditMode.Cell || !TryCell(row, col, out var item, out var column) ||
+            column?.Editor is not { } editor || !editor.TryGetClearValue(out var cleared))
+            return Task.CompletedTask;
+        ApplyCells(DataTableEditReason.Clear, [new CellWrite(item, column, cleared)], leadError: null);
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Called by the keyboard grid with pasted text (Cell mode): one value, or a tab-separated block
+    /// copied from a spreadsheet, filled rightwards and down from the cell at
+    /// (<paramref name="row"/>, <paramref name="col"/>). Cells past the table's edges, read-only
+    /// columns and values that do not parse are skipped; the rest commit as one OnEdit.
+    /// </summary>
+    [JSInvokable]
+    public Task Paste(int row, int col, string text)
+    {
+        if (EditMode != DataTableEditMode.Cell || !_editing) return Task.CompletedTask;
+        var rows = NavRows;
+        var columns = VisibleColumns;
+        var first = col - (Selectable ? 1 : 0);
+        if (row < 0 || row >= rows.Count || first < 0 || first >= columns.Count) return Task.CompletedTask;
+
+        var block = TabSeparatedText.Parse(text);
+        var writes = new List<CellWrite>();
+        string? firstError = null;
+        for (var r = 0; r < block.Count && row + r < rows.Count; r++)
+        {
+            var item = rows[row + r];
+            for (var c = 0; c < block[r].Count && first + c < columns.Count; c++)
+            {
+                var column = columns[first + c];
+                if (column.Editor is not { } editor) continue;
+                if (editor.TryParse(block[r][c], column.Title ?? column.Key, out var value, out var error))
+                    writes.Add(new CellWrite(item, column, value));
+                else
+                    firstError ??= error;
+            }
+        }
+        ApplyCells(DataTableEditReason.Paste, writes, firstError);
+        return Task.CompletedTask;
+    }
+
+    // ---- the edit pipeline ----
+
+    private async Task<bool> OpenEditAsync(TItem item, IGridColumn<TItem>? column, string? seed,
+        Action<DataTableEditSession<TItem>>? prepare = null)
+    {
+        if (!_editing) return false;
+        if (_edit is { } open)
+        {
+            if (open.Busy) return false;
+            // A leftover edit (its editor scrolled away uncommitted): settle it first.
+            if (!(await CommitSessionAsync(open, values: null)).Ok) _edit = null;
+        }
+
+        var editor = column?.Editor;
+        // Typing over a cell: a text box starts from the typed text (a number, date or time field
+        // takes the typed keys from the script), and a pick list from the first option they begin.
+        var quickEntry = editor is { HasTemplate: false, Kind: DataTableEditor.Text } ? seed : null;
+        DataTableEditSession<TItem> session;
+        if (EditMode == DataTableEditMode.Cell)
+        {
+            // A bool cell flips in place (Toggle) instead of opening an editor.
+            if (column is null || editor is null || FlipsInPlace(editor)) return false;
+            session = new(item, EditMode, column.Key, quickEntry);
+        }
+        else
+        {
+            var focus = editor is not null ? column!.Key : EditColumns(EditMode).FirstOrDefault()?.Key;
+            if (focus is null) return false;
+            session = new(item, EditMode, focus, quickEntry);
+            if (EditMode == DataTableEditMode.Dialog) _dialogSession = session;
+        }
+        if (seed is { Length: > 0 } && editor is { HasTemplate: false, Kind: DataTableEditor.Select } &&
+            editor.TryMatchOption(seed, prefix: true, out var picked))
+            session.Drafts[column!.Key] = picked;
+
+        prepare?.Invoke(session);
+        _edit = session;
+        StateHasChanged();
+        return true;
+    }
+
+    // Parse, validate and write every changed field of the session, then raise OnEdit: in the
+    // background for Cell mode (the cursor moves on), awaited for Row and Dialog modes (a rejected
+    // save keeps the editor open with its drafts).
+    private async Task<CommitOutcome> CommitSessionAsync(DataTableEditSession<TItem> session, IReadOnlyDictionary<string, string?>? values)
+    {
+        if (session.Busy) return new(false);
+        var item = session.Item;
+        session.Errors.Clear();
+        session.Message = null;
+
+        var writes = new List<PendingWrite>();
+        foreach (var column in SessionColumns(session))
+        {
+            var editor = column.Editor!;
+            var key = column.Key;
+            var title = column.Title ?? key;
+            object? next;
+            string? error = null;
+            if (values is not null && values.TryGetValue(key, out var text) && text is not null)
+            {
+                if (!editor.TryParse(text, title, out next, out error)) { session.Errors[key] = error; continue; }
+            }
+            else if (session.Drafts.TryGetValue(key, out var draft))
+            {
+                // A date or time field left half typed holds no value: a column that needs one refuses it.
+                if (draft is null && !editor.AllowsNull)
+                {
+                    session.Errors[key] = editor.Kind switch
+                    {
+                        DataTableEditor.Date => $"The {title} field must be a date.",
+                        DataTableEditor.Time => $"The {title} field must be a time.",
+                        _ => $"The {title} field is required.",
+                    };
+                    continue;
+                }
+                next = draft;
+            }
+            else if (session.Texts.TryGetValue(key, out var draftText))
+            {
+                if (!editor.TryParse(draftText, title, out next, out error)) { session.Errors[key] = error; continue; }
+            }
+            else
+                continue; // untouched
+
+            var old = editor.Read(item);
+            if (editor.ValuesEqual(old, next)) continue;
+            if (editor.Validate(item, next, title) is { } invalid)
+            {
+                session.Errors[key] = invalid;
+                continue;
+            }
+            writes.Add(new PendingWrite(item, column, key, old, next));
+        }
+
+        if (session.Errors.Count > 0)
+        {
+            var (firstKey, firstMessage) = session.Errors.First();
+            _liveMessage = firstMessage;
+            StateHasChanged();
+            return new(false, firstKey, firstMessage);
+        }
+
+        if (writes.Count == 0)
+        {
+            CloseEdit(session);
+            return new(true);
+        }
+
+        Write(writes);
+        var args = new DataTableEditEventArgs<TItem>(DataTableEditReason.Edit, ToChanges(writes));
+
+        if (session.Mode == DataTableEditMode.Cell || !OnEdit.HasDelegate)
+        {
+            CloseEdit(session);
+            if (OnEdit.HasDelegate) RaiseEditInBackground(args, writes);
+            return new(true);
+        }
+
+        session.Busy = true;
+        StateHasChanged();
+        _editEcho++;
+        _editEchoPending = true;
+        try
+        {
+            await OnEdit.InvokeAsync(args);
+        }
+        catch
+        {
+            Rollback(writes);
+            session.Busy = false;
+            StateHasChanged();
+            throw;
+        }
+        finally
+        {
+            _editEcho--;
+        }
+        session.Busy = false;
+
+        if (args.Rejected)
+        {
+            Rollback(writes);
+            foreach (var change in args.Changes)
+            {
+                if (args.MessageFor(change) is { } pinned) session.Errors[change.ColumnKey] = pinned;
+            }
+            session.Message = args.Message ?? DefaultRejection;
+            _liveMessage = session.Message;
+            StateHasChanged();
+            return new(false, session.Errors.Keys.FirstOrDefault(), session.Message);
+        }
+
+        CloseEdit(session);
+        return new(true);
+    }
+
+    private void CloseEdit(DataTableEditSession<TItem> session)
+    {
+        if (ReferenceEquals(_edit, session)) _edit = null;
+        StateHasChanged();
+    }
+
+    // Changes that never open an editor: a toggled bool, a paste, a clear.
+    private void ApplyCells(DataTableEditReason reason, IReadOnlyList<CellWrite> cells, string? leadError)
+    {
+        var writes = new List<PendingWrite>();
+        var firstError = leadError;
+        foreach (var (item, column, value) in cells)
+        {
+            var editor = column.Editor!;
+            var key = column.Key;
+            var old = editor.Read(item);
+            if (editor.ValuesEqual(old, value)) continue;
+            if (editor.Validate(item, value, column.Title ?? key) is { } invalid)
+            {
+                firstError ??= invalid;
+                SetMarkError(item, key, invalid);
+                continue;
+            }
+            writes.Add(new PendingWrite(item, column, key, old, value));
+        }
+
+        Write(writes);
+        if (firstError is not null) _liveMessage = firstError;
+        StateHasChanged();
+        if (writes.Count > 0 && OnEdit.HasDelegate) RaiseEditInBackground(new(reason, ToChanges(writes)), writes);
+    }
+
+    private async Task ToggleCellAsync(TItem item, IGridColumn<TItem> column)
+    {
+        if (column.Editor is not { } editor) return;
+        var flipped = editor.Read(item) is not true;
+        if (EditMode == DataTableEditMode.Cell)
+        {
+            ApplyCells(DataTableEditReason.Edit, [new CellWrite(item, column, flipped)], leadError: null);
+            return;
+        }
+        // Row and Dialog modes: the press opens the mode's editor with the box already flipped.
+        await OpenEditAsync(item, column, seed: null, session => session.Drafts[column.Key] = flipped);
+    }
+
+    // Cell-mode saves run in the background: the cursor moves on while OnEdit works (a server round
+    // trip, say), the cells carry data-pending meanwhile, and a Reject puts the old values back.
+    private void RaiseEditInBackground(DataTableEditEventArgs<TItem> args, List<PendingWrite> writes)
+    {
+        foreach (var write in writes) AddPending(write.Item, write.Key, +1);
+        _ = RunAsync();
+
+        async Task RunAsync()
+        {
+            Exception? failure = null;
+            _editEcho++;
+            _editEchoPending = true;
+            try
+            {
+                await OnEdit.InvokeAsync(args);
+            }
+            catch (Exception ex)
+            {
+                failure = ex;
+            }
+            finally
+            {
+                _editEcho--;
+            }
+
+            foreach (var write in writes) AddPending(write.Item, write.Key, -1);
+            if (failure is not null || args.Rejected)
+            {
+                Rollback(writes);
+                var message = failure is null ? args.Message ?? DefaultRejection : DefaultRejection;
+                for (var i = 0; i < writes.Count; i++)
+                    SetMarkError(writes[i].Item, writes[i].Key, args.MessageFor(args.Changes[i]) ?? message);
+                _liveMessage = message;
+            }
+            StateHasChanged();
+            if (failure is not null) await DispatchExceptionAsync(failure);
+        }
+    }
+
+    private void Write(List<PendingWrite> writes)
+    {
+        foreach (var write in writes)
+        {
+            if (write.Column.Editor is { CanWrite: true } editor) editor.Write(write.Item, write.New);
+            SetMarkError(write.Item, write.Key, null);
+        }
+    }
+
+    // Put back what Write assigned, unless a later edit has changed the cell again since.
+    private static void Rollback(List<PendingWrite> writes)
+    {
+        foreach (var write in writes)
+        {
+            if (write.Column.Editor is { CanWrite: true } editor && editor.ValuesEqual(editor.Read(write.Item), write.New))
+                editor.Write(write.Item, write.Old);
+        }
+    }
+
+    private static List<DataTableCellChange<TItem>> ToChanges(List<PendingWrite> writes) =>
+        writes.ConvertAll(w => new DataTableCellChange<TItem>(w.Item, w.Key, w.Old, w.New));
+
+    // The columns an edit spans. Row mode: the visible editable ones. Dialog mode: every editable
+    // one, since a column hidden from the table is still part of the record.
+    private IEnumerable<IGridColumn<TItem>> EditColumns(DataTableEditMode mode) =>
+        (mode == DataTableEditMode.Dialog ? _effectiveColumns : VisibleColumns).Where(c => c.Editor is not null);
+
+    private IEnumerable<IGridColumn<TItem>> SessionColumns(DataTableEditSession<TItem> session) =>
+        session.Mode == DataTableEditMode.Cell
+            ? _effectiveColumns.Where(c => c.Key == session.FocusKey && c.Editor is not null)
+            : EditColumns(session.Mode);
+
+    // Keep the open edit on its row's live instance (RowKey matches a replaced record), and drop it
+    // once the row has left the view (filtered out, another page).
+    private void SyncEditSession()
+    {
+        if (_edit is not { } session || session.Busy) return;
+        foreach (var row in NavRows)
+        {
+            if (!SameRow(row, session.Item)) continue;
+            session.Item = row;
+            return;
+        }
+        _edit = null;
+    }
+
+    // The parent's answer to OnEdit, taken without re-sorting: replaced records slot in by RowKey.
+    // A list that grew, shrank or (without a RowKey) was swapped runs the full pipeline instead.
+    private void RefreshAfterEdit()
+    {
+        RebuildColumns();
+        var items = Items as IReadOnlyCollection<TItem> ?? Items?.ToList() ?? [];
+        if (items.Count != _lastItemsCount)
+        {
+            Recompute();
+            return;
+        }
+        if (RowKey is null)
+        {
+            if (ReferenceEquals(Items, _lastItems)) ApplyPage();
+            else Recompute();
+            return;
+        }
+
+        var live = new Dictionary<object, TItem>();
+        foreach (var item in items) live.TryAdd(RowKey(item), item);
+        var kept = new List<TItem>(_view.Count);
+        foreach (var row in _view)
+        {
+            if (live.TryGetValue(RowKey(row), out var current)) kept.Add(current);
+        }
+        if (kept.Count != _view.Count)
+        {
+            Recompute();
+            return;
+        }
+        _view = kept;
+        _lastItems = Items;
+        ApplyPage();
+    }
+
+    private IReadOnlyList<TItem> NavRows => Virtualize && !Paged ? _view : _rendered;
+
+    private bool TryCell(int row, int col, out TItem item, out IGridColumn<TItem>? column)
+    {
+        var rows = NavRows;
+        if (row < 0 || row >= rows.Count)
+        {
+            item = default!;
+            column = null;
+            return false;
+        }
+        item = rows[row];
+        var index = col - (Selectable ? 1 : 0);
+        var columns = VisibleColumns;
+        column = index >= 0 && index < columns.Count ? columns[index] : null;
+        return true;
+    }
+
+    private bool SameRow(TItem a, TItem b) => _rowComparer.Equals(a, b);
+
+    private object? RowIdentity(TItem item) => RowKey is { } key ? key(item) : item;
+
+    private CellMark MarkOf(TItem item, string key) => _cellMarks.GetValueOrDefault((RowIdentity(item), key));
+
+    private void AddPending(TItem item, string key, int delta)
+    {
+        var id = (RowIdentity(item), key);
+        var mark = _cellMarks.GetValueOrDefault(id);
+        StoreMark(id, mark with { Pending = Math.Max(0, mark.Pending + delta) });
+    }
+
+    private void SetMarkError(TItem item, string key, string? error)
+    {
+        var id = (RowIdentity(item), key);
+        StoreMark(id, _cellMarks.GetValueOrDefault(id) with { Error = error });
+    }
+
+    private void StoreMark((object? Row, string Column) id, CellMark mark)
+    {
+        if (mark is { Pending: 0, Error: null }) _cellMarks.Remove(id);
+        else _cellMarks[id] = mark;
+    }
+
+    private string AriaRowIndex(int index) =>
+        ((Paged ? (CurrentPage - 1) * PageSize : 0) + index + 2).ToString(CultureInfo.InvariantCulture);
+
+    private IReadOnlyDictionary<string, object> GridAttributes()
+    {
+        var attributes = new Dictionary<string, object> { ["role"] = "grid" };
+        // Only part of the rows is in the page (virtualized or paged): say how many there are.
+        if (Virtualize || Paged)
+            attributes["aria-rowcount"] = ((ServerDriven ? _totalCount : _view.Count) + 1).ToString(CultureInfo.InvariantCulture);
+        return attributes;
+    }
+
+    private static CheckedState ToChecked(object? value) =>
+        value is true ? CheckedState.Checked : value is false ? CheckedState.Unchecked : CheckedState.Indeterminate;
+
+    // A bool column without an editor template: its cells hold a checkbox or a switch that flips in
+    // place in Cell mode (Row and Dialog modes open their editor with it flipped).
+    private static bool FlipsInPlace(IGridEditor<TItem> editor) =>
+        editor is { HasTemplate: false, Kind: DataTableEditor.Checkbox or DataTableEditor.Switch };
+
+    private static object? DraftValue(DataTableEditSession<TItem> session, IGridEditor<TItem> editor, string key) =>
+        session.Drafts.TryGetValue(key, out var draft) ? draft : editor.Read(session.Item);
+
+    private static string? DraftText(DataTableEditSession<TItem> session, IGridEditor<TItem> editor, string key) =>
+        session.Texts.TryGetValue(key, out var text) ? text
+        : editor.Format(session.Drafts.TryGetValue(key, out var draft) ? draft : editor.Read(session.Item));
+
+    // Typing into a text box supersedes a draft code set for the same column.
+    private static void WriteDraftText(DataTableEditSession<TItem> session, string key, string? text)
+    {
+        session.Texts[key] = text;
+        session.Drafts.Remove(key);
+    }
+
+    // What a cell or row text box starts from, captured on its first render and kept for the session,
+    // so a commit's write and a Reject's rollback never reset the text under the user's caret.
+    private static string SeedText(DataTableEditSession<TItem> session, IGridEditor<TItem> editor, string key)
+    {
+        if (!session.Seeds.TryGetValue(key, out var seed))
+            session.Seeds[key] = seed = editor.Format(editor.Read(session.Item));
+        return seed;
+    }
+
+    // A template's binding stores its draft; the page that owns the template re-renders by itself.
+    private static void SetDraft(DataTableEditSession<TItem> session, string key, object? value) =>
+        session.Drafts[key] = value;
+
+    // A template's context.Commit, or a pick from a cell's list, ends a cell edit (a row or dialog
+    // commits as a whole elsewhere). Through the grid script, as Enter would: the focus goes back to
+    // the cell before the editor, and the list that held the focus, are rendered away.
+    private async Task CommitFromTemplateAsync()
+    {
+        if (_edit is not { Mode: DataTableEditMode.Cell }) return;
+        if (_grid is null)
+        {
+            await CommitEditAsync();
+            return;
+        }
+        try
+        {
+            await _grid.InvokeVoidAsync("commit");
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone.
+        }
+    }
+
+    // The editor kind the grid script works with: how keys act on the column's idle cells, and how it
+    // reads an open editor (a text or number field's text travels with the commit; every other
+    // control keeps its draft here).
+    private static string JsKind(IGridEditor<TItem>? editor) => editor switch
+    {
+        null => "none",
+        { HasTemplate: true } => "custom",
+        { Kind: DataTableEditor.Text } => "text",
+        { Kind: DataTableEditor.Number } => "number",
+        { Kind: DataTableEditor.Select } => "select",
+        { Kind: DataTableEditor.Checkbox } => "checkbox",
+        { Kind: DataTableEditor.Switch } => "switch",
+        { Kind: DataTableEditor.Date } => "date",
+        { Kind: DataTableEditor.Time } => "time",
+        _ => "none",
+    };
+
+    private string ErrorId(int columnIndex) => $"{_scrollId}-error-{columnIndex.ToString(CultureInfo.InvariantCulture)}";
+
+    private string? HeadTabStop(bool editing, int cellIndex) =>
+        editing && cellIndex == 0 && NavRows.Count == 0 ? "0" : null;
+
+    // ---- cells and editors ----
+
+    // An idle cell: a bool column's checkbox or switch, or the column's own content.
+    private RenderFragment RenderDisplay(TItem item, IGridColumn<TItem> column, IGridEditor<TItem>? editor) =>
+        editor is { HasDisplayTemplate: false } && FlipsInPlace(editor)
+            ? RenderToggle(item, column, editor)
+            : column.RenderCell(item);
+
+    // The editing cell: its idle display kept underneath, invisible and inert (so the cell keeps its
+    // width and the row its height), the editor laid over it, and the validation message below.
+    private RenderFragment RenderCellEditor(TItem item, IGridColumn<TItem> column, IGridEditor<TItem> editor, string key,
+        int columnIndex, DataTableEditSession<TItem> session, string? error) => builder =>
+    {
+        var title = column.Title ?? key;
+        var errorId = error is null ? null : ErrorId(columnIndex);
+        var attributes = new Dictionary<string, object> { ["aria-label"] = title };
+        if (errorId is not null)
+        {
+            attributes["aria-invalid"] = "true";
+            attributes["aria-describedby"] = errorId;
+        }
+
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "bz-table-cell-ghost");
+        builder.AddAttribute(2, "aria-hidden", "true");
+        builder.AddAttribute(3, "inert", true);
+        builder.AddContent(4, RenderDisplay(item, column, editor));
+        builder.CloseElement();
+
+        // Keyed by the edit, so a new edit of the same cell starts a fresh control.
+        builder.OpenElement(5, "div");
+        builder.SetKey(session);
+        builder.AddAttribute(6, "class", "bz-table-cell-editor");
+        builder.AddAttribute(7, "data-bz-cell-editor", JsKind(editor));
+        if (column.Align is "center" or "end") builder.AddAttribute(8, "data-align", column.Align);
+        builder.AddContent(9, editor.HasTemplate
+            ? editor.RenderTemplate(item, key, title, error, inDialog: false, attributes,
+                () => DraftValue(session, editor, key), value => SetDraft(session, key, value),
+                CommitFromTemplateAsync, CancelEditAsync)
+            : editor.RenderControl(new DataTableEditorRequest
+            {
+                Session = session,
+                Title = title,
+                Placement = session.Mode == DataTableEditMode.Row ? DataTableEditorPlacement.Row : DataTableEditorPlacement.Cell,
+                Attributes = attributes,
+                Align = column.Align,
+                ReadValue = () => DraftValue(session, editor, key),
+                WriteValue = value => session.Drafts[key] = value,
+                ReadText = () => key == session.FocusKey && session.Seed is not null ? session.Seed : SeedText(session, editor, key),
+                WriteText = text => WriteDraftText(session, key, text),
+                Commit = CommitFromTemplateAsync,
+            }));
+        builder.CloseElement();
+
+        if (error is not null)
+        {
+            builder.OpenElement(10, "span");
+            builder.AddAttribute(11, "id", errorId);
+            builder.AddAttribute(12, "class", "bz-table-cell-error");
+            builder.AddContent(13, error);
+            builder.CloseElement();
+        }
+    };
+
+    // A bool cell that is not being edited: a checkbox or a switch. Cell mode flips it in place; Row
+    // and Dialog modes open their editor with it flipped.
+    private RenderFragment RenderToggle(TItem item, IGridColumn<TItem> column, IGridEditor<TItem> editor) => builder =>
+    {
+        var value = editor.Read(item);
+        var label = column.Title ?? column.Key;
+        if (editor.Kind == DataTableEditor.Switch)
+        {
+            builder.OpenComponent<BzSwitch>(0);
+            builder.AddComponentParameter(1, nameof(BzSwitch.Checked), value is true);
+            builder.AddComponentParameter(2, nameof(BzSwitch.CheckedChanged),
+                EventCallback.Factory.Create<bool>(this, _ => ToggleCellAsync(item, column)));
+            builder.AddAttribute(3, "aria-label", label);
+            builder.AddAttribute(4, "tabindex", "-1");
+            builder.CloseComponent();
+            return;
+        }
+        builder.OpenComponent<BzCheckbox>(5);
+        builder.AddComponentParameter(6, nameof(BzCheckbox.Checked), ToChecked(value));
+        builder.AddComponentParameter(7, nameof(BzCheckbox.CheckedChanged),
+            EventCallback.Factory.Create<CheckedState>(this, _ => ToggleCellAsync(item, column)));
+        builder.AddAttribute(8, "aria-label", label);
+        builder.AddAttribute(9, "tabindex", "-1");
+        builder.CloseComponent();
+    };
+
+    // ---- the dialog editor ----
+
+    private void OnEditDialogOpenChanged(bool open)
+    {
+        // Escape, the close button or a press outside: drop the draft.
+        if (!open && _edit is { Mode: DataTableEditMode.Dialog, Busy: false }) _edit = null;
+    }
+
+    private void OnEditDialogExited()
+    {
+        if (_edit is not { Mode: DataTableEditMode.Dialog }) _dialogSession = null;
+    }
+
+    private async Task SubmitEditDialogAsync(DataTableEditSession<TItem> session)
+    {
+        if (ReferenceEquals(_edit, session)) await CommitSessionAsync(session, values: null);
+    }
+
+    private DataTableEditDialog<TItem> DialogContext(DataTableEditSession<TItem> session) => new(
+        this,
+        session,
+        open: ReferenceEquals(_edit, session),
+        EditColumns(DataTableEditMode.Dialog).Select(c => c.Key).ToList(),
+        EventCallback.Factory.Create<bool>(this, OnEditDialogOpenChanged));
+
+    private IGridColumn<TItem> DialogColumn(string columnKey) =>
+        EditColumns(DataTableEditMode.Dialog).FirstOrDefault(c => c.Key == columnKey)
+        ?? throw new ArgumentException($"No editable column has the key {columnKey}.", nameof(columnKey));
+
+    internal TValue GetDialogValue<TValue>(DataTableEditSession<TItem> session, string columnKey)
+    {
+        var editor = DialogColumn(columnKey).Editor!;
+        if (session.Drafts.TryGetValue(columnKey, out var draft)) return draft is TValue typed ? typed : default!;
+        if (session.Texts.TryGetValue(columnKey, out var text))
+        {
+            if (text is TValue same) return same;
+            if (editor.TryParse(text, columnKey, out var parsed, out _) && parsed is TValue fromText) return fromText;
+        }
+        return editor.Read(session.Item) is TValue current ? current : default!;
+    }
+
+    internal void SetDialogValue<TValue>(DataTableEditSession<TItem> session, string columnKey, TValue value)
+    {
+        var editor = DialogColumn(columnKey).Editor!;
+        var type = Nullable.GetUnderlyingType(editor.ValueType) ?? editor.ValueType;
+        if (value is not null && !type.IsInstanceOfType(value))
+            throw new ArgumentException(
+                $"The {columnKey} column holds {editor.ValueType.Name} values, not {value.GetType().Name}.", nameof(value));
+        session.Drafts[columnKey] = value;
+        session.Texts.Remove(columnKey);
+        session.Versions[columnKey] = session.Versions.GetValueOrDefault(columnKey) + 1;
+    }
+
+    internal RenderFragment DialogField(DataTableEditSession<TItem> session, string columnKey) =>
+        RenderDialogField(session, DialogColumn(columnKey));
+
+    internal async Task<bool> SaveDialogAsync(DataTableEditSession<TItem> session) =>
+        ReferenceEquals(_edit, session) && (await CommitSessionAsync(session, values: null)).Ok;
+
+    internal Task CancelDialogAsync(DataTableEditSession<TItem> session)
+    {
+        if (ReferenceEquals(_edit, session))
+        {
+            _edit = null;
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
+    }
+
+    // The built-in dialog, or the consumer's EditDialogContent. The built-in one keeps its header and
+    // footer in place while the fields scroll between them, however many columns there are.
+    private RenderFragment RenderEditDialog => @<text>
+        @if (EditDialogContent is not null)
+        {
+            if (_dialogSession is { } custom)
+            {
+                @EditDialogContent(DialogContext(custom))
+            }
+        }
+        else
+        {
+            <BzDialog Open="@(_edit is { Mode: DataTableEditMode.Dialog })" OpenChanged="@OnEditDialogOpenChanged">
+                <BzDialogContent Class="bz-data-table-edit-dialog" OnExitComplete="@OnEditDialogExited">
+                    <BzDialogHeader>
+                        <BzDialogTitle>@EditDialogTitle</BzDialogTitle>
+                        @if (!string.IsNullOrEmpty(EditDialogDescription))
+                        {
+                            <BzDialogDescription>@EditDialogDescription</BzDialogDescription>
+                        }
+                    </BzDialogHeader>
+                    @if (_dialogSession is { } session)
+                    {
+                        @* The form lays out as its two parts (display: contents): the field list, which
+                           scrolls, and the footer, which stays put under it. *@
+                        <form @key="session" class="bz-data-table-edit-form" novalidate
+                              @onsubmit="@(() => SubmitEditDialogAsync(session))" @onsubmit:preventDefault>
+                            <div class="bz-data-table-edit-body scrollbar-thin">
+                                @if (session.Message is not null)
+                                {
+                                    <p class="bz-data-table-edit-message" role="alert">@session.Message</p>
+                                }
+                                <BzFieldGroup>
+                                    @foreach (var column in EditColumns(DataTableEditMode.Dialog))
+                                    {
+                                        @RenderDialogField(session, column)
+                                    }
+                                </BzFieldGroup>
+                            </div>
+                            <BzDialogFooter>
+                                <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Outline" OnClick="@CancelEditAsync">@EditDialogCancelLabel</BzButton>
+                                <BzButton Type="ButtonType.Submit" Loading="@session.Busy">@EditDialogSaveLabel</BzButton>
+                            </BzDialogFooter>
+                        </form>
+                    }
+                </BzDialogContent>
+            </BzDialog>
+        }
+    </text>;
+
+    // One field of the dialog editor: label, control and message, wired by the Field family. A
+    // checkbox or switch sits beside its label.
+    private RenderFragment RenderDialogField(DataTableEditSession<TItem> session, IGridColumn<TItem> column) => @<text>
+        @{
+            var editor = column.Editor!;
+            var key = column.Key;
+            var title = column.Title ?? key;
+            var error = session.Errors.GetValueOrDefault(key);
+            var focus = key == session.FocusKey;
+            var inline = FlipsInPlace(editor);
+        }
+        <BzField Orientation="@(inline ? FieldOrientation.Horizontal : FieldOrientation.Vertical)" Error="@error">
+            @if (!inline)
+            {
+                <BzFieldLabel>@title</BzFieldLabel>
+            }
+            <BzFieldControl Context="control">
+                @if (editor.HasTemplate)
+                {
+                    <div class="bz-data-table-edit-field" data-bz-autofocus="@(focus ? "" : null)">
+                        @(editor.RenderTemplate(session.Item, key, title, error, true, control,
+                            () => DraftValue(session, editor, key), value => SetDraft(session, key, value),
+                            CommitFromTemplateAsync, CancelEditAsync))
+                    </div>
+                }
+                else
+                {
+                    @(editor.RenderControl(new DataTableEditorRequest
+                    {
+                        Session = session,
+                        Title = title,
+                        Placement = DataTableEditorPlacement.Dialog,
+                        Attributes = control,
+                        Align = column.Align,
+                        Focus = focus,
+                        Version = session.Versions.GetValueOrDefault(key),
+                        ReadValue = () => DraftValue(session, editor, key),
+                        WriteValue = value => session.Drafts[key] = value,
+                        ReadText = () => DraftText(session, editor, key),
+                        WriteText = text => WriteDraftText(session, key, text),
+                        Commit = () => Task.CompletedTask,
+                    }))
+                }
+            </BzFieldControl>
+            @if (inline)
+            {
+                <BzFieldLabel>@title</BzFieldLabel>
+            }
+            <BzFieldError />
+        </BzField>
+    </text>;
 
     // Above this row count an unpaged, non-virtualized table gets the one-time console warning.
     private const int LargeListWarnThreshold = 2000;
@@ -742,8 +2175,84 @@
     private ElementReference _root;
     private IJSObjectReference? _rowClicksModule;
     private IJSObjectReference? _rowClicks;
+    private IJSObjectReference? _grid;
+    private string? _gridSignature;
+    private bool _gridCreating;
     private DotNetObjectReference<BzDataTable<TItem>>? _selfRef;
     private bool _rowClicksCreating;
+
+    // The keyboard grid (ts/dataTable.ts createGrid): created on the first editable render, then told
+    // only when its inputs change - the visible columns and their editor kinds, the mode, the
+    // selection column and the row count. Never per keystroke or per move.
+    private async Task SyncGridAsync()
+    {
+        var options = GridOptions(out var signature);
+        if (_grid is not null)
+        {
+            if (signature == _gridSignature) return;
+            _gridSignature = signature;
+            try
+            {
+                await _grid.InvokeVoidAsync("update", options);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit gone.
+            }
+            return;
+        }
+        if (_gridCreating) return;
+        _gridCreating = true;
+        try
+        {
+            RequireWritableOrOnEdit();
+            _selfRef ??= DotNetObjectReference.Create(this);
+            _rowClicksModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dataTable.js");
+            _gridSignature = signature;
+            _grid = await _rowClicksModule.InvokeAsync<IJSObjectReference>("createGrid", _root, _selfRef, options);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the wiring landed.
+        }
+        finally
+        {
+            _gridCreating = false;
+        }
+    }
+
+    private object GridOptions(out string signature)
+    {
+        var columns = VisibleColumns;
+        var mode = EditMode switch
+        {
+            DataTableEditMode.Row => "row",
+            DataTableEditMode.Dialog => "dialog",
+            _ => "cell",
+        };
+        var rowCount = NavRows.Count;
+        var list = new object[columns.Count];
+        var key = new System.Text.StringBuilder().Append(mode).Append('|').Append(Selectable).Append('|').Append(rowCount);
+        for (var i = 0; i < columns.Count; i++)
+        {
+            var kind = JsKind(columns[i].Editor);
+            list[i] = new { key = columns[i].Key, kind };
+            key.Append('|').Append(columns[i].Key).Append(':').Append(kind);
+        }
+        signature = key.ToString();
+        return new { mode, columns = list, selectable = Selectable, rowCount };
+    }
+
+    // An editable column whose property has no setter (a record, an init or read-only property)
+    // can only commit through OnEdit; without one every edit would silently snap back.
+    private void RequireWritableOrOnEdit()
+    {
+        if (OnEdit.HasDelegate) return;
+        var stuck = _effectiveColumns.Find(c => c.Editor is { CanWrite: false });
+        if (stuck is not null)
+            throw new InvalidOperationException(
+                $"The {stuck.Title ?? stuck.Key} column is Editable, but its property has no setter the table can call (a record, an init or a read-only property). Handle the table's OnEdit and apply the change there.");
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -764,6 +2273,11 @@
                 // Circuit gone.
             }
         }
+
+        // The column script first: it marks a table whose widths it lays out, which the editing grid
+        // then leaves alone instead of pinning them for an edit.
+        await SyncColumnsAsync();
+        if (_editing) await SyncGridAsync();
 
         if (!RowsClickable || _rowClicks is not null || _rowClicksCreating) return;
         _rowClicksCreating = true;
@@ -792,11 +2306,21 @@
 
         try
         {
-            // The row-clicks INSTANCE is ours; the module is the shared JsModules proxy.
+            // The row-clicks and grid INSTANCES are ours; the module is the shared JsModules proxy.
             if (_rowClicks is not null)
             {
                 await _rowClicks.InvokeVoidAsync("dispose");
                 await _rowClicks.DisposeAsync();
+            }
+            if (_grid is not null)
+            {
+                await _grid.InvokeVoidAsync("dispose");
+                await _grid.DisposeAsync();
+            }
+            if (_columns is not null)
+            {
+                await _columns.InvokeVoidAsync("dispose");
+                await _columns.DisposeAsync();
             }
         }
         catch (JSDisconnectedException)
@@ -846,7 +2370,9 @@
         if (index < 0 || index >= rows.Count) return;
 
         var item = rows[index];
-        if (Selectable) await ToggleRow(item);
+        // In an editable table a click puts the cursor on a cell; selection stays with the
+        // checkbox and Shift+Space, or every click on a cell would flip it.
+        if (Selectable && !_editing) await ToggleRow(item);
         if (OnRowClick.HasDelegate) await OnRowClick.InvokeAsync(item);
     }
 

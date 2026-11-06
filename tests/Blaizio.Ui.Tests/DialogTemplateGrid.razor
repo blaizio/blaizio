@@ -1,0 +1,33 @@
+@* Test host: Dialog mode with an EditDialogContent of its own - a built-in field, a value set from code, Save. *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" EditMode="DataTableEditMode.Dialog"
+             OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Person>>(this, e => Edits.Add(e)))">
+    <ChildContent>
+        <BzPropertyColumn Property="@(p => p.Name)" Editable />
+        <BzPropertyColumn Property="@(p => p.Age)" Editable />
+    </ChildContent>
+    <EditDialogContent>
+        @{ LastContext = context; }
+        <div class="custom-editor" data-open="@(context.Open ? "true" : "false")">
+            <h2>@context.Item.Name</h2>
+            <span class="keys">@string.Join(",", context.ColumnKeys)</span>
+            <span class="age">@(context.GetValue<int>("Age"))</span>
+            @context.Field("Name")
+            <button class="set-age" @onclick="@(() => context.SetValue("Age", 50))">Fifty</button>
+            <button class="save" @onclick="@(async () => Saved = await context.SaveAsync())">Save</button>
+            <button class="cancel" @onclick="@(() => context.CancelAsync())">Cancel</button>
+            <span class="error">@context.ErrorFor("Age")</span>
+        </div>
+    </EditDialogContent>
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+
+    public BzDataTable<Person>? Table;
+
+    public bool? Saved;
+
+    public DataTableEditDialog<Person>? LastContext;
+
+    public List<DataTableEditEventArgs<Person>> Edits { get; } = [];
+}

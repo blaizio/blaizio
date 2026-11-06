@@ -1,0 +1,28 @@
+@* Test host: an editable BzDataTable over Person rows, recording every OnEdit. *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" EditMode="Mode"
+             DefaultSort="DefaultSort" OnEdit="@(WithOnEdit ? EventCallback.Factory.Create<DataTableEditEventArgs<Person>>(this, OnEditAsync) : default)">
+    <BzPropertyColumn Property="@(p => p.Name)" Editable Sortable />
+    <BzPropertyColumn Property="@(p => p.Age)" Editable Validate="@(age => age == 13 ? "Unlucky." : null)" />
+    <BzPropertyColumn Property="@(p => p.Score)" Editable />
+    <BzPropertyColumn Property="@(p => p.Active)" Editable />
+    <BzPropertyColumn Property="@(p => p.Role)" Editable />
+    <BzPropertyColumn Property="@(p => p.Code)" />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+    [Parameter] public DataTableEditMode Mode { get; set; }
+    [Parameter] public SortState? DefaultSort { get; set; }
+    [Parameter] public bool WithOnEdit { get; set; } = true;
+    [Parameter] public Func<DataTableEditEventArgs<Person>, Task>? Handler { get; set; }
+
+    public BzDataTable<Person>? Table;
+
+    public List<DataTableEditEventArgs<Person>> Edits { get; } = [];
+
+    private async Task OnEditAsync(DataTableEditEventArgs<Person> e)
+    {
+        Edits.Add(e);
+        if (Handler is not null) await Handler(e);
+    }
+}
