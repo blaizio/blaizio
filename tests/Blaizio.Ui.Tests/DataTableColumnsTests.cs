@@ -99,6 +99,67 @@ public class DataTableColumnsTests : BunitContext
     }
 
     [Fact]
+    public void Headers_carry_the_group_their_resize_handle_lights_up_from()
+    {
+        var cut = Grid(p => p.Add(x => x.Resizable, true).Add(x => x.Selectable, true));
+
+        // The handle's line takes the ring color while its header is hovered or focused.
+        Assert.All(cut.FindAll("thead th"), th => Assert.Contains("group/table-head", th.ClassList));
+    }
+
+    [Fact]
+    public void Movable_headers_are_the_reorderable_ones_with_somewhere_to_go()
+    {
+        // Code stays put (Reorderable off) and sits second: Name, boxed in between the start edge
+        // and Code, has nowhere to go.
+        var cut = Grid(p => p
+            .Add(x => x.Reorderable, true)
+            .Add(x => x.CodeReorderable, false)
+            .Add(x => x.Order, ["Name", "Code", "Age", "Score"]));
+
+        Assert.Equal(["Name", "Code", "Age", "Score"], HeadKeys(cut));
+        Assert.True(cut.Find("th[data-bz-column=Name]").HasAttribute("data-reorderable"));
+        Assert.False(cut.Find("th[data-bz-column=Name]").HasAttribute("data-movable"));
+        Assert.False(cut.Find("th[data-bz-column=Code]").HasAttribute("data-reorderable"));
+        Assert.False(cut.Find("th[data-bz-column=Code]").HasAttribute("data-movable"));
+        Assert.True(cut.Find("th[data-bz-column=Age]").HasAttribute("data-movable"));
+        Assert.True(cut.Find("th[data-bz-column=Score]").HasAttribute("data-movable"));
+
+        // Without ReorderableColumns nothing moves.
+        cut.Render(p => p.Add(x => x.Reorderable, false).Add(x => x.Resizable, true));
+        Assert.Empty(cut.FindAll("th[data-movable], th[data-reorderable]"));
+    }
+
+    [Fact]
+    public void A_pinned_column_alone_in_its_group_cannot_move()
+    {
+        var cut = Grid(p => p.Add(x => x.Reorderable, true).Add(x => x.CodePin, DataTablePin.Start));
+
+        // Code moves within its group, which holds only Code.
+        Assert.Equal(["Code", "Name", "Age", "Score"], HeadKeys(cut));
+        Assert.True(cut.Find("th[data-bz-column=Code]").HasAttribute("data-reorderable"));
+        Assert.False(cut.Find("th[data-bz-column=Code]").HasAttribute("data-movable"));
+        Assert.Equal(["Name", "Age", "Score"], cut.FindAll("th[data-movable]").Select(th => th.GetAttribute("data-bz-column")!).ToArray());
+
+        // A second start column gives it somewhere to go.
+        var both = Grid(p => p.Add(x => x.Reorderable, true).Add(x => x.CodePin, DataTablePin.Start).Add(x => x.NamePin, DataTablePin.Start));
+
+        Assert.Equal(["Name", "Code", "Age", "Score"], HeadKeys(both));
+        Assert.Equal(["Name", "Code", "Age", "Score"], both.FindAll("th[data-movable]").Select(th => th.GetAttribute("data-bz-column")!).ToArray());
+    }
+
+    [Fact]
+    public void LiveReorder_reaches_the_column_script()
+    {
+        var module = JSInterop.SetupModule("./_content/blaizio.base/dist/dataTable.js");
+
+        Grid(p => p.Add(x => x.Reorderable, true).Add(x => x.Live, true));
+
+        var options = module.Invocations["createColumns"].Single().Arguments[2]!;
+        Assert.Equal(true, options.GetType().GetProperty("live")!.GetValue(options));
+    }
+
+    [Fact]
     public void Pinned_columns_move_to_their_edges_with_the_selection_column_at_the_start()
     {
         var cut = Grid(p => p

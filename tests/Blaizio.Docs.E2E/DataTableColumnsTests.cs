@@ -48,6 +48,275 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         await page.Mouse.UpAsync();
     }
 
+    // Press an element's centre and move dx pixels sideways, leaving the button down.
+    private static async Task PressAndMoveAsync(IPage page, ILocator from, float dx)
+    {
+        await from.ScrollIntoViewIfNeededAsync();
+        var box = (await from.BoundingBoxAsync())!;
+        var (x, y) = (box.X + box.Width / 2, box.Y + box.Height / 2);
+        await page.Mouse.MoveAsync(x, y);
+        await page.Mouse.DownAsync();
+        await page.Mouse.MoveAsync(x + dx, y, new() { Steps = 8 });
+    }
+
+    // A computed color the browser normalizes the same way as the ones it reports (--ring, --border).
+    private static Task<string> ColorAsync(IPage page, string value) =>
+        page.EvaluateAsync<string>(@"v => {
+            const probe = document.createElement('div');
+            probe.style.backgroundColor = v;
+            document.body.append(probe);
+            const color = getComputedStyle(probe).backgroundColor;
+            probe.remove();
+            return color;
+        }", value);
+
+    private static Task<string> LineColorAsync(ILocator head) =>
+        head.Locator("[data-bz-resizer]").EvaluateAsync<string>("h => getComputedStyle(h, '::after').backgroundColor");
+
+    // The landing line a label-and-line drag shows: its x (its centre), or null while it is hidden.
+    private static Task<double?> LandingLineAsync(IPage page) =>
+        page.EvaluateAsync<double?>(@"() => {
+            const line = [...document.body.children].find(e => e.style?.position === 'fixed' && e.style.width === '2px');
+            return line && line.style.display !== 'none' ? parseFloat(line.style.left) + 1 : null;
+        }");
+
+    // How far each data column's header and first body cell are shifted sideways, by key.
+    private static Task<Dictionary<string, double[]>> ShiftsAsync(ILocator table) =>
+        table.EvaluateAsync<Dictionary<string, double[]>>(@"t => {
+            const row = t.querySelector('tbody tr[data-slot=table-row]');
+            const shift = el => { const v = getComputedStyle(el).translate; return v === 'none' ? 0 : parseFloat(v); };
+            return Object.fromEntries([...t.tHead.rows[0].cells].filter(c => c.dataset.bzColumn)
+                .map(c => [c.dataset.bzColumn, [shift(c), shift(row.cells[c.cellIndex])]]));
+        }");
+
+    [E2EFact]
+    public async Task Hovering_or_focusing_a_resizable_header_lights_its_resize_line()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+        var table = Table(page, "Customer");
+        var placed = Head(table, "Placed");
+        await placed.ScrollIntoViewIfNeededAsync();
+        var ring = await ColorAsync(page, "var(--ring)");
+        var border = await ColorAsync(page, "var(--border)");
+        await page.Mouse.MoveAsync(1, 1);
+
+        // At rest a hairline in the border color.
+        await page.WaitForFunctionAsync("([h, c]) => getComputedStyle(h, '::after').backgroundColor === c",
+            new object[] { await placed.Locator("[data-bz-resizer]").ElementHandleAsync(), border });
+
+        // Anywhere on the header: the ring color, still a hairline.
+        var box = (await placed.BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(box.X + 12, box.Y + box.Height / 2);
+        await page.WaitForFunctionAsync("([h, c]) => getComputedStyle(h, '::after').backgroundColor === c",
+            new object[] { await placed.Locator("[data-bz-resizer]").ElementHandleAsync(), ring });
+        Assert.Equal("1px", await placed.Locator("[data-bz-resizer]").EvaluateAsync<string>("h => getComputedStyle(h, '::after').width"));
+        // The neighbours' lines stay at rest.
+        Assert.Equal(border, await LineColorAsync(Head(table, "Status")));
+
+        // On the handle itself: the strongest, two pixels wide.
+        var handle = (await placed.Locator("[data-bz-resizer]").BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(handle.X + handle.Width / 2, handle.Y + handle.Height / 2);
+        await Assertions.Expect(placed.Locator("[data-bz-resizer]")).ToHaveCSSAsync("cursor", "col-resize");
+        await page.WaitForFunctionAsync("h => getComputedStyle(h, '::after').width === '2px'", await placed.Locator("[data-bz-resizer]").ElementHandleAsync());
+
+        // The keyboard focus on the header's sort button (Alt+Shift+arrows resize from there).
+        await page.Mouse.MoveAsync(1, 1);
+        await Head(table, "Customer").Locator("button[data-bz-sort]").FocusAsync();
+        await page.Keyboard.PressAsync("Tab");
+        await Assertions.Expect(placed.Locator("button[data-bz-sort]")).ToBeFocusedAsync();
+        await page.WaitForFunctionAsync("([h, c]) => getComputedStyle(h, '::after').backgroundColor === c",
+            new object[] { await placed.Locator("[data-bz-resizer]").ElementHandleAsync(), ring });
+    }
+
+    [E2EFact]
+    public async Task A_header_that_can_move_shows_the_grab_cursor()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+        var table = Table(page, "Estimate");
+        await table.ScrollIntoViewIfNeededAsync();
+
+        // Movable headers, their sort buttons included; # stays put, so no hand.
+        await Assertions.Expect(Head(table, "Title")).ToHaveCSSAsync("cursor", "grab");
+        await Assertions.Expect(Head(table, "Title").Locator("button[data-bz-sort]")).ToHaveCSSAsync("cursor", "grab");
+        await Assertions.Expect(Head(table, "Estimate")).ToHaveCSSAsync("cursor", "grab");
+        await Assertions.Expect(Head(table, "#")).Not.ToHaveCSSAsync("cursor", "grab");
+        // A table that only resizes: no hand, and the handle keeps its own cursor.
+        var sizing = Table(page, "Customer");
+        await Assertions.Expect(Head(sizing, "Placed")).Not.ToHaveCSSAsync("cursor", "grab");
+        await Assertions.Expect(Head(sizing, "Placed").Locator("[data-bz-resizer]")).ToHaveCSSAsync("cursor", "col-resize");
+
+        // Dragging: the closed hand.
+        await PressAndMoveAsync(page, Head(table, "Owner"), 12);
+        await Assertions.Expect(Head(table, "Owner")).ToHaveCSSAsync("cursor", "grabbing");
+        await Assertions.Expect(Head(table, "Owner").Locator("button[data-bz-sort]")).ToHaveCSSAsync("cursor", "grabbing");
+        await page.Keyboard.PressAsync("Escape");
+        await page.Mouse.UpAsync();
+        await Assertions.Expect(Head(table, "Owner")).ToHaveCSSAsync("cursor", "grab");
+
+        // A click still sorts.
+        await Head(table, "Title").Locator("button[data-bz-sort]").ClickAsync();
+        await Assertions.Expect(Head(table, "Title")).ToHaveAttributeAsync("aria-sort", "ascending");
+    }
+
+    [E2EFact]
+    public async Task The_landing_line_marks_the_gap_the_same_way_for_every_column()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+
+        // Left to right: Title is the first column that moves (# stays put), Owner one in the middle.
+        var table = Table(page, "Estimate");
+        foreach (var (key, next) in new[] { ("Title", "Owner"), ("Owner", "Due") })
+        {
+            var head = Head(table, key);
+            // A few pixels: over its own place nothing would move, and no line shows.
+            await PressAndMoveAsync(page, head, 8);
+            Assert.Null(await LandingLineAsync(page));
+            // Past the middle of the next column: the line sits after it.
+            var nextBox = (await Head(table, next).BoundingBoxAsync())!;
+            var headBox = (await head.BoundingBoxAsync())!;
+            await page.Mouse.MoveAsync(nextBox.X + nextBox.Width * 0.75f, headBox.Y + headBox.Height / 2, new() { Steps = 6 });
+            Assert.Equal(nextBox.X + nextBox.Width, (await LandingLineAsync(page))!.Value, 1.5);
+            await page.Keyboard.PressAsync("Escape");
+            await page.Mouse.UpAsync();
+        }
+        // Back past the middle of the column before it: the line sits before that one.
+        var owner = Head(table, "Owner");
+        var title = (await Head(table, "Title").BoundingBoxAsync())!;
+        await PressAndMoveAsync(page, owner, -8);
+        Assert.Null(await LandingLineAsync(page));
+        await page.Mouse.MoveAsync(title.X + title.Width * 0.25f, title.Y + title.Height / 2, new() { Steps = 6 });
+        Assert.Equal(title.X, (await LandingLineAsync(page))!.Value, 1.5);
+        await page.Keyboard.PressAsync("Escape");
+        await page.Mouse.UpAsync();
+        Assert.Equal("#,Title,Owner,Due,Estimate", await KeysAsync(table));
+
+        // Right to left (the same table, turned around): the next column sits to the left, and the
+        // line on its left edge; the column before sits to the right.
+        await table.EvaluateAsync("t => t.closest('[data-slot=data-table]').setAttribute('dir', 'rtl')");
+        foreach (var (key, next) in new[] { ("Title", "Owner"), ("Owner", "Due") })
+        {
+            var head = Head(table, key);
+            await PressAndMoveAsync(page, head, -8);
+            Assert.Null(await LandingLineAsync(page));
+            var nextBox = (await Head(table, next).BoundingBoxAsync())!;
+            var headBox = (await head.BoundingBoxAsync())!;
+            await page.Mouse.MoveAsync(nextBox.X + nextBox.Width * 0.25f, headBox.Y + headBox.Height / 2, new() { Steps = 6 });
+            Assert.Equal(nextBox.X, (await LandingLineAsync(page))!.Value, 1.5);
+            await page.Keyboard.PressAsync("Escape");
+            await page.Mouse.UpAsync();
+        }
+        title = (await Head(table, "Title").BoundingBoxAsync())!;
+        await PressAndMoveAsync(page, owner, 8);
+        Assert.Null(await LandingLineAsync(page));
+        await page.Mouse.MoveAsync(title.X + title.Width * 0.75f, title.Y + title.Height / 2, new() { Steps = 6 });
+        Assert.Equal(title.X + title.Width, (await LandingLineAsync(page))!.Value, 1.5);
+        await page.Keyboard.PressAsync("Escape");
+        await page.Mouse.UpAsync();
+        Assert.Equal("#,Title,Owner,Due,Estimate", await KeysAsync(table));
+    }
+
+    [E2EFact]
+    public async Task A_live_move_slides_the_columns_while_dragging_and_reports_once_on_release()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+        var table = Table(page, "Estimate");
+        await table.ScrollIntoViewIfNeededAsync();
+        await page.Locator("#table-reorder-live").ClickAsync();
+        await Assertions.Expect(page.Locator("#table-reorder-live")).ToHaveAttributeAsync("aria-checked", "true");
+        // The switch's render reaches the column script after it lands.
+        await page.WaitForTimeoutAsync(500);
+        // Every change to the order the demo prints, counted.
+        await Note(table).EvaluateAsync(@"note => {
+            window.__orderChanges = 0;
+            new MutationObserver(() => window.__orderChanges++).observe(note, { subtree: true, characterData: true, childList: true });
+        }");
+
+        var owner = (await Head(table, "Owner").BoundingBoxAsync())!;
+        var title = (await Head(table, "Title").BoundingBoxAsync())!;
+        await PressAndMoveAsync(page, Head(table, "Owner"), -title.Width * 0.7f);
+        await page.WaitForTimeoutAsync(300);
+
+        // Mid-drag: Title has slid over by Owner's width, header and cells alike; Owner follows the
+        // pointer. No label, no line, and nothing reported yet.
+        var shifts = await ShiftsAsync(table);
+        Assert.Equal(owner.Width, shifts["Title"][0], 1.0);
+        Assert.Equal(owner.Width, shifts["Title"][1], 1.0);
+        Assert.Equal(-title.Width * 0.7, shifts["Owner"][0], 2.0);
+        Assert.Equal(shifts["Owner"][0], shifts["Owner"][1], 0.5);
+        Assert.Equal(0, shifts["Due"][0]);
+        Assert.Null(await LandingLineAsync(page));
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__orderChanges"));
+
+        await page.Mouse.UpAsync();
+
+        await Assertions.Expect(Note(table)).ToContainTextAsync("Order: #, Owner, Title, Due, Estimate");
+        Assert.Equal("#,Owner,Title,Due,Estimate", await KeysAsync(table));
+        await Assertions.Expect(table).Not.ToHaveAttributeAsync("data-bz-live-move", new System.Text.RegularExpressions.Regex(".*"));
+        Assert.All((await ShiftsAsync(table)).Values, s => Assert.Equal([0, 0], s));
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => window.__orderChanges"));
+        await Assertions.Expect(Head(table, "Owner")).ToHaveAttributeAsync("aria-sort", "none");
+
+        // Escape mid-drag: everything slides back, and nothing is reported.
+        await PressAndMoveAsync(page, Head(table, "Title"), 180);
+        await page.WaitForTimeoutAsync(200);
+        Assert.NotEqual(0, (await ShiftsAsync(table))["Title"][0]);
+        await page.Keyboard.PressAsync("Escape");
+        await page.Mouse.UpAsync();
+        await Assertions.Expect(table).Not.ToHaveAttributeAsync("data-bz-live-move", new System.Text.RegularExpressions.Regex(".*"));
+        Assert.All((await ShiftsAsync(table)).Values, s => Assert.Equal([0, 0], s));
+        Assert.Equal("#,Owner,Title,Due,Estimate", await KeysAsync(table));
+        Assert.Equal(1, await page.EvaluateAsync<int>("() => window.__orderChanges"));
+
+        // Right to left (the same table, turned around): Title dragged right, back over Owner.
+        await table.EvaluateAsync("t => t.closest('[data-slot=data-table]').setAttribute('dir', 'rtl')");
+        var ownerWidth = await WidthAsync(Head(table, "Owner"));
+        var titleWidth = await WidthAsync(Head(table, "Title"));
+        await PressAndMoveAsync(page, Head(table, "Title"), (float)(ownerWidth * 0.7));
+        await page.WaitForTimeoutAsync(300);
+        shifts = await ShiftsAsync(table);
+        Assert.Equal(-titleWidth, shifts["Owner"][1], 1.0);
+        Assert.Equal(ownerWidth * 0.7, shifts["Title"][1], 2.0);
+        await page.Mouse.UpAsync();
+        await Assertions.Expect(Note(table)).ToContainTextAsync("Order: #, Title, Owner, Due, Estimate");
+        Assert.Equal(2, await page.EvaluateAsync<int>("() => window.__orderChanges"));
+    }
+
+    [E2EFact]
+    public async Task A_live_move_shifts_the_rows_the_virtualizer_adds_mid_drag()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+        var table = Table(page, "SKU");
+        await table.ScrollIntoViewIfNeededAsync();
+        var sku = (await Head(table, "SKU").BoundingBoxAsync())!;
+        var warehouse = (await Head(table, "Warehouse").BoundingBoxAsync())!;
+
+        await PressAndMoveAsync(page, Head(table, "SKU"), warehouse.Width * 0.7f);
+        // Rows far down render while the column is held.
+        await table.EvaluateAsync("t => t.parentElement.scrollTop = 49 * 300");
+        await page.WaitForFunctionAsync("t => !!t.querySelector('tbody tr[data-bz-row-index=\"300\"]')", await table.ElementHandleAsync());
+        await page.WaitForTimeoutAsync(250);
+        var shifted = await table.EvaluateAsync<double[]>(@"t => {
+            const heads = [...t.tHead.rows[0].cells];
+            const row = t.querySelector('tbody tr[data-bz-row-index=""300""]');
+            const shift = el => { const v = getComputedStyle(el).translate; return v === 'none' ? 0 : parseFloat(v); };
+            const at = key => heads.findIndex(c => c.dataset.bzColumn === key);
+            return [shift(row.cells[at('Warehouse')]), shift(row.cells[at('SKU')]), shift(row.cells[at('Item')])];
+        }");
+        Assert.Equal(-sku.Width, shifted[0], 1.0);
+        Assert.Equal(warehouse.Width * 0.7, shifted[1], 2.0);
+        // The pinned Item column never moves.
+        Assert.Equal(0, shifted[2]);
+
+        await page.Mouse.UpAsync();
+        await page.WaitForFunctionAsync("t => !t.hasAttribute('data-bz-live-move')", await table.ElementHandleAsync());
+        Assert.StartsWith("#,Item,Warehouse,SKU,", await KeysAsync(table));
+    }
+
     [E2EFact]
     public async Task Dragging_a_header_edge_resizes_the_column_and_reports_the_width_once()
     {

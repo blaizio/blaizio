@@ -2,7 +2,7 @@
    recording every ColumnWidthsChanged / ColumnOrderChanged. Bind keeps the state here (as
    @bind-* does); Reject hears the change but keeps the old value, a controlled parent saying no. *@
 <BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" Selectable="Selectable" StickyHeader="Sticky"
-             ResizableColumns="Resizable" ReorderableColumns="Reorderable" EditMode="DataTableEditMode.Cell"
+             ResizableColumns="Resizable" ReorderableColumns="Reorderable" LiveReorder="Live" EditMode="DataTableEditMode.Cell"
              ColumnWidths="Widths" DefaultColumnWidths="DefaultWidths"
              ColumnWidthsChanged="@(Bind ? EventCallback.Factory.Create<IReadOnlyDictionary<string, double>?>(this, OnWidths) : default)"
              ColumnOrder="Order" DefaultColumnOrder="DefaultOrder"
@@ -19,6 +19,7 @@
     [Parameter] public bool Sticky { get; set; }
     [Parameter] public bool Resizable { get; set; }
     [Parameter] public bool Reorderable { get; set; }
+    [Parameter] public bool Live { get; set; }
     [Parameter] public bool Editable { get; set; }
     [Parameter] public bool Bind { get; set; } = true;
     [Parameter] public bool Reject { get; set; }
