@@ -6,8 +6,9 @@ namespace Blaizio.Ui;
 /// <summary>
 /// Base for a <see cref="BzDataTable{TItem}"/> child column. Registers itself with the enclosing grid on
 /// init (in document order, which becomes column order) and renders nothing of its own - the grid
-/// reads the column back through <see cref="IGridColumn{TItem}"/> to build the header and cells, so a
-/// parameter change here reflects live without re-registering.
+/// reads the column back through <see cref="IGridColumn{TItem}"/> to build the header and cells. The
+/// grid arranges its columns before they get that render's parameters (they are its child content),
+/// so a column whose parameters changed asks the grid for one more render.
 /// </summary>
 /// <typeparam name="TItem">The row data type, cascaded from the <see cref="BzDataTable{TItem}"/>.</typeparam>
 public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, IDisposable
@@ -82,6 +83,9 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
 
     private bool _registered;
 
+    // What the grid last read from this column: compared after each parameter set.
+    private Shape _shape;
+
     /// <inheritdoc />
     protected override void OnInitialized()
     {
@@ -90,7 +94,54 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
 
         Grid.Register(this);
         _registered = true;
+        // What the grid filtered and sorted by as it registered this column: a property column's
+        // key, sorting and search text resolve in its OnParametersSet, which comes after.
+        _shape = CurrentShape();
     }
+
+    /// <inheritdoc />
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        var registering = !_registered;
+        var task = base.SetParametersAsync(parameters);
+        // The grid arranges and filters its columns before they get the render's parameters, so a
+        // change it has not read asks it for one more render. Columns do no async lifecycle work:
+        // the parameters are applied and resolved by now.
+        if (_registered)
+        {
+            var shape = CurrentShape();
+            if (shape != _shape)
+            {
+                var rows = !shape.SameRows(_shape);
+                _shape = shape;
+                Grid!.ColumnChanged(rows, registering);
+            }
+        }
+        return task;
+    }
+
+    // The parameters the grid reads from a column, as far as they compare by value (templates and
+    // accessors are new objects on every render of the page). The rows part is what the in-memory
+    // filter and sort read too.
+    private readonly record struct Shape(
+        string Key, bool Sortable, bool Searchable, string? Format,
+        string? Title, string Align, string? HeaderClass, string? CellClass,
+        double? Width, double? MinWidth, double? MaxWidth, bool Fill, DataTablePin Pinned,
+        bool Resizable, bool Reorderable, DataTableEditor? Editor)
+    {
+        public bool SameRows(Shape other) =>
+            Key == other.Key && Sortable == other.Sortable && Searchable == other.Searchable && Format == other.Format;
+    }
+
+    private Shape CurrentShape()
+    {
+        IGridColumn<TItem> column = this;
+        return new(column.Key, column.Sortable, column.Searchable, CellFormat, column.Title, Align, HeaderClass,
+            CellClass, Width, MinWidth, MaxWidth, Fill, Pinned, Resizable, Reorderable, GridEditor?.Kind);
+    }
+
+    /// <summary>The format the cells and their search text are written in, for a column type that has one.</summary>
+    private protected virtual string? CellFormat => null;
 
     string IGridColumn<TItem>.Key => ResolveKey();
     string? IGridColumn<TItem>.Title => ResolveTitle();
