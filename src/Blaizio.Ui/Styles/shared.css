@@ -1803,14 +1803,36 @@
   @apply sticky;
 }
 
-/* The drag handle on a resizable header's end edge: a hairline that firms up under the pointer. */
+/* The drag handle on a resizable header's end edge: a hairline that takes the ring color while
+   its header is hovered or has the keyboard focus (Alt+Shift+arrows resize from there), and
+   firms up to two pixels under the pointer and while dragged. */
 .bz-table-resizer {
-  @apply absolute inset-y-0 end-0 z-[1] w-2 cursor-col-resize touch-none select-none after:absolute after:inset-y-2 after:end-0 after:w-px after:bg-border after:transition-colors hover:after:bg-ring data-active:after:w-0.5 data-active:after:bg-ring;
+  @apply absolute inset-y-0 end-0 z-[1] w-2 cursor-col-resize touch-none select-none after:absolute after:inset-y-2 after:end-0 after:w-px after:bg-border after:transition-colors group-hover/table-head:after:bg-ring group-focus-visible/table-head:after:bg-ring group-has-focus-visible/table-head:after:bg-ring hover:after:w-0.5 hover:after:bg-ring data-active:after:w-0.5 data-active:after:bg-ring;
+}
+
+/* While a column moves, the dragged header's line stays a hairline: lit, it would read as a
+   landing mark. */
+.bz-data-table[data-bz-moving] .bz-table-resizer {
+  @apply after:bg-border;
+}
+
+/* A header that can move (it has somewhere to go) shows the grab cursor, its sort button too; a
+   click still sorts. The resize handle keeps its own cursor. */
+.bz-table-head[data-movable] {
+  @apply cursor-grab;
+}
+
+.bz-table-head[data-movable] .bz-table-sort-button {
+  @apply cursor-grab;
 }
 
 /* A header being dragged to a new place, and its column. */
 .bz-table-head[data-moving] {
   @apply cursor-grabbing opacity-60;
+}
+
+.bz-table-head[data-moving] .bz-table-sort-button {
+  @apply cursor-grabbing;
 }
 
 .bz-table-col[data-moving] {

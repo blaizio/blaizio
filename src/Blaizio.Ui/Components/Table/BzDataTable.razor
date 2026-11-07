@@ -21,9 +21,10 @@
     parses, validates, writes through the property setter and raises OnEdit once per user action.
 
     Columns: Width / MinWidth / MaxWidth / Fill size them, Pinned keeps them in place while the rows
-    scroll sideways, and ResizableColumns / ReorderableColumns let users resize and move them. The
-    script (ts/dataTable.ts) lays the widths out and runs every drag and key without calling .NET; it
-    reports a finished resize or move once, and .NET keeps the result in ColumnWidths / ColumnOrder.
+    scroll sideways, and ResizableColumns / ReorderableColumns let users resize and move them
+    (LiveReorder moves the dragged column itself). The script (ts/dataTable.ts) lays the widths out
+    and runs every drag and key without calling .NET; it reports a finished resize or move once, and
+    .NET keeps the result in ColumnWidths / ColumnOrder.
 *@
 
 @* Columns register through this cascade; the fragment itself renders nothing visible. *@
@@ -253,9 +254,20 @@
     /// <summary>
     /// Let users move columns: drag a header to a new place, or press Ctrl+Shift+Left / Right on a
     /// focused header. Pinned columns move among their own group, and a column whose
-    /// <c>Reorderable</c> is off stays put. Bind <see cref="ColumnOrder"/> to keep the order.
+    /// <c>Reorderable</c> is off stays put. Bind <see cref="ColumnOrder"/> to keep the order, and
+    /// set <see cref="LiveReorder"/> to move the column itself while it is dragged.
     /// </summary>
     [Parameter] public bool ReorderableColumns { get; set; }
+
+    /// <summary>
+    /// How a dragged header shows where its column will go (with <see cref="ReorderableColumns"/>).
+    /// Off (the default): a label with the column's title follows the pointer and a line marks the
+    /// gap it will drop into. On: the whole column follows the pointer and the columns it passes
+    /// slide out of its way; on release it slides into its place. Either way the order is reported
+    /// once, on release, and Escape puts everything back. The slides are instant when the user
+    /// asks for reduced motion.
+    /// </summary>
+    [Parameter] public bool LiveReorder { get; set; }
 
     /// <summary>
     /// Controlled column widths in pixels, by column key: the columns a user resized. A width here
@@ -810,6 +822,10 @@
         public required bool[] Resizable { get; init; }
 
         public required bool[] Reorderable { get; init; }
+
+        // Reorderable with somewhere to go: a neighbour in its pin group that moves too (the
+        // script's range() walks the same run). Shows the grab cursor.
+        public required bool[] Movable { get; init; }
     }
 
     // Whether the script lays out the widths: any sizing parameter, a width a user chose, or resizing.
@@ -856,6 +872,14 @@
         if (lastStart >= 0) edge[lastStart] = "start";
         if (firstEnd >= 0) edge[firstEnd] = "end";
 
+        var movable = new bool[count];
+        for (var c = 0; c < count; c++)
+        {
+            movable[c] = reorderable[c] &&
+                ((c > 0 && reorderable[c - 1] && pin[c - 1] == pin[c]) ||
+                 (c + 1 < count && reorderable[c + 1] && pin[c + 1] == pin[c]));
+        }
+
         return new ColumnFrame
         {
             Sized = sized,
@@ -865,6 +889,7 @@
             Edge = edge,
             Resizable = resizable,
             Reorderable = reorderable,
+            Movable = movable,
         };
     }
 
@@ -895,6 +920,7 @@
         }
         if (frame.Resizable[index]) attributes["data-resizable"] = "";
         if (frame.Reorderable[index]) attributes["data-reorderable"] = "";
+        if (frame.Movable[index]) attributes["data-movable"] = "";
         // The keys act on a focused header: one with no sort button gets a tab stop of its own (an
         // editable table's cursor reaches every header already).
         if (!editing && col.Header is null && !col.Sortable && (frame.Resizable[index] || frame.Reorderable[index]))
@@ -1050,7 +1076,7 @@
         var hasRows = NavRows.Count > 0;
         var list = new object[columns.Count];
         var key = new System.Text.StringBuilder()
-            .Append(frame?.Sized == true).Append('|').Append(Selectable).Append('|').Append(hasRows);
+            .Append(frame?.Sized == true).Append('|').Append(Selectable).Append('|').Append(hasRows).Append('|').Append(LiveReorder);
         for (var i = 0; i < columns.Count; i++)
         {
             var col = columns[i];
@@ -1065,7 +1091,7 @@
                 .Append(pin).Append(':').Append(resizable).Append(':').Append(reorderable);
         }
         signature = key.ToString();
-        return new { sized = frame?.Sized == true, selectable = Selectable, hasRows, columns = list };
+        return new { sized = frame?.Sized == true, selectable = Selectable, hasRows, live = LiveReorder, columns = list };
     }
 
     // ---- selection ----

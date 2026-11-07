@@ -1364,6 +1364,8 @@ interface ColumnsOptions {
   selectable: boolean;
   /** The body holds rows. The first rows after an empty or loading body are measured afresh. */
   hasRows: boolean;
+  /** A dragged column moves with the pointer and the others make room (LiveReorder), instead of a floating label and a landing line. */
+  live: boolean;
   /** The visible columns, in display order. */
   columns: ColumnSpec[];
 }
@@ -1378,6 +1380,10 @@ const DRAG_THRESHOLD = 5;
 const KEY_SETTLE = 500;
 /** Within this distance of the scroll box's edge, a header drag scrolls it. */
 const EDGE_SCROLL = 40;
+/** How long the columns of a live move take to slide into a new place (ms). */
+const LIVE_SLIDE = 150;
+/** The longest a dropped live move waits for .NET to render the new order before sliding back (ms). */
+const LANDING_WAIT = 3000;
 
 /** A column's content widths: without wrapping anything it can wrap (min), and on one line (max). */
 interface Natural {
@@ -1409,9 +1415,42 @@ interface MoveDrag {
   first: number;
   last: number;
   to: number;
+  /** The floating label and the landing line (a live move has neither: the column itself moves). */
   ghost: HTMLElement | null;
   indicator: HTMLElement | null;
+  live: LiveMove | null;
   scrollFrame: number;
+}
+
+/**
+ * A live move: the dragged column's cells follow the pointer and the columns it passes slide out
+ * of its way. Nothing rendered by .NET moves in the DOM: a style sheet of the script's own
+ * translates the cells by their place in the row (so rows the virtualizer adds mid-drag shift
+ * too), and it goes once .NET has rendered the dropped order.
+ */
+interface LiveMove {
+  drag: MoveDrag;
+  id: string;
+  sheet: CSSStyleSheet;
+  root: Document | ShadowRoot;
+  rtl: boolean;
+  /** A pinned column is measured from the scroll box (its group stays put when the box scrolls), any other from the table. */
+  pinned: boolean;
+  /** The header's keys when the drag began (see headerKeys): a change means the sheet is out of date. */
+  before: string;
+  /** Per display index: the column's cells' place among their row's cells (1-based, for :nth-child). */
+  nth: number[];
+  /** Per display index in the move's range: the start edge, in reading order from the box's start edge, and the width. */
+  starts: number[];
+  widths: number[];
+  /** Where the press sat inside the dragged column, from its start edge. */
+  grab: number;
+  /** The rules that lift the dragged column: over its neighbours, opaque. */
+  lift: string;
+  motion: boolean;
+  /** Once dropped: the order reported, as keys joined by newlines. The sheet goes when the header shows it. */
+  landing: string | null;
+  timer: number;
 }
 
 /** One laid-out column while widths are worked out. */
@@ -1443,13 +1482,19 @@ interface Slot {
  * (--bz-pin-s<k> / --bz-pin-e<k>), and this module keeps the variables at the widths of the pinned
  * columns before it.
  *
+ * MOVING. A dragged header shows where its column would land: a floating label follows the
+ * pointer and a line marks the gap it would drop into, or, with options.live, the column itself
+ * follows the pointer and the columns it passes slide out of its way (LiveMove).
+ *
  * Contract with BzDataTable:
  *   th[data-bz-column=key]   a data column's header (the selection column's header has none)
  *   th[data-pinned=start|end], [data-resizable], [data-reorderable]
+ *   th[data-movable]         a reorderable column with somewhere to go (styling only: the grab cursor)
  *   [data-bz-resizer]        the drag handle on a resizable header's end edge
  *   [data-bz-sort]           the header's sort button (a drag may start on it)
  *   table[data-bz-sized]     set here while the widths are laid out here
  *   table[data-bz-columns]   set here once attached
+ *   table[data-bz-live-move] set here while a live move's style sheet is applied
  */
 class DataTableColumns {
   private readonly table: HTMLTableElement;
@@ -1470,6 +1515,8 @@ class DataTableColumns {
   private updates = 0;
   private resizing: ResizeDrag | null = null;
   private moving: MoveDrag | null = null;
+  /** A live move's sheet: from the drag's start until .NET renders the dropped order (or it slides back). */
+  private live: LiveMove | null = null;
   private keyRun: { key: string; timer: number } | null = null;
   private moved: { key: string; index: number; button: boolean; until: number } | null = null;
   private swallowClick = false;
@@ -1488,7 +1535,9 @@ class DataTableColumns {
     root.addEventListener('click', this.onClick, true);
 
     this.mutations = new MutationObserver(this.onMutations);
-    this.mutations.observe(this.table, { childList: true, subtree: true });
+    // A move's render can change no element, only which column each header shows: data-bz-column
+    // tells (so the layout and a live move's sheet follow that render, not the update after it).
+    this.mutations.observe(this.table, { childList: true, subtree: true, attributes: true, attributeFilter: ['data-bz-column'] });
     this.sizes = new ResizeObserver(this.onSizes);
 
     this.update(options);
@@ -1499,7 +1548,7 @@ class DataTableColumns {
   // A web font that arrives after the content was measured (one loaded on demand included): the
   // content-sized columns were measured in its fallback's widths, so measure them again.
   private onFonts = (): void => {
-    if (this.resizing || this.moving?.dragging || !this.table.isConnected) return;
+    if (this.resizing || this.moving?.dragging || this.live || !this.table.isConnected) return;
     this.natural.clear();
     this.refresh();
   };
@@ -1533,6 +1582,7 @@ class DataTableColumns {
   public dispose = (): void => {
     this.endResize(false);
     this.endMove();
+    this.clearLive();
     if (this.keyRun) window.clearTimeout(this.keyRun.timer);
     cancelAnimationFrame(this.frame);
     this.mutations.disconnect();
@@ -1607,7 +1657,7 @@ class DataTableColumns {
     // Next frame, never inside the observer: writing widths here would size what it watches.
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
-      if (this.resizing || this.moving?.dragging) return;
+      if (this.resizing || this.moving?.dragging || this.live) return;
       if (this.options.sized && Math.abs(this.container.clientWidth - this.room) >= 1) this.layout();
       this.pins();
     });
@@ -1621,6 +1671,7 @@ class DataTableColumns {
       (r) => r.target === this.table || (head?.contains(r.target) ?? false) || (r.target instanceof Element && r.target.closest('colgroup') !== null),
     );
     if (!touched) return;
+    this.landed();
     this.refresh();
     this.refocus();
   };
@@ -1996,6 +2047,7 @@ class DataTableColumns {
       to: -1,
       ghost: null,
       indicator: null,
+      live: null,
       scrollFrame: 0,
     };
     document.addEventListener('pointermove', this.onMoveMove, true);
@@ -2035,17 +2087,26 @@ class DataTableColumns {
     } catch {
       // A synthetic pointer: the document listeners still follow it.
     }
+    // A live move measures the columns before anything about them changes.
+    m.live = this.options.live ? this.beginLive(m) : null;
     m.th.setAttribute('data-moving', '');
-    this.cols()[this.heads().indexOf(m.th)]?.setAttribute('data-moving', '');
     this.root.setAttribute('data-bz-moving', '');
-    m.ghost = ghost(this.titleOf(m.key), m.th);
-    m.indicator = indicator();
+    if (!m.live) {
+      this.cols()[this.heads().indexOf(m.th)]?.setAttribute('data-moving', '');
+      m.ghost = ghost(this.titleOf(m.key), m.th);
+      m.indicator = indicator();
+    }
     return true;
   }
 
   // The landing place: past every column in range whose middle the pointer has crossed, in reading
-  // order. The marker sits on that boundary.
+  // order. The line marks the gap the column would drop into; over its own place nothing would
+  // move, and no line shows, wherever the column sits in its range.
   private track(m: MoveDrag): void {
+    if (m.live) {
+      this.follow(m, m.live);
+      return;
+    }
     const heads = this.dataHeads();
     const rtl = this.rtl;
     const others: DOMRect[] = [];
@@ -2058,19 +2119,28 @@ class DataTableColumns {
       else break;
     }
     m.to = m.first + passed;
-    // The marker: the leading edge of the first column not passed, or the trailing edge of the last one.
+    // The gap: before the first column not passed, or after the last one passed.
     const edge =
-      passed === 0 ? (rtl ? others[0].right : others[0].left) : rtl ? others[passed - 1].left : others[passed - 1].right;
+      m.to === m.from
+        ? NaN
+        : passed === 0
+          ? rtl
+            ? others[0].right
+            : others[0].left
+          : rtl
+            ? others[passed - 1].left
+            : others[passed - 1].right;
     const box = this.container.getBoundingClientRect();
     const table = this.table.getBoundingClientRect();
     const top = Math.max(box.top, table.top, 0);
     const bottom = Math.min(box.bottom, table.bottom, window.innerHeight);
-    const x = Math.min(Math.max(edge, box.left), box.right);
     if (m.indicator) {
-      m.indicator.style.left = `${x - 1}px`;
-      m.indicator.style.top = `${top}px`;
-      m.indicator.style.height = `${Math.max(0, bottom - top)}px`;
       m.indicator.style.display = Number.isNaN(edge) ? 'none' : '';
+      if (!Number.isNaN(edge)) {
+        m.indicator.style.left = `${Math.min(Math.max(edge, box.left), box.right) - 1}px`;
+        m.indicator.style.top = `${top}px`;
+        m.indicator.style.height = `${Math.max(0, bottom - top)}px`;
+      }
     }
     if (m.ghost) {
       m.ghost.style.left = `${m.lastX + 12}px`;
@@ -2101,19 +2171,30 @@ class DataTableColumns {
     if (!m || e.pointerId !== m.pointerId) return;
     const dropped = m.dragging && !m.cancelled && m.to !== m.from;
     const dragged = m.dragging;
+    // The press focused the header's sort button (or the header): the focus goes with the column.
+    const focused = dropped && m.th.contains(document.activeElement) ? document.activeElement : null;
     this.endMove();
     if (!dragged) return;
     // The click the release produces belongs to the drag, not to the sort button under it.
     this.swallowClick = true;
     window.setTimeout(() => (this.swallowClick = false), 0);
-    if (dropped) this.moveTo(m.key, m.from, m.to);
+    if (focused) this.moved = { key: m.key, index: m.to, button: focused !== m.th, until: performance.now() + LANDING_WAIT };
+    if (m.live) {
+      // Cancelled with Escape: already on its way back.
+      if (!m.cancelled) this.settleLive(m.live, dropped);
+    } else if (dropped) {
+      this.moveTo(m.key, m.from, m.to);
+    }
   };
 
   private onMoveCancel = (e: PointerEvent): void => {
-    if (this.moving && e.pointerId === this.moving.pointerId) this.endMove();
+    const m = this.moving;
+    if (!m || e.pointerId !== m.pointerId) return;
+    this.endMove();
+    if (m.live && !m.cancelled) this.settleLive(m.live, false);
   };
 
-  // Escape mid-drag: no move. The release still swallows its click.
+  // Escape mid-drag: no move (a live move's columns slide back). The release still swallows its click.
   private onMoveKey = (e: KeyboardEvent): void => {
     const m = this.moving;
     if (e.key !== 'Escape' || !m?.dragging || m.cancelled) return;
@@ -2122,6 +2203,7 @@ class DataTableColumns {
     m.cancelled = true;
     m.ghost?.remove();
     m.indicator?.remove();
+    if (m.live) this.settleLive(m.live, false);
   };
 
   private endMove(): void {
@@ -2145,10 +2227,227 @@ class DataTableColumns {
     }
   }
 
+  // ---- live moving ----
+
+  /** The visible data columns' keys in display order, one per line. */
+  private headerKeys(): string {
+    return this.dataHeads()
+      .map((th) => this.keyOf(th))
+      .join('\n');
+  }
+
+  // A live move's measures, taken before anything moves, and its style sheet. Null where the page
+  // cannot adopt a style sheet: the drag then shows the label and the line.
+  private beginLive(m: MoveDrag): LiveMove | null {
+    const root = this.table.getRootNode();
+    if (!(root instanceof Document || root instanceof ShadowRoot) || !('adoptedStyleSheets' in root)) return null;
+    let sheet: CSSStyleSheet;
+    try {
+      sheet = new CSSStyleSheet();
+    } catch {
+      return null;
+    }
+    const heads = this.dataHeads();
+    const rtl = this.rtl;
+    const pinned = !!this.specs.get(m.key)?.pin;
+    const box = (pinned ? this.container : this.table).getBoundingClientRect();
+    const starts: number[] = [];
+    const widths: number[] = [];
+    for (let i = m.first; i <= m.last; i++) {
+      const r = heads[i].getBoundingClientRect();
+      starts[i] = rtl ? box.right - r.right : r.left - box.left;
+      widths[i] = r.width;
+    }
+    const live: LiveMove = {
+      drag: m,
+      id: String(++liveMoves),
+      sheet,
+      root,
+      rtl,
+      pinned,
+      before: this.headerKeys(),
+      nth: heads.map((th) => th.cellIndex + 1),
+      starts,
+      widths,
+      grab: (rtl ? box.right - m.startX : m.startX - box.left) - starts[m.from],
+      lift: '',
+      motion: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      landing: null,
+      timer: 0,
+    };
+    live.lift = this.liftRules(live, m.th);
+    this.clearLive();
+    this.live = live;
+    this.table.setAttribute('data-bz-live-move', live.id);
+    this.placeLive(live, 0);
+    sheet.replaceSync(this.liveCss(live, m.from, false));
+    root.adoptedStyleSheets = [...root.adoptedStyleSheets, sheet];
+    return live;
+  }
+
+  // The dragged column, lifted: over its neighbours but under the pinned columns (unless it is one),
+  // opaque, faintly shaded and edged on both sides. A cell with no fill of its own paints what lies
+  // under it - the table's surroundings, with its row's tint over them - so the cells it passes
+  // over do not show through. The shade and edges go on each cell's ::after, which pinned cells
+  // already have (a collapsed table paints no box-shadow on its cells).
+  private liftRules(live: LiveMove, th: HTMLTableCellElement): string {
+    const scope = `table[data-bz-columns][data-bz-live-move="${live.id}"]`;
+    const n = live.nth[live.drag.from];
+    const head = `${scope} > thead > tr > th:nth-child(${n})`;
+    const body = `${scope} > tbody > tr > td:nth-child(${n}):not([colspan])`;
+    const shade = 'color-mix(in oklab, var(--foreground) 4%, transparent)';
+    const edge = 'color-mix(in oklab, var(--foreground) 16%, transparent)';
+    const mark = `background-image: linear-gradient(${shade}, ${shade}); border-inline: 1px solid ${edge};`;
+    const layer = 'content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;';
+    const rules = [
+      // Full strength while it moves: the dimmed look belongs to the label-and-line drag.
+      `${head} { z-index: ${live.pinned ? 13 : 11}; opacity: 1; }`,
+      `${body} { z-index: ${live.pinned ? 3 : 1}; }`,
+    ];
+    // A pinned column's cells are opaque and sticky already, with their own ::after.
+    if (live.pinned) {
+      rules.push(`${head}::after, ${body}::after { ${mark} }`);
+      return rules.join('\n');
+    }
+    const fill = (selector: string, under: string): void => {
+      rules.push(
+        `${selector} { background-color: inherit; }`,
+        `${selector}::before { ${layer} background: ${under}; }`,
+        `${selector}::after { ${layer} background-color: inherit; ${mark} }`,
+      );
+    };
+    rules.push(`${body} { position: relative; }`);
+    fill(body, backdrop(this.table.tBodies[0] ?? this.table));
+    // A sticky header's cells have a fill of their own: only the shade and edges go over it.
+    if (alphaOf(getComputedStyle(th).backgroundColor) < 1) fill(head, backdrop(this.table.tHead ?? this.table));
+    else rules.push(`${head}::after { ${layer} ${mark} }`);
+    return rules.join('\n');
+  }
+
+  // The sheet with the dragged column bound for `to`: the columns between its place and `to` move
+  // over by its width (sliding, unless motion is reduced), and the dragged column sits at
+  // --bz-live-x, following the pointer (no slide) until it is released.
+  private liveCss(live: LiveMove, to: number, settling: boolean): string {
+    const m = live.drag;
+    const scope = `table[data-bz-columns][data-bz-live-move="${live.id}"]`;
+    const cells = (i: number): string =>
+      `${scope} > thead > tr > th:nth-child(${live.nth[i]}), ${scope} > tbody > tr > td:nth-child(${live.nth[i]}):not([colspan])`;
+    const slide = live.motion ? `translate ${LIVE_SLIDE}ms cubic-bezier(0.2, 0, 0, 1)` : 'none';
+    const width = live.widths[m.from];
+    const rules = [
+      // The pinned columns stay over a column passing under them.
+      `${scope} > thead > tr > th[data-pinned] { z-index: 12; }`,
+      `${scope} > tbody > tr > td[data-pinned] { z-index: 2; }`,
+      `${scope} > tbody > tr > td[data-pinned]:is([data-editing], [data-invalid]) { z-index: 4; }`,
+    ];
+    for (let i = m.first; i <= m.last; i++) {
+      if (i === m.from) continue;
+      const shift = m.from < i && i <= to ? -width : to <= i && i < m.from ? width : 0;
+      rules.push(`${cells(i)} { translate: ${live.rtl ? -shift : shift}px 0; transition: ${slide}; }`);
+    }
+    rules.push(`${cells(m.from)} { translate: var(--bz-live-x, 0px) 0; transition: ${settling ? slide : 'none'}; }`, live.lift);
+    return rules.join('\n');
+  }
+
+  // Where the dragged column's start edge sits once it lands at `to` (reading order).
+  private slot(live: LiveMove, to: number): number {
+    const m = live.drag;
+    return to > m.from ? live.starts[to] + live.widths[to] - live.widths[m.from] : live.starts[to];
+  }
+
+  /** The dragged column's offset from its own place, in reading order. */
+  private placeLive(live: LiveMove, offset: number): void {
+    this.table.style.setProperty('--bz-live-x', `${live.rtl ? -offset : offset}px`);
+  }
+
+  // The dragged column under the pointer, kept within its range, and the place it would land: the
+  // slot nearest its start edge, so a neighbour slides over once the column covers half of it.
+  private follow(m: MoveDrag, live: LiveMove): void {
+    if (this.live !== live) return;
+    const box = (live.pinned ? this.container : this.table).getBoundingClientRect();
+    const at = (live.rtl ? box.right - m.lastX : m.lastX - box.left) - live.grab;
+    const lo = live.starts[m.first];
+    const hi = live.starts[m.last] + live.widths[m.last] - live.widths[m.from];
+    const start = Math.min(Math.max(at, lo), hi);
+    let to = m.to;
+    let gap = Math.abs(start - this.slot(live, to));
+    for (let t = m.first; t <= m.last; t++) {
+      const d = Math.abs(start - this.slot(live, t));
+      if (d < gap - 0.5) {
+        to = t;
+        gap = d;
+      }
+    }
+    if (to !== m.to) {
+      m.to = to;
+      live.sheet.replaceSync(this.liveCss(live, to, false));
+    }
+    this.placeLive(live, start - live.starts[m.from]);
+  }
+
+  // A release (commit) or a cancel: the dragged column slides into its slot, or home. A move is
+  // reported once the slide ends; the sheet stays until .NET's render shows the new order, so the
+  // columns never flash back to the old one in between.
+  private settleLive(live: LiveMove, commit: boolean): void {
+    if (this.live !== live) return;
+    const m = live.drag;
+    const to = commit ? m.to : m.from;
+    window.clearTimeout(live.timer);
+    live.sheet.replaceSync(this.liveCss(live, to, true));
+    this.placeLive(live, this.slot(live, to) - live.starts[m.from]);
+    const done = (): void => {
+      if (this.live !== live) return;
+      if (to === m.from) {
+        this.clearLive();
+        return;
+      }
+      const keys = live.before.split('\n');
+      keys.splice(m.from, 1);
+      keys.splice(to, 0, m.key);
+      live.landing = keys.join('\n');
+      live.timer = window.setTimeout(() => this.unland(live), LANDING_WAIT);
+      // .NET's render, when it takes the order, lands before its answer does: an order still not
+      // in by then was refused.
+      void invokeDotNet(this.ref, 'ColumnsReordered', keys).finally(() => requestAnimationFrame(() => this.unland(live)));
+    };
+    if (live.motion) live.timer = window.setTimeout(done, LIVE_SLIDE);
+    else done();
+  }
+
+  // The header changed under a live move (the dropped order arrived, or a column came or went):
+  // the sheet's places are out of date either way, so it goes. Mid-drag, the drag is cancelled.
+  private landed(): void {
+    const live = this.live;
+    if (!live || this.headerKeys() === live.before) return;
+    if (live.landing === null && this.moving?.live === live) {
+      this.moving.cancelled = true;
+      this.moving.live = null;
+    }
+    this.clearLive();
+  }
+
+  // The dropped order did not come back (a controlled order kept the old one): the columns slide home.
+  private unland(live: LiveMove): void {
+    if (this.live !== live || live.landing === null) return;
+    live.landing = null;
+    this.settleLive(live, false);
+  }
+
+  private clearLive(): void {
+    const live = this.live;
+    if (!live) return;
+    this.live = null;
+    window.clearTimeout(live.timer);
+    live.root.adoptedStyleSheets = live.root.adoptedStyleSheets.filter((s) => s !== live.sheet);
+    this.table.removeAttribute('data-bz-live-move');
+    this.table.style.removeProperty('--bz-live-x');
+  }
+
   // ---- events ----
 
   private onPointerDown = (e: PointerEvent): void => {
-    if (e.button !== 0 || this.resizing || this.moving) return;
+    // A live move still landing holds the columns where it dropped them until .NET's render arrives.
+    if (e.button !== 0 || this.resizing || this.moving || this.live) return;
     const th = this.headOf(e.target);
     if (!th) return;
     const target = e.target as Element;
@@ -2184,7 +2483,7 @@ class DataTableColumns {
   // On a focused header (or its sort button): Alt+Shift+Left / Right resizes and Alt+Shift+Enter
   // fits; Ctrl+Shift+Left / Right moves. Plain, Ctrl and Shift arrows stay with the cell cursor.
   private onKeyDown = (e: KeyboardEvent): void => {
-    if (e.defaultPrevented || e.isComposing) return;
+    if (e.defaultPrevented || e.isComposing || this.live) return;
     const th = this.headOf(e.target);
     if (!th || (e.target !== th && isEditableTarget(e.target))) return;
     const key = this.keyOf(th);
@@ -2249,6 +2548,34 @@ const indicator = (): HTMLElement => {
   });
   document.body.appendChild(el);
   return el;
+};
+
+/** Numbers live moves, so each one's sheet scopes to its own table. */
+let liveMoves = 0;
+
+// A computed color's alpha: 0 for transparent, 1 for an opaque color (no alpha written).
+const alphaOf = (color: string): number => {
+  if (color === 'transparent') return 0;
+  const m = /\/\s*([-+.\deE]+)(%?)\s*\)$/.exec(color) ?? /^rgba\((?:[^,]*,){3}\s*([-+.\deE]+)(%?)\s*\)$/.exec(color);
+  if (!m) return 1;
+  const alpha = parseFloat(m[1]);
+  return Number.isNaN(alpha) ? 1 : m[2] ? alpha / 100 : alpha;
+};
+
+// What shows behind an element, as one background value: the fills from it outward to the first
+// opaque one, the nearest on top (translucent ones as one-color gradients, so they stack). The
+// page's canvas color when nothing on the way is opaque.
+const backdrop = (from: Element): string => {
+  const layers: string[] = [];
+  for (let el: Element | null = from; el; el = el.parentElement) {
+    const color = getComputedStyle(el).backgroundColor;
+    const alpha = alphaOf(color);
+    if (alpha <= 0) continue;
+    layers.push(color);
+    if (alpha >= 1) break;
+  }
+  const base = layers.length > 0 && alphaOf(layers[layers.length - 1]) >= 1 ? layers.pop()! : 'Canvas';
+  return [...layers.map((c) => `linear-gradient(${c}, ${c})`), base].join(', ');
 };
 
 let announcer: HTMLElement | null = null;
