@@ -1,7 +1,13 @@
 @* Drag a header to move its column, or focus one and press Ctrl+Shift+Left / Right. The # column
-   stays put (Reorderable="false"), so the others never cross it. The order lands in _order. *@
+   stays put (Reorderable="false"), so the others never cross it. With LiveReorder the column itself
+   follows the pointer and the others slide out of its way; without it, a label follows the pointer
+   and a line marks where the column will land. The order lands in _order. *@
 <div class="w-full max-w-3xl space-y-3">
-    <BzDataTable TItem="WorkItem" Items="_tasks" RowKey="@(t => t.Id)" ReorderableColumns @bind-ColumnOrder="_order">
+    <div class="flex items-center gap-2">
+        <BzSwitch id="table-reorder-live" @bind-Checked="_live" />
+        <BzLabel For="table-reorder-live">Move the column while dragging</BzLabel>
+    </div>
+    <BzDataTable TItem="WorkItem" Items="_tasks" RowKey="@(t => t.Id)" ReorderableColumns LiveReorder="_live" @bind-ColumnOrder="_order">
         <BzPropertyColumn Title="#" Property="@(t => t.Id)" Reorderable="false" CellClass="text-muted-foreground tabular-nums" />
         <BzPropertyColumn Property="@(t => t.Title)" Sortable />
         <BzPropertyColumn Property="@(t => t.Owner)" Sortable />
@@ -21,6 +27,8 @@
 
     // Every column key in display order; save it with the rest of a user's settings.
     private IReadOnlyList<string>? _order;
+
+    private bool _live;
 
     private static readonly string[] DeclaredOrder = ["#", "Title", "Owner", "Due", "Estimate"];
 

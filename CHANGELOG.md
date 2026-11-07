@@ -72,7 +72,15 @@ lockstep under one version.
   lays out the widths and runs every drag and key without calling .NET, and reports a finished
   resize or move once. A laid-out column clips what does not fit with an ellipsis, a narrowed
   sortable header truncates its title and keeps the sort icon, and an editor never changes a
-  column's width. Needs Blaizio.Base 0.3.6 (the column script).
+  column's width. A resizable header lights its resize line while it is hovered or has the
+  keyboard focus (the handle itself stays the strongest), and a header that can move shows the
+  grab cursor (grabbing while dragged). While a header is dragged, a label follows the pointer and
+  a line marks the gap the column will drop into; held over its own place, no line shows, the same
+  for every column. `LiveReorder` moves the column itself instead: it follows the pointer, the
+  columns it passes slide out of its way (instantly when the user asks for reduced motion), rows
+  the virtualizer adds mid-drag slide too, and on release it slides into place. Either way the
+  order is reported once, on release, and Escape puts everything back. Needs Blaizio.Base 0.3.6
+  (the column script).
 - **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
   optional description and a status (done, running with a shimmering title, error, pending). A
   line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's
