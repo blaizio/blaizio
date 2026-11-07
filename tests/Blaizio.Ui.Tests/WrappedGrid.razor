@@ -1,0 +1,12 @@
+@* Test host: a table whose last column lives in a component of its own (SelfPinningColumn). *@
+<BzDataTable TItem="Person" Items="Items">
+    <BzPropertyColumn Property="@(p => p.Name)" />
+    <BzPropertyColumn Property="@(p => p.Age)" />
+    <SelfPinningColumn @ref="Code" />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+
+    public SelfPinningColumn? Code;
+}

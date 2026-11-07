@@ -331,6 +331,145 @@ public class DataTableColumnsTests : BunitContext
         Assert.Equal("Ada", people[0].Name);
     }
 
+    // A child column gets each render's parameters after the table has drawn it: a change has to
+    // show in the render that made it, as a first render with the new values would show it.
+
+    [Fact]
+    public void A_pin_set_at_runtime_arranges_the_columns_in_the_same_render()
+    {
+        var cut = Grid(p => p.Add(x => x.Reorderable, true).Add(x => x.CodePin, DataTablePin.Start));
+        Assert.Equal(["Code", "Name", "Age", "Score"], HeadKeys(cut));
+
+        cut.Render(p => p.Add(x => x.NamePin, DataTablePin.Start));
+
+        // Name and Code at the start edge, in their declared order.
+        Assert.Equal(["Name", "Code", "Age", "Score"], HeadKeys(cut));
+        Assert.Equal("inset-inline-start:0px", cut.Find("th[data-bz-column=Name]").GetAttribute("style"));
+        Assert.Equal("start", cut.Find("th[data-bz-column=Code]").GetAttribute("data-pinned-edge"));
+        Assert.Equal("Ada", cut.Find("tbody tr:first-child > td").TextContent);
+
+        cut.Render(p => p.Add(x => x.CodePin, DataTablePin.None));
+
+        Assert.Equal(["Name", "Age", "Score", "Code"], HeadKeys(cut));
+        Assert.Null(cut.Find("th[data-bz-column=Code]").GetAttribute("data-pinned"));
+    }
+
+    [Fact]
+    public void Sizes_and_switches_changed_at_runtime_apply_in_the_same_render()
+    {
+        var cut = Grid(p => p.Add(x => x.Resizable, true).Add(x => x.Reorderable, true));
+        Assert.Null(cut.Find("table > colgroup > col").GetAttribute("style"));
+
+        cut.Render(p => p
+            .Add(x => x.NameWidth, 200)
+            .Add(x => x.CodeResizable, false)
+            .Add(x => x.CodeReorderable, false));
+
+        Assert.Equal("width:200px", cut.Find("table > colgroup > col").GetAttribute("style"));
+        var code = cut.Find("th[data-bz-column=Code]");
+        Assert.False(code.HasAttribute("data-resizable"));
+        Assert.False(code.HasAttribute("data-reorderable"));
+        Assert.False(code.HasAttribute("data-movable"));
+    }
+
+    [Fact]
+    public void Sizing_asked_for_at_runtime_lays_the_table_out_in_the_same_render()
+    {
+        var cut = Grid();
+        Assert.Empty(cut.FindAll("colgroup"));
+
+        cut.Render(p => p.Add(x => x.FillScore, true));
+
+        Assert.Equal(4, cut.FindAll("table > colgroup > col").Count);
+        Assert.Contains("bz-table-cell-fixed", cut.Find("tbody td").ClassList);
+    }
+
+    [Fact]
+    public void Editing_switched_on_at_runtime_makes_the_table_a_grid_in_the_same_render()
+    {
+        var cut = Grid();
+        Assert.NotEqual("grid", cut.Find("table").GetAttribute("role"));
+
+        cut.Render(p => p.Add(x => x.Editable, true));
+
+        Assert.Equal("grid", cut.Find("table").GetAttribute("role"));
+    }
+
+    [Fact]
+    public void A_sort_switch_changed_at_runtime_sorts_the_rows_in_the_same_render()
+    {
+        var cut = Grid(p => p.Add(x => x.NameSortable, false).Add(x => x.DefaultSort, new SortState("Name", SortDirection.Descending)));
+        // The sort names a column that cannot sort: the rows keep their order.
+        Assert.Equal("Ada", cut.Find("tbody tr:first-child > td").TextContent);
+
+        cut.Render(p => p.Add(x => x.NameSortable, true));
+
+        Assert.Equal("descending", cut.Find("thead th").GetAttribute("aria-sort"));
+        Assert.Equal("Cy", cut.Find("tbody tr:first-child > td").TextContent);
+    }
+
+    [Fact]
+    public void Only_a_changed_column_costs_the_table_a_second_render()
+    {
+        var cut = Grid(p => p.Add(x => x.Reorderable, true));
+
+        var before = cut.Instance.Passes;
+        cut.Render(p => p.Add(x => x.Sticky, true));
+        Assert.Equal(before + 1, cut.Instance.Passes);
+
+        before = cut.Instance.Passes;
+        cut.Render(p => p.Add(x => x.AgePin, DataTablePin.End));
+        Assert.Equal(before + 2, cut.Instance.Passes);
+        Assert.Equal(["Name", "Score", "Code", "Age"], HeadKeys(cut));
+    }
+
+    [Fact]
+    public void A_column_handed_a_new_value_on_every_pass_cannot_loop()
+    {
+        // Each render of the table hands the column a new width: it stops asking after two in a row.
+        var cut = Render<RestlessGrid>(p => p.Add(x => x.Items, Person.Sample()));
+        var first = cut.Instance.Passes;
+        Assert.InRange(first, 2, 4);
+
+        cut.Render();
+
+        Assert.InRange(cut.Instance.Passes - first, 1, 3);
+    }
+
+    [Fact]
+    public async Task A_column_in_a_component_of_its_own_rearranges_the_table_each_time_it_changes()
+    {
+        var cut = Render<WrappedGrid>(p => p.Add(x => x.Items, Person.Sample()));
+        string[] Texts() => cut.FindAll("thead th").Select(th => th.TextContent.Trim()).ToArray();
+        Assert.Equal(["Name", "Age", "Code"], Texts());
+
+        // Back and forth, with no render of the table's own in between.
+        for (var i = 0; i < 3; i++)
+        {
+            await cut.InvokeAsync(cut.Instance.Code!.Toggle);
+            Assert.Equal(i % 2 == 0 ? ["Code", "Name", "Age"] : ["Name", "Age", "Code"], Texts());
+        }
+    }
+
+    // Code is the last column to register, and its key, sorting and text are known only after that.
+
+    [Fact]
+    public void A_search_only_the_last_column_matches_finds_its_row_on_the_first_render()
+    {
+        var cut = Grid(p => p.Add(x => x.DefaultSearch, "C3"));
+
+        var row = Assert.Single(cut.FindAll("tbody tr"));
+        Assert.Equal("Cy", row.QuerySelector("td")!.TextContent);
+    }
+
+    [Fact]
+    public void A_sort_on_the_last_column_orders_the_rows_on_the_first_render()
+    {
+        var cut = Grid(p => p.Add(x => x.CodeSortable, true).Add(x => x.DefaultSort, new SortState("Code", SortDirection.Descending)));
+
+        Assert.Equal(["Cy", "Bo", "Ada"], cut.FindAll("tbody tr").Select(tr => tr.QuerySelector("td")!.TextContent).ToArray());
+    }
+
     [Fact]
     public void Columns_defined_as_data_size_and_pin_too()
     {
