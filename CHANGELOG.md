@@ -160,6 +160,14 @@ lockstep under one version.
   needs the new name.
 
 ### Fixed
+- **Data Table** (`blaizio update table`): a change to a child column's parameters shows in the
+  render that made it. The table laid out its columns before they received their new values, so a
+  column given another alignment or class, or switched `Sortable`, kept its old cells and row order
+  until something else rendered the table. A column now asks the table for one more render when
+  what the table reads from it changes, and the rows are filtered and sorted again when its key,
+  `Sortable` or `Format` changed. A `DefaultSearch` that only the last `BzPropertyColumn` matches,
+  or a `DefaultSort` on that column, now applies from the first render; it showed "No results." or
+  the rows in their original order.
 - **Input Date** and **Input Time** (`blaizio update input-date input-time`): a day, month, year,
   hour or minute takes all its digits when typed. The first digit showed padded ("1" as "01" or
   "0001"), which filled the part and refused the next one. The calendar button and the AM/PM
