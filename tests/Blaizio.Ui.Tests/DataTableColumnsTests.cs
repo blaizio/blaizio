@@ -323,7 +323,7 @@ public class DataTableColumnsTests : BunitContext
         var table = cut.Instance.Table!;
 
         // The grid's first column is now Age.
-        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(0, 0, null)));
+        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false)));
         Assert.NotNull(cut.Find("tbody tr:first-child > td:first-child [data-bz-cell-editor=number]"));
         await cut.InvokeAsync(() => table.EndEdit(true, new Dictionary<string, string?> { ["Age"] = "40" }, false));
 

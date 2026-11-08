@@ -1,0 +1,54 @@
+@* Test host: an edit actions column (built in, or ChildContent recording its context), a template
+   column marked EditActions, CellContent templates, an EdgeToEdge column and EditOnClick.
+   Cell indexes: Name 0, Age 1, Score 2, Own 3, then the actions column (Row, Dialog, Drawer). *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" EditMode="Mode" EditOnClick="EditOnClick"
+             OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Person>>(this, OnEditAsync))">
+    <BzPropertyColumn Property="@(p => p.Name)" Editable="Editable" />
+    <BzPropertyColumn Property="@(p => p.Age)" Editable="Editable">
+        <CellContent>
+            <span class="age" data-row-editing="@(context.IsEditing ? "" : null)" data-pending="@(context.Pending ? "" : null)"
+                  data-error="@context.Error">@context.Text years (@context.Value)</span>
+        </CellContent>
+    </BzPropertyColumn>
+    <BzPropertyColumn Property="@(p => p.Score)" Editable="Editable" EdgeToEdge>
+        <div class="score-fill">@context.Score</div>
+    </BzPropertyColumn>
+    <BzTemplateColumn Title="Own" EditActions>
+        <CellContent>
+            <button type="button" class="own" data-row-editing="@(context.IsEditing ? "" : null)">@context.Item.Name</button>
+        </CellContent>
+    </BzTemplateColumn>
+    @if (CustomActions)
+    {
+        <BzEditActionsColumn>
+            @{ Contexts[context.Item.Id] = context; }
+            <button type="button" class="custom-save" @onclick="context.SaveAsync">Save @context.Item.Name</button>
+        </BzEditActionsColumn>
+    }
+    else
+    {
+        <BzEditActionsColumn EditLabel="Change" Title="@ActionsTitle" />
+    }
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+    [Parameter] public DataTableEditMode Mode { get; set; } = DataTableEditMode.Row;
+    [Parameter] public bool EditOnClick { get; set; }
+    [Parameter] public bool Editable { get; set; } = true;
+    [Parameter] public bool CustomActions { get; set; }
+    [Parameter] public string? ActionsTitle { get; set; }
+    [Parameter] public Func<DataTableEditEventArgs<Person>, Task>? Handler { get; set; }
+
+    public BzDataTable<Person>? Table;
+
+    public Dictionary<int, DataTableEditActions<Person>> Contexts { get; } = [];
+
+    public List<DataTableEditEventArgs<Person>> Edits { get; } = [];
+
+    private async Task OnEditAsync(DataTableEditEventArgs<Person> e)
+    {
+        Edits.Add(e);
+        if (Handler is not null) await Handler(e);
+    }
+}

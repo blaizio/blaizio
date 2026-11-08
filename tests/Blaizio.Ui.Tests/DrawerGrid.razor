@@ -1,0 +1,38 @@
+@* Test host: Drawer mode, with the built-in drawer or (Custom) an EditDrawerContent of its own. *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" EditMode="Mode" DefaultSort="DefaultSort"
+             EditDrawerContent="@(Custom ? CustomDrawer : null)" EditDialogContent="@(Custom ? CustomDrawer : null)"
+             OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Person>>(this, OnEditAsync))">
+    <BzPropertyColumn Property="@(p => p.Name)" Editable Sortable />
+    <BzPropertyColumn Property="@(p => p.Age)" Editable Validate="@(age => age == 13 ? "Unlucky." : null)" />
+    <BzPropertyColumn Property="@(p => p.Code)" />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+    [Parameter] public DataTableEditMode Mode { get; set; } = DataTableEditMode.Drawer;
+    [Parameter] public bool Custom { get; set; }
+    [Parameter] public SortState? DefaultSort { get; set; }
+    [Parameter] public Func<DataTableEditEventArgs<Person>, Task>? Handler { get; set; }
+
+    public BzDataTable<Person>? Table;
+
+    public DataTableEditForm<Person>? LastContext;
+
+    public List<DataTableEditEventArgs<Person>> Edits { get; } = [];
+
+    private async Task OnEditAsync(DataTableEditEventArgs<Person> e)
+    {
+        Edits.Add(e);
+        if (Handler is not null) await Handler(e);
+    }
+
+    private RenderFragment<DataTableEditForm<Person>> CustomDrawer => context => @<div class="custom-form" data-open="@(context.Open ? "true" : "false")">
+        @{ LastContext = context; }
+        <h2>@context.Item.Name</h2>
+        @context.Field("Age")
+        <span class="flags">@(context.HasPrevious ? "prev" : "")|@(context.HasNext ? "next" : "")|@(context.ConfirmingDiscard ? "asking" : "")</span>
+        <button class="next" @onclick="@(() => context.NextAsync())">Next</button>
+        <button class="cancel" @onclick="@(() => context.CancelAsync())">Cancel</button>
+        <form class="actions">@context.Actions</form>
+    </div>;
+}

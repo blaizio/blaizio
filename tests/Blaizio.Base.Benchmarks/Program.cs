@@ -335,7 +335,7 @@ static void EditPropertyTable(int rows)
     using var ctx = NewContext();
     var cut = RenderPropertyTableCore(ctx, rows, editable: true);
     var table = cut.Instance;
-    cut.InvokeAsync(() => table.BeginEdit(0, 0, "N")).GetAwaiter().GetResult();
+    cut.InvokeAsync(() => table.BeginEdit(0, 0, "N", "typing", false)).GetAwaiter().GetResult();
     cut.InvokeAsync(() => table.EndEdit(true, new Dictionary<string, string?> { ["Name"] = "Renamed" }, false)).GetAwaiter().GetResult();
     if (!cut.Markup.Contains("Renamed", StringComparison.Ordinal))
         throw new InvalidOperationException("edit scenario did not commit");

@@ -59,7 +59,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people);
         var table = cut.Instance.Table!;
 
-        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(0, 0, "Z")));
+        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(0, 0, "Z", "typing", false)));
         // The library's own text box, laid over the cell's display (kept underneath, hidden and inert).
         var input = cut.Find("[data-bz-cell-editor=text] input");
         Assert.Equal("Z", input.GetAttribute("value"));
@@ -84,7 +84,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people);
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 1, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 1, null, "key", false));
         // An int edits in the library's number field; its text still travels with the commit.
         Assert.Equal("36", cut.Find("[data-bz-cell-editor=number] .bz-input-number input").GetAttribute("value"));
         var result = await cut.InvokeAsync(() => table.EndEdit(true, Values(("Age", "abc")), false));
@@ -107,7 +107,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people);
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 1, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 1, null, "key", false));
         var result = await cut.InvokeAsync(() => table.EndEdit(true, Values(("Age", text)), false));
 
         Assert.False(Ok(result));
@@ -122,7 +122,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people);
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 1, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 1, null, "key", false));
         var result = await cut.InvokeAsync(() => table.EndEdit(true, Values(("Age", "abc")), true));
 
         Assert.True(Ok(result));
@@ -137,9 +137,9 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people);
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
         await cut.InvokeAsync(() => table.EndEdit(false, null, false));
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
         var result = await cut.InvokeAsync(() => table.EndEdit(true, Values(("Name", "Ada")), false));
 
         Assert.True(Ok(result));
@@ -158,7 +158,7 @@ public class DataTableEditingTests : BunitContext
         });
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
         await cut.InvokeAsync(() => table.EndEdit(true, Values(("Name", "Zoe")), false));
 
         Assert.Equal("Ada", people[0].Name);
@@ -175,7 +175,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people, handler: _ => save.Task);
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
         var result = await cut.InvokeAsync(() => table.EndEdit(true, Values(("Name", "Zoe")), false));
 
         // EndEdit answered before the save finished: the keyboard is not held up.
@@ -250,22 +250,29 @@ public class DataTableEditingTests : BunitContext
     }
 
     [Fact]
-    public async Task An_enum_edits_in_a_pick_list_and_typing_picks_the_first_match()
+    public async Task Typing_over_a_pick_list_opens_its_list_and_a_pick_commits()
     {
         var people = Person.Sample();
         var cut = Grid(people);
         var table = cut.Instance.Table!;
 
-        // Typing "a" over Bo's Role starts the pick list at Admin; the pick is a draft .NET holds,
-        // so the browser sends nothing for it.
-        await cut.InvokeAsync(() => table.BeginEdit(1, 4, "a"));
-        Assert.Equal("Admin", cut.Find("[data-bz-cell-editor=select] [data-slot=select-trigger]").TextContent.Trim());
+        // Typing "a" over Bo's Role opens the list (the script types the key into its type-ahead);
+        // nothing is picked yet, so the trigger still shows Member.
+        await cut.InvokeAsync(() => table.BeginEdit(1, 4, "a", "typing", false));
+        var trigger = cut.Find("[data-bz-cell-editor=select] [data-slot=select-trigger]");
+        Assert.Equal("true", trigger.GetAttribute("aria-expanded"));
+        Assert.Equal("Member", trigger.TextContent.Trim());
 
+        // A pick is the cell's draft and asks the grid script to commit, which it does as Enter would.
+        cut.FindAll("[role=option]").Single(o => o.TextContent.Trim() == "Admin").Click();
+        Assert.Contains(JSInterop.Invocations, i => i.Identifier == "commit");
         await cut.InvokeAsync(() => table.EndEdit(true, Values(("Role", null)), false));
         Assert.Equal(Role.Admin, people[1].Role);
+        Assert.Empty(cut.FindAll("[data-bz-cell-editor]"));
 
         // Text for a pick list (a paste, the script's text) parses by name.
-        await cut.InvokeAsync(() => table.BeginEdit(1, 4, null));
+        await cut.InvokeAsync(() => table.BeginEdit(1, 4, null, "key", false));
+        Assert.Equal("false", cut.Find("[data-bz-cell-editor=select] [data-slot=select-trigger]").GetAttribute("aria-expanded"));
         await cut.InvokeAsync(() => table.EndEdit(true, Values(("Role", "member")), false));
         Assert.Equal(Role.Member, people[1].Role);
     }
@@ -276,9 +283,9 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(Person.Sample());
         var table = cut.Instance.Table!;
 
-        Assert.False(await cut.InvokeAsync(() => table.BeginEdit(0, 5, null)));
-        Assert.False(await cut.InvokeAsync(() => table.BeginEdit(0, 3, null)));
-        Assert.False(await cut.InvokeAsync(() => table.BeginEdit(9, 0, null)));
+        Assert.False(await cut.InvokeAsync(() => table.BeginEdit(0, 5, null, "key", false)));
+        Assert.False(await cut.InvokeAsync(() => table.BeginEdit(0, 3, null, "key", false)));
+        Assert.False(await cut.InvokeAsync(() => table.BeginEdit(9, 0, null, "key", false)));
     }
 
     [Fact]
@@ -288,7 +295,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people, DataTableEditMode.Row);
         var table = cut.Instance.Table!;
 
-        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(1, 0, null)));
+        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(1, 0, null, "key", false)));
         Assert.NotNull(cut.Find("tbody tr[data-editing]"));
         Assert.Equal(5, cut.FindAll("tr[data-editing] [data-bz-cell-editor]").Count);
 
@@ -313,7 +320,7 @@ public class DataTableEditingTests : BunitContext
         });
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(2, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(2, 0, null, "key", false));
         var result = await cut.InvokeAsync(() => table.EndEdit(true, Values(("Name", "Cyrus"), ("Age", "99")), false));
 
         Assert.False(Ok(result));
@@ -347,7 +354,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people, DataTableEditMode.Dialog);
         var table = cut.Instance.Table!;
 
-        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(0, 1, null)));
+        Assert.True(await cut.InvokeAsync(() => table.BeginEdit(0, 1, null, "key", false)));
         cut.WaitForAssertion(() => Assert.NotNull(cut.Find("form.bz-data-table-edit-form")));
         Assert.Equal(["Name", "Age", "Score", "Active", "Role"],
             cut.FindAll("form.bz-data-table-edit-form label").Select(l => l.TextContent.Trim()).Where(t => t.Length > 0));
@@ -384,7 +391,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(people, sort: new SortState("Name", SortDirection.Ascending));
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
         await cut.InvokeAsync(() => table.EndEdit(true, Values(("Name", "Zed")), false));
 
         // The parent re-rendered in answer to OnEdit; the row stays where the cursor is.
@@ -407,7 +414,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Grid(Person.Sample(), DataTableEditMode.Row);
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
 
         Assert.Equal(["text", "number", "number", "checkbox", "select"],
             cut.FindAll("tr[data-editing] [data-bz-cell-editor]").Select(e => e.GetAttribute("data-bz-cell-editor")));
@@ -426,8 +433,9 @@ public class DataTableEditingTests : BunitContext
         var cut = Render<TypedGrid>(p => p.Add(x => x.Items, people));
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(1, 0, "d"));
-        Assert.Equal("Dee", cut.Find("[data-bz-cell-editor=select] [data-slot=select-trigger]").TextContent.Trim());
+        await cut.InvokeAsync(() => table.BeginEdit(1, 0, "d", "typing", false));
+        Assert.Equal("true", cut.Find("[data-bz-cell-editor=select] [data-slot=select-trigger]").GetAttribute("aria-expanded"));
+        cut.FindAll("[role=option]").Single(o => o.TextContent.Trim() == "Dee").Click();
         await cut.InvokeAsync(() => table.EndEdit(true, Values(("Name", null)), false));
         Assert.Equal("Dee", people[1].Name);
 
@@ -459,7 +467,7 @@ public class DataTableEditingTests : BunitContext
         var cut = Render<TypedGrid>(p => p.Add(x => x.Items, people).Add(x => x.Mode, DataTableEditMode.Row));
         var table = cut.Instance.Table!;
 
-        await cut.InvokeAsync(() => table.BeginEdit(0, 2, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 2, null, "key", false));
         Assert.NotNull(cut.Find("[data-bz-cell-editor=date] .bz-input-date"));
         Assert.Equal("2024", cut.Find("[data-bz-cell-editor=date] input[aria-label=Year]").GetAttribute("value"));
 
@@ -490,7 +498,7 @@ public class DataTableEditingTests : BunitContext
         var table = cut.Instance.Table!;
 
         Assert.Empty(cut.FindAll(".custom-editor"));
-        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => table.BeginEdit(0, 0, null, "key", false));
 
         Assert.Equal("true", cut.Find(".custom-editor").GetAttribute("data-open"));
         Assert.Equal("Ada", cut.Find(".custom-editor h2").TextContent);
@@ -514,7 +522,7 @@ public class DataTableEditingTests : BunitContext
     public async Task EditDialogContent_refuses_an_unknown_column_or_a_value_of_another_type()
     {
         var cut = Render<DialogTemplateGrid>(p => p.Add(x => x.Items, Person.Sample()));
-        await cut.InvokeAsync(() => cut.Instance.Table!.BeginEdit(0, 0, null));
+        await cut.InvokeAsync(() => cut.Instance.Table!.BeginEdit(0, 0, null, "key", false));
         var context = cut.Instance.LastContext!;
 
         Assert.Throws<ArgumentException>(() => context.SetValue("Age", "fifty"));

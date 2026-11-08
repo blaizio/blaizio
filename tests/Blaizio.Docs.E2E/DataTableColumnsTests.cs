@@ -24,14 +24,47 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
     private static Task<double> WidthAsync(ILocator element) =>
         element.EvaluateAsync<double>("e => e.getBoundingClientRect().width");
 
+    // The script applies a key, a drag or a fit at once, but right after the page loads its main
+    // thread can still be rendering the page's other demos, and the input waits for it: read the
+    // width until it lands (or 5 s pass), then let the caller assert on it.
+    private static async Task<double> WidthWhenAsync(ILocator element, Func<double, bool> landed)
+    {
+        var width = await WidthAsync(element);
+        for (var i = 0; i < 50 && !landed(width); i++)
+        {
+            await Task.Delay(100);
+            width = await WidthAsync(element);
+        }
+        return width;
+    }
+
+    private static Task<double> WidthNearAsync(ILocator element, double expected, double tolerance = 1.0) =>
+        WidthWhenAsync(element, width => Math.Abs(width - expected) <= tolerance);
+
+    // A width that held still across three reads 100ms apart (the column script re-lays out after a change).
+    private static async Task<double> StableWidthAsync(ILocator element)
+    {
+        var width = await WidthAsync(element);
+        for (int i = 0, still = 0; i < 30 && still < 2; i++)
+        {
+            await Task.Delay(100);
+            var next = await WidthAsync(element);
+            still = Math.Abs(next - width) < 0.5 ? still + 1 : 0;
+            width = next;
+        }
+        return width;
+    }
+
     private static Task<string> KeysAsync(ILocator table) =>
         table.EvaluateAsync<string>("t => [...t.tHead.rows[0].cells].map(c => c.dataset.bzColumn).filter(Boolean).join()");
 
     private static async Task<IPage> OpenAsync(IBrowserContext context)
     {
         var page = await DocsServerFixture.OpenAsync(context, "docs/components/table");
-        // Each table's column script marks it once attached.
+        // Each table's column script marks it once attached, and each editable table's grid script
+        // after it: by then the page has mostly finished rendering its demos.
         await page.WaitForFunctionAsync("() => document.querySelectorAll('table[data-bz-columns]').length >= 5");
+        await page.WaitForFunctionAsync("() => document.querySelectorAll('table[role=grid][data-bz-grid]').length >= 8");
         return page;
     }
 
@@ -88,6 +121,19 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
             return Object.fromEntries([...t.tHead.rows[0].cells].filter(c => c.dataset.bzColumn)
                 .map(c => [c.dataset.bzColumn, [shift(c), shift(row.cells[c.cellIndex])]]));
         }");
+
+    // Every column back in place, header and cells: polled, since on a busy page the frame that
+    // drops the live move's sheet can land after the attribute check.
+    private static async Task<Dictionary<string, double[]>> SettledShiftsAsync(ILocator table)
+    {
+        var shifts = await ShiftsAsync(table);
+        for (var i = 0; i < 20 && shifts.Values.Any(s => s[0] != 0 || s[1] != 0); i++)
+        {
+            await Task.Delay(100);
+            shifts = await ShiftsAsync(table);
+        }
+        return shifts;
+    }
 
     [E2EFact]
     public async Task Hovering_or_focusing_a_resizable_header_lights_its_resize_line()
@@ -256,7 +302,7 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         await Assertions.Expect(Note(table)).ToContainTextAsync("Order: #, Owner, Title, Due, Estimate");
         Assert.Equal("#,Owner,Title,Due,Estimate", await KeysAsync(table));
         await Assertions.Expect(table).Not.ToHaveAttributeAsync("data-bz-live-move", new System.Text.RegularExpressions.Regex(".*"));
-        Assert.All((await ShiftsAsync(table)).Values, s => Assert.Equal([0, 0], s));
+        Assert.All((await SettledShiftsAsync(table)).Values, s => Assert.Equal([0, 0], s));
         Assert.Equal(1, await page.EvaluateAsync<int>("() => window.__orderChanges"));
         await Assertions.Expect(Head(table, "Owner")).ToHaveAttributeAsync("aria-sort", "none");
 
@@ -267,7 +313,7 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         await page.Keyboard.PressAsync("Escape");
         await page.Mouse.UpAsync();
         await Assertions.Expect(table).Not.ToHaveAttributeAsync("data-bz-live-move", new System.Text.RegularExpressions.Regex(".*"));
-        Assert.All((await ShiftsAsync(table)).Values, s => Assert.Equal([0, 0], s));
+        Assert.All((await SettledShiftsAsync(table)).Values, s => Assert.Equal([0, 0], s));
         Assert.Equal("#,Owner,Title,Due,Estimate", await KeysAsync(table));
         Assert.Equal(1, await page.EvaluateAsync<int>("() => window.__orderChanges"));
 
@@ -334,22 +380,22 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         await DragAsync(page, Head(table, "Placed").Locator("[data-bz-resizer]"), 60);
 
         await Assertions.Expect(Note(table)).ToContainTextAsync("Placed 188px");
-        Assert.Equal(188, Math.Round(await WidthAsync(Head(table, "Placed"))));
+        Assert.Equal(188, Math.Round(await WidthNearAsync(Head(table, "Placed"), 188)));
         // The columns before the dragged one keep their widths.
         Assert.Equal(customer, await WidthAsync(Head(table, "Customer")), 1.0);
 
         // Escape mid-drag puts the width back, and nothing is reported.
         await DragAsync(page, Head(table, "Order").Locator("[data-bz-resizer]"), 40, () => page.Keyboard.PressAsync("Escape"));
-        Assert.Equal(96, Math.Round(await WidthAsync(Head(table, "Order"))));
+        Assert.Equal(96, Math.Round(await WidthNearAsync(Head(table, "Order"), 96)));
         await Assertions.Expect(Note(table)).Not.ToContainTextAsync("Order");
 
         // A double-click on the edge fits the column to its content; Reset goes back.
         await Head(table, "Total").Locator("[data-bz-resizer]").DblClickAsync();
         await Assertions.Expect(Note(table)).ToContainTextAsync("Total");
-        Assert.True(await WidthAsync(Head(table, "Total")) < 112);
+        Assert.True(await WidthWhenAsync(Head(table, "Total"), width => width < 112) < 112);
         await page.GetByRole(AriaRole.Button, new() { Name = "Reset widths" }).ClickAsync();
         await Assertions.Expect(Note(table)).ToContainTextAsync("Drag an edge");
-        Assert.Equal(128, Math.Round(await WidthAsync(Head(table, "Placed"))));
+        Assert.Equal(128, Math.Round(await WidthNearAsync(Head(table, "Placed"), 128)));
     }
 
     [E2EFact]
@@ -364,7 +410,7 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         await status.Locator("button[data-bz-sort]").FocusAsync();
         for (var i = 0; i < 3; i++) await page.Keyboard.PressAsync("Alt+Shift+ArrowRight");
 
-        Assert.Equal(before + 30, await WidthAsync(status), 1.0);
+        Assert.Equal(before + 30, await WidthNearAsync(status, before + 30), 1.0);
         // A run of presses is one report, once it pauses; the keys neither sort nor move the focus.
         await Assertions.Expect(Note(table)).ToContainTextAsync($"Status {before + 30:0}px");
         await Assertions.Expect(status).ToHaveAttributeAsync("aria-sort", "none");
@@ -372,7 +418,7 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
 
         await page.Keyboard.PressAsync("Alt+Shift+Enter");
         await Assertions.Expect(Note(table)).Not.ToContainTextAsync($"Status {before + 30:0}px");
-        Assert.True(await WidthAsync(status) < before + 30);
+        Assert.True(await WidthWhenAsync(status, width => width < before + 30) < before + 30);
     }
 
     [E2EFact]
@@ -484,13 +530,14 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         var before = await WidthAsync(city);
         await city.Locator("button[data-bz-sort]").FocusAsync();
         await page.Keyboard.PressAsync("Alt+Shift+ArrowLeft");
-        Assert.Equal(before + 10, await WidthAsync(city), 1.0);
+        Assert.Equal(before + 10, await WidthNearAsync(city, before + 10), 1.0);
         var team = Head(table, "team");
-        // The far end of the row (the left, right to left), clear of the pinned columns.
+        // The far end of the row (the left, right to left), clear of the pinned columns. The widen
+        // above shares the row out again a frame or two later on a busy page: measure once settled.
         await table.EvaluateAsync("t => t.parentElement.scrollLeft = -(t.parentElement.scrollWidth - t.parentElement.clientWidth)");
-        var teamBefore = await WidthAsync(team);
+        var teamBefore = await StableWidthAsync(team);
         await DragAsync(page, team.Locator("[data-bz-resizer]"), -40);
-        Assert.Equal(teamBefore + 40, await WidthAsync(team), 1.5);
+        Assert.Equal(teamBefore + 40, await WidthNearAsync(team, teamBefore + 40, 1.5), 1.5);
 
         // Ctrl+Shift+Left moves a column left on screen: later in the order.
         await Head(table, "email").FocusAsync();

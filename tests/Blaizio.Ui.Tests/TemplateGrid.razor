@@ -1,0 +1,30 @@
+@* Test host: editors of their own (EditorContent), recording how each one's edit started. *@
+<BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" EditMode="Mode"
+             OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Person>>(this, e => Edits.Add(e)))">
+    <BzPropertyColumn Property="@(p => p.Name)" Editable>
+        <EditorContent>
+            @{ Starts["Name"] = new(context.StartedBy, context.TypedText, context.OpenPopup, context.InDialog); }
+            <input class="name-editor" value="@context.Value" @attributes="context.Attributes" />
+        </EditorContent>
+    </BzPropertyColumn>
+    <BzPropertyColumn Property="@(p => p.Role)" Editable>
+        <EditorContent>
+            @{ Starts["Role"] = new(context.StartedBy, context.TypedText, context.OpenPopup, context.InDialog); }
+            <span class="role-editor">@context.Value</span>
+        </EditorContent>
+    </BzPropertyColumn>
+    <BzPropertyColumn Property="@(p => p.Joined)" Editable />
+</BzDataTable>
+
+@code {
+    public sealed record Start(DataTableEditStart By, string? Typed, bool Popup, bool InDialog);
+
+    [Parameter] public List<Person> Items { get; set; } = [];
+    [Parameter] public DataTableEditMode Mode { get; set; }
+
+    public BzDataTable<Person>? Table;
+
+    public Dictionary<string, Start> Starts { get; } = [];
+
+    public List<DataTableEditEventArgs<Person>> Edits { get; } = [];
+}
