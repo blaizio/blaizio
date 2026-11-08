@@ -65,6 +65,7 @@ public static class GlyphCatalog
         ("ColorPicker",     "ColorPicker",     "Pipette",         "Eyedropper",        "Sip",             "ColorPicker"),
         ("Palette",         "Palette",         "Palette",         "Palette",           "Palette",         "Palette"),
         ("Photo",           "Photo",           "Image",           "Image",             "Image",           "Image01"),
+        ("Pencil",          "Pencil",          "Pencil",          "Pencil",            "Pencil",          "Pencil"),
         // Code and text
         ("Copy",            "Copy",            "Copy",            "Copy",              "FileCopy",        "Copy01"),
         ("TextWrap",        "TextWrap",        "TextWrap",        "ArrowUDownLeft",    "TextWrap",        "TextWrap"),

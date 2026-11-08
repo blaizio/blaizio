@@ -87,6 +87,8 @@ public static class BzGlyphs
     public static Icon Palette => Tabler.Outline.Palette;
     /// <summary>Image fill mode in the colour picker / image placeholder.</summary>
     public static Icon Photo => Tabler.Outline.Photo;
+    /// <summary>Edit: the data table's edit actions column.</summary>
+    public static Icon Pencil => Tabler.Outline.Pencil;
 
     // Code and text
     /// <summary>Copy to the clipboard: code block copy button.</summary>

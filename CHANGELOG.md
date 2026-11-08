@@ -137,7 +137,8 @@ lockstep under one version.
   `KeepRendered` on `BaseCollapsibleContent` (and the styled `BzCollapsibleContent`), which keeps
   closed content in the render tree, hidden with `hidden="until-found"`, so the components inside
   keep their state and find-in-page opens the collapsible on a match.
-- **Glyphs**: `BzGlyphs.CircleDashed`, `Copy` and `TextWrap`, mapped in all five icon sets.
+- **Glyphs**: `BzGlyphs.CircleDashed`, `Copy`, `TextWrap` and `Pencil` (the data table's Edit
+  button), mapped in all five icon sets.
 - **Typeset**: a code block inside prose takes the same space above as a paragraph.
 - **CLI packages**: `add` installs a Blaizio package an item needs (Blaizio.Syntax for
   `code-block`, an icon set) at the project's Blaizio.Base version rather than the newest, which
