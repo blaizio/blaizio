@@ -134,7 +134,7 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
         string Key, bool Sortable, bool Searchable, string? Format,
         string? Title, string Align, string? HeaderClass, string? CellClass,
         double? Width, double? MinWidth, double? MaxWidth, bool Fill, DataTablePin Pinned,
-        bool Resizable, bool Reorderable, DataTableEditor? Editor)
+        bool Resizable, bool Reorderable, DataTableEditor? Editor, bool EdgeToEdge, bool EditActions)
     {
         public bool SameRows(Shape other) =>
             Key == other.Key && Sortable == other.Sortable && Searchable == other.Searchable && Format == other.Format;
@@ -144,7 +144,8 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     {
         IGridColumn<TItem> column = this;
         return new(column.Key, column.Sortable, column.Searchable, CellFormat, column.Title, Align, HeaderClass,
-            CellClass, Width, MinWidth, MaxWidth, Fill, Pinned, Resizable, Reorderable, GridEditor?.Kind);
+            CellClass, Width, MinWidth, MaxWidth, Fill, Pinned, Resizable, Reorderable, GridEditor?.Kind,
+            EdgeToEdge, HoldsEditActions);
     }
 
     /// <summary>The format the cells and their search text are written in, for a column type that has one.</summary>
