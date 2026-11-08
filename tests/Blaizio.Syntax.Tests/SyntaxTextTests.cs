@@ -330,7 +330,7 @@ public class SyntaxTextTests
             <footer></footer>
             """;
         Assert.Equal(
-            """
+            Lf("""
             {K:@if} (orders {K:is} {L:null})
             {K:{}
                 <{G:p}>Loading</{G:p}>
@@ -343,8 +343,8 @@ public class SyntaxTextTests
                 {K:}}
             {K:}}
             <{G:footer}></{G:footer}>
-            """,
-            Render(code, "razor"));
+            """),
+            Render(Lf(code), "razor"));
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public class SyntaxTextTests
             }
             """;
         Assert.Equal(
-            """
+            Lf("""
             {K:@code} {K:{}
                 [{T:Parameter}] {K:public} {K:int} Count { {K:get}; {K:set}; }
                 {K:private} {T:RenderFragment} Row => {K:@}<{G:tr}><{G:td}>{K:@}Count</{G:td}></{G:tr}>;
@@ -368,8 +368,8 @@ public class SyntaxTextTests
             {K:}}
             {K:@{} {K:@:}Plain {K:@}Count text
             {K:}}
-            """,
-            Render(code, "razor"));
+            """),
+            Render(Lf(code), "razor"));
     }
 
     [Fact]
@@ -481,7 +481,7 @@ public class SyntaxTextTests
             ---
             """;
         Assert.Equal(
-            """
+            Lf("""
             {C:# CI}
             {P:on}: [{S:push}]
             {P:env}: {V:&env}
@@ -494,8 +494,8 @@ public class SyntaxTextTests
                 {P:with}: { {P:cache}: {S:npm}, {P:version}: {N:22} }
                 {P:token}: {V:${{ secrets.TOKEN }}}
             {M:---}
-            """,
-            Render(code, "yaml"));
+            """),
+            Render(Lf(code), "yaml"));
         Assert.Equal("{P:text}: {K:>}\n  {S:folded # kept}\n{P:next}: {S:x}", Render("text: >\n  folded # kept\nnext: x", "yaml"));
     }
 
@@ -628,7 +628,7 @@ public class SyntaxTextTests
             ```
             """;
         Assert.Equal(
-            """
+            Lf("""
             {H:# Title}
             Use {B:**bold**}, {I:*em*}, {S:`code`} and {U:[docs]}{M:(https://x.y)} or {U:<https://x.y>}; snake_case stays.
             {K:- [x]} done
@@ -637,8 +637,8 @@ public class SyntaxTextTests
             {M:```}{T:csharp}
             {K:var} x = {N:1};
             {M:```}
-            """,
-            Render(code, "markdown"));
+            """),
+            Render(Lf(code), "markdown"));
         Assert.Equal("{M:---}\n{P:title}: {S:Docs}\n{M:---}\ntext", Render("---\ntitle: Docs\n---\ntext", "markdown"));
     }
 
@@ -702,4 +702,12 @@ public class SyntaxTextTests
     internal static string Render(IReadOnlyList<SyntaxLine> lines) =>
         string.Join("\n", lines.Select(line =>
             string.Concat(line.Runs.Select(r => r.Kind == SyntaxKind.Text ? r.Text : $"{{{Letter(r.Kind)}:{r.Text}}}"))));
+
+    /// <summary>
+    /// A raw string literal takes the line endings of its file, which a Windows clone checks out as
+    /// CRLF, while <see cref="Render(IReadOnlyList{SyntaxLine})"/> joins lines with <c>\n</c>.
+    /// Multi-line samples and expectations pass through this, so they read the same on every
+    /// machine. CRLF input itself has its own test.
+    /// </summary>
+    private static string Lf(string text) => text.ReplaceLineEndings("\n");
 }
