@@ -37,25 +37,72 @@ lockstep under one version.
   table becomes a keyboard grid, one tab stop that Tab reaches as soon as the table renders.
   `EditMode` picks how it edits. `Cell` (the default) works like a spreadsheet, one cell at a time:
   the arrows, Tab and Enter move the cursor (Enter goes down, back to the column where a run of
-  Tabs began, and Shift+Enter up); typing replaces a cell and an arrow then commits and moves; F2
-  or a double-click edits it in place; Escape cancels. Space flips a bool, Delete clears a cell, and
-  a block copied from a spreadsheet pastes across cells. `Row` opens an editor in every editable
+  Tabs began, and Shift+Enter up); Escape cancels. Space flips a bool, Delete clears a cell, and a
+  block copied from a spreadsheet pastes across cells. `Row` opens an editor in every editable
   cell of the row and commits the row as one change. `Dialog` edits the row as a form in a dialog,
-  hidden columns included, whose fields scroll between a fixed title and buttons;
-  `EditDialogContent` swaps in a dialog, sheet or drawer of your own, with `context.Field(key)`
-  for any built-in field and `GetValue` / `SetValue` for your own controls. Cells, rows and the
-  dialog edit with the library's own controls, picked from the property's type: a text box, a
-  number field, a pick list for an enum (or any type given `Options`), a checkbox, a date field or
-  a time field. `Editor` picks another where it fits (a `Switch` for a bool, say), and
-  `EditorContent` swaps in any control. An editor lays over its cell, so the columns keep their
-  widths while it is open. Values parse in the current culture and pass the property's
-  DataAnnotations and the column's `Validate` before they are written through the property's
-  setter. `OnEdit` hears every change once per action, and `Reject` puts the old values back.
-  Moving the cursor never calls .NET, so it stays instant on Blazor Server, and it works with
-  `Virtualize`. `BeginEditAsync`, `CommitEditAsync`, `CancelEditAsync` and `IsEditing` drive it
-  from code. In an editable table a click on a row no longer toggles its selection; use the
-  checkbox or Shift+Space. Needs Blaizio.Base 0.3.6 (`CellBinding`, `TabSeparatedText` and the
-  grid script).
+  hidden columns included, whose fields scroll between a fixed title and buttons. `Drawer` puts
+  the same form in a sheet at the inline-end edge (right in a left-to-right page, left in a
+  right-to-left one, full width on a phone), with Previous and Next buttons in its header that save
+  the row (a refused value keeps it open) and open the one before or after it in the table's
+  current order. `EditDialogContent` and `EditDrawerContent` swap in a surface of your own; both
+  get a `DataTableEditForm<TItem>` context with `context.Field(key)` for any built-in field,
+  `GetValue` / `SetValue` for your own controls, `PreviousAsync` / `NextAsync`, and `Actions` for
+  the built-in footer buttons. Closing a changed form (Escape, a press outside, the close button or
+  Cancel) asks first in its footer, Discard or Keep editing, with no second dialog
+  (`ConfirmingDiscard`, `DiscardAsync`, `KeepEditing` for your own footer); a form with no changes
+  closes at once. While a form is open its row carries `data-editing`, which each style tints, and
+  when it closes the focus returns to the row it showed last. The form's labels are `EditFormTitle`,
+  `EditFormDescription`, `EditFormSaveLabel`, `EditFormCancelLabel`, `EditFormDiscardQuestion`,
+  `EditFormDiscardLabel`, `EditFormKeepEditingLabel`, `EditFormPreviousLabel` and
+  `EditFormNextLabel`. The pointer and the keyboard start an edit differently. A click selects a
+  cell, and a click on a bool cell's checkbox or switch flips it at once. A double-click (or, with
+  touch or a pen, a tap on the selected cell) edits in place with the control ready: the caret at
+  the clicked character, a pick list's list or a date's calendar open, the time part under the
+  pointer. `EditOnClick` makes a single click or tap do that, and a click on another cell then
+  commits and opens that one. The cursor's ring shows while the keyboard drives the table, after
+  Tab brings the focus in or a key is pressed; a click alone draws none, and in Cell mode the cell
+  under the pointer takes the row's hover tint. A pick list's or date's cell shows a chevron or
+  calendar mark on hover and on the cursor's cell, and a press on it opens the list or calendar.
+  `BzEditActionsColumn` gives each row an Edit button, and Save and Cancel while the row edits in
+  place (in Dialog and Drawer modes Edit opens the form): icon buttons named by `EditLabel`,
+  `SaveLabel` and `CancelLabel`, each with a tooltip, in a column that pins, sizes and aligns like
+  any other, is as wide as Save and Cancel from the start (the columns keep their widths while a
+  row edits) and stays hidden in Cell mode. Its `ChildContent` replaces the buttons and gets a
+  `DataTableEditActions<TItem>` context (`Item`, `Mode`, `IsEditing`, `Busy`, `BeginAsync`,
+  `SaveAsync`, `CancelAsync`). Those buttons belong to the row's edit: a press on Cancel no longer
+  commits the row before it cancels, Tab from the row's last field reaches Save and Cancel, and
+  Enter or Space presses them. `EditActions` on a `BzTemplateColumn` or a `DataTableColumn` gives
+  your own buttons the same treatment, and `BeginEditAsync(item, key)` in Row mode puts the focus
+  in that column's field. On the keyboard, typing replaces a
+  cell (a number starts on a digit, a sign or the decimal separator, a date or time on a digit, a
+  pick list opens and types the key into its type-ahead) and an arrow then commits and moves; F2
+  edits in place (a pick list opens its list); Alt+ArrowDown opens a list or calendar, and so does
+  Space on a pick list; Backspace empties a text, number, date or time cell and starts typing.
+  With a list or calendar open, one Escape closes it and cancels the edit, a pick commits and
+  closes the editor, and Tab picks the highlighted option and moves on. Row mode follows the same
+  rules for the cell you were on, and the forms open on that column's field. An `EditorContent`
+  hears how its edit started through `context.StartedBy` (Pointer, Key, Typing or Code),
+  `context.TypedText` and `context.OpenPopup`. Cells, rows and forms edit with the library's own
+  controls, picked from the property's type: a text box, a number field, a pick list for an enum
+  (or any type given `Options`), a checkbox, a date field or a time field. `Editor` picks another
+  where it fits (a `Switch` for a bool, say), and `EditorContent` swaps in any control. An editor
+  lays over its cell, so the columns keep their widths while it is open. A column's own cell
+  template keeps its editor: `ChildContent` gets the row, and the new `CellContent` on
+  `BzPropertyColumn` and `BzTemplateColumn` gets the cell, a `DataTableCell<TItem, TValue>` (or
+  `DataTableCell<TItem>`) with the row, the value and its formatted text, whether an edit is open on
+  the row, the cell's refusal message and a save still running (`IsEditing`, `Error`, `Pending`).
+  An editable table's cells carry `group/table-cell`, and `data-active` while they hold the
+  keyboard cursor, so a template follows the cursor in CSS. `EdgeToEdge` on any column drops the
+  cells' padding and stretches the content to the cell's full height, so a background tints the
+  whole cell. Values parse in the
+  current culture and pass the property's DataAnnotations and the column's `Validate` before they
+  are written through the property's setter. `OnEdit` hears every change once per action, and
+  `Reject` puts the old values back. Moving the cursor never calls .NET, so it stays instant on
+  Blazor Server, and it works with `Virtualize`. `BeginEditAsync`, `CommitEditAsync`,
+  `CancelEditAsync` and `IsEditing` drive it from code. In an editable table a click on a row no
+  longer toggles its selection; use the checkbox or Shift+Space. The table item installs Sheet and
+  Tooltip for the drawer. Needs Blaizio.Base 0.3.6 (`CellBinding`, `TabSeparatedText` and the grid
+  script).
 - **Input Date**: `CalendarOpen`, `DefaultCalendarOpen` and `CalendarOpenChanged` open the calendar
   popup from code and report when it opens or closes (`@bind-CalendarOpen`). A picked day raises
   `ValueChanged` before the popup reports closing.

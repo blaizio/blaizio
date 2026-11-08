@@ -1,0 +1,55 @@
+@using System.ComponentModel.DataAnnotations
+
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable TItem="Account" Items="_accounts" RowKey="@(a => a.Id)" Searchable SearchPlaceholder="Search accounts..."
+                 EditMode="DataTableEditMode.Drawer" EditFormTitle="Edit account"
+                 EditFormDescription="Previous and Next save this account and open the one before or after it."
+                 OnEdit="OnEdit">
+        <BzPropertyColumn Property="@(a => a.Company)" Editable Sortable />
+        <BzPropertyColumn Property="@(a => a.Contact)" Editable Sortable />
+        <BzPropertyColumn Property="@(a => a.Plan)" Editable Sortable />
+        <BzPropertyColumn Property="@(a => a.Seats)" Align="end" Editable Sortable />
+        <BzPropertyColumn Property="@(a => a.Renewal)" Format="d MMM yyyy" Editable Sortable />
+        <BzPropertyColumn Property="@(a => a.Region)" Options="Regions" Editable Visible="false" />
+        <BzPropertyColumn Property="@(a => a.Active)" Editor="DataTableEditor.Switch" Editable Visible="false" />
+        <BzPropertyColumn Property="@(a => a.Notes)" Editable Visible="false">
+            <EditorContent>
+                <BzInputText @bind-Value="context.Value" Rows="4" @attributes="context.Attributes" />
+            </EditorContent>
+        </BzPropertyColumn>
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_status</p>
+</div>
+
+@code {
+    private static readonly string[] Regions = ["Americas", "Europe", "Asia Pacific"];
+
+    private enum Plan { Free, Team, Business }
+
+    private sealed class Account
+    {
+        public int Id { get; init; }
+        [Required] public string Company { get; set; } = "";
+        [Required] public string Contact { get; set; } = "";
+        public Plan Plan { get; set; }
+        [Range(1, 500)] public int Seats { get; set; }
+        public DateOnly Renewal { get; set; }
+        public string Region { get; set; } = "Europe";
+        public bool Active { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    private readonly List<Account> _accounts =
+    [
+        new() { Id = 1, Company = "Northwind Studio", Contact = "Amara Okafor", Plan = Plan.Business, Seats = 48, Renewal = new(2027, 3, 1), Region = "Europe", Active = true },
+        new() { Id = 2, Company = "Blue Harbor", Contact = "Lucas Ferreira", Plan = Plan.Team, Seats = 12, Renewal = new(2026, 12, 15), Region = "Americas", Active = true, Notes = "Asked about yearly billing." },
+        new() { Id = 3, Company = "Kite & Co", Contact = "Mei Tanaka", Plan = Plan.Free, Seats = 3, Renewal = new(2027, 1, 9), Region = "Asia Pacific", Active = false },
+        new() { Id = 4, Company = "Fernway Labs", Contact = "Priya Raman", Plan = Plan.Team, Seats = 20, Renewal = new(2026, 11, 30), Region = "Asia Pacific", Active = true },
+        new() { Id = 5, Company = "Quarry Lane", Contact = "Jonas Berg", Plan = Plan.Business, Seats = 130, Renewal = new(2027, 6, 1), Region = "Europe", Active = true, Notes = "Pilot for the new reporting." },
+    ];
+
+    private string _status = "Double-click a row or press Enter to open it in the drawer. Sort or search first: Previous and Next follow the table's order.";
+
+    private void OnEdit(DataTableEditEventArgs<Account> e) =>
+        _status = $"Saved {e.Changes[0].Item.Company}: {string.Join(", ", e.Changes.Select(c => c.ColumnKey))}.";
+}

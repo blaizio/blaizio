@@ -1,0 +1,43 @@
+@using System.ComponentModel.DataAnnotations
+
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable TItem="Member" Items="_members" RowKey="@(m => m.Id)" EditMode="DataTableEditMode.Row" OnEdit="SaveAsync">
+        <BzPropertyColumn Property="@(m => m.Name)" Editable />
+        <BzPropertyColumn Property="@(m => m.Role)" Editable />
+        <BzPropertyColumn Title="Start date" Property="@(m => m.Start)" Format="d MMM yyyy" Editable />
+        <BzPropertyColumn Title="Hours a week" Property="@(m => m.Hours)" Align="end" Editable />
+        <BzEditActionsColumn Pinned="DataTablePin.End" Align="end" />
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_status</p>
+</div>
+
+@code {
+    private enum Role { Designer, Engineer, Manager, Support }
+
+    private sealed class Member
+    {
+        public int Id { get; init; }
+        [Required] public string Name { get; set; } = "";
+        public Role Role { get; set; }
+        public DateOnly Start { get; set; }
+        [Range(1, 60)] public int Hours { get; set; }
+    }
+
+    private readonly List<Member> _members =
+    [
+        new() { Id = 1, Name = "Amara Okafor", Role = Role.Designer, Start = new(2023, 3, 6), Hours = 40 },
+        new() { Id = 2, Name = "Lucas Ferreira", Role = Role.Engineer, Start = new(2022, 9, 12), Hours = 32 },
+        new() { Id = 3, Name = "Mei Tanaka", Role = Role.Manager, Start = new(2024, 1, 15), Hours = 40 },
+        new() { Id = 4, Name = "Priya Raman", Role = Role.Support, Start = new(2021, 11, 2), Hours = 24 },
+    ];
+
+    private string _status = "Press Edit on a row, change its fields, then Save or Cancel.";
+
+    // The row is already written; Save shows a spinner while this runs.
+    private async Task SaveAsync(DataTableEditEventArgs<Member> e)
+    {
+        var member = e.Changes[0].Item;
+        await Task.Delay(500); // your API call
+        _status = $"Saved {member.Name}: {e.Changes.Count} field(s) changed.";
+    }
+}

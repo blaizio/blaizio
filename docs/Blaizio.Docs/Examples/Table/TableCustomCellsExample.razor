@@ -1,0 +1,74 @@
+@using System.ComponentModel.DataAnnotations
+
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable TItem="Project" Items="_projects" RowKey="@(p => p.Id)" OnEdit="OnEdit">
+        <BzPropertyColumn Property="@(p => p.Name)" Editable Sortable />
+
+        @* ChildContent: your own cell, while the column keeps its sort and its pick list editor. *@
+        <BzPropertyColumn Property="@(p => p.Status)" Editable Sortable>
+            <BzBadge Variant="@StatusVariant(context.Status)">@context.Status</BzBadge>
+        </BzPropertyColumn>
+
+        @* CellContent: the cell as the context. The bar dims while the save runs (context.Pending)
+           and firms up while its cell holds the keyboard cursor (group-data-active/table-cell). *@
+        <BzPropertyColumn Property="@(p => p.Progress)" Align="end" Editable Sortable>
+            <CellContent>
+                <div class="flex items-center justify-end gap-2 data-pending:opacity-50" data-pending="@(context.Pending ? "" : null)">
+                    <div class="bg-muted h-1.5 w-20 overflow-hidden rounded-full">
+                        <div class="bg-primary/60 group-data-active/table-cell:bg-primary h-full rounded-full" style="width:@(context.Value)%"></div>
+                    </div>
+                    <span class="w-10 tabular-nums">@context.Text%</span>
+                </div>
+            </CellContent>
+        </BzPropertyColumn>
+
+        @* EdgeToEdge: the template fills the cell, so its background tints the whole cell. *@
+        <BzPropertyColumn Title="Open issues" Property="@(p => p.OpenIssues)" Align="end" EdgeToEdge Editable Sortable>
+            <CellContent>
+                <div class="@IssuesClass(context.Value) flex items-center justify-end px-3 py-2 tabular-nums">@context.Text</div>
+            </CellContent>
+        </BzPropertyColumn>
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_lastChange</p>
+</div>
+
+@code {
+    private enum Status { Planned, Active, Blocked, Done }
+
+    private sealed class Project
+    {
+        public int Id { get; init; }
+        [Required] public string Name { get; set; } = "";
+        public Status Status { get; set; }
+        [Range(0, 100)] public int Progress { get; set; }
+        [Range(0, 999)] public int OpenIssues { get; set; }
+    }
+
+    private readonly List<Project> _projects =
+    [
+        new() { Id = 1, Name = "Billing revamp", Status = Status.Active, Progress = 64, OpenIssues = 7 },
+        new() { Id = 2, Name = "Mobile onboarding", Status = Status.Blocked, Progress = 30, OpenIssues = 14 },
+        new() { Id = 3, Name = "Search index", Status = Status.Done, Progress = 100, OpenIssues = 0 },
+        new() { Id = 4, Name = "Partner portal", Status = Status.Planned, Progress = 5, OpenIssues = 2 },
+    ];
+
+    private string _lastChange = "Every column here edits with its built-in editor: double-click Status, Progress or Open issues.";
+
+    private static BadgeVariant StatusVariant(Status status) => status switch
+    {
+        Status.Active => BadgeVariant.Default,
+        Status.Blocked => BadgeVariant.Destructive,
+        Status.Done => BadgeVariant.Success,
+        _ => BadgeVariant.Outline,
+    };
+
+    // Ten or more open issues tint the whole cell (the number stays in the text color, readable on the tint).
+    private static string? IssuesClass(int issues) => issues >= 10 ? "bg-destructive/15 font-semibold" : null;
+
+    private async Task OnEdit(DataTableEditEventArgs<Project> e)
+    {
+        var change = e.Changes[0];
+        await Task.Delay(400); // your API call: the cell is pending meanwhile
+        _lastChange = $"{change.ColumnKey} of {change.Item.Name}: {change.OldValue} to {change.NewValue}.";
+    }
+}

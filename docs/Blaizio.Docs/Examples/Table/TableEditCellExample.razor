@@ -1,13 +1,18 @@
 @using System.ComponentModel.DataAnnotations
 
 <div class="w-full max-w-4xl space-y-3">
-    <BzDataTable TItem="Product" Items="_products" RowKey="@(p => p.Id)" OnEdit="OnEdit">
+    <div class="flex items-center gap-2">
+        <BzSwitch id="table-edit-on-click" @bind-Checked="_editOnClick" />
+        <BzLabel For="table-edit-on-click">Edit with a single click</BzLabel>
+    </div>
+    <BzDataTable TItem="Product" Items="_products" RowKey="@(p => p.Id)" EditOnClick="_editOnClick" OnEdit="OnEdit">
         <BzPropertyColumn Property="@(p => p.Name)" Editable Sortable />
         <BzPropertyColumn Property="@(p => p.Category)" Editable Sortable />
         <BzPropertyColumn Property="@(p => p.Price)" Format="C" Align="end" Editable Sortable
                           Validate="@(price => price <= 0 ? "Price must be above zero." : null)" />
         <BzPropertyColumn Property="@(p => p.Stock)" Align="end" Editable Sortable />
         <BzPropertyColumn Title="Restock" Property="@(p => p.Restock)" Format="d MMM yyyy" Editable />
+        <BzPropertyColumn Title="Cut-off" Property="@(p => p.Cutoff)" Format="HH:mm" Editable />
         <BzPropertyColumn Title="Listed" Property="@(p => p.Listed)" Editor="DataTableEditor.Switch" Editable />
     </BzDataTable>
     <p class="text-muted-foreground text-sm">@_lastChange</p>
@@ -25,20 +30,25 @@
         public decimal Price { get; set; }
         [Range(0, 9999)] public int Stock { get; set; }
         public DateOnly? Restock { get; set; }
+        // The latest order time that still ships the same day.
+        public TimeOnly Cutoff { get; set; }
         public bool Listed { get; set; }
     }
 
     private readonly List<Product> _products =
     [
-        new() { Id = 1, Name = "Mechanical keyboard", Category = Category.Hardware, Price = 129.00m, Stock = 42, Restock = new(2026, 12, 1), Listed = true },
-        new() { Id = 2, Name = "Design license", Category = Category.Software, Price = 299.00m, Stock = 0, Listed = true },
-        new() { Id = 3, Name = "Setup call", Category = Category.Service, Price = 75.00m, Stock = 12, Listed = false },
-        new() { Id = 4, Name = "USB-C dock", Category = Category.Hardware, Price = 189.50m, Stock = 7, Restock = new(2026, 11, 20), Listed = true },
-        new() { Id = 5, Name = "Backup plan", Category = Category.Software, Price = 9.99m, Stock = 500, Listed = true },
-        new() { Id = 6, Name = "Monitor arm", Category = Category.Hardware, Price = 64.00m, Stock = 3, Restock = new(2027, 1, 15), Listed = false },
+        new() { Id = 1, Name = "Mechanical keyboard", Category = Category.Hardware, Price = 129.00m, Stock = 42, Restock = new(2026, 12, 1), Cutoff = new(16, 0), Listed = true },
+        new() { Id = 2, Name = "Design license", Category = Category.Software, Price = 299.00m, Stock = 0, Cutoff = new(23, 30), Listed = true },
+        new() { Id = 3, Name = "Setup call", Category = Category.Service, Price = 75.00m, Stock = 12, Cutoff = new(12, 0), Listed = false },
+        new() { Id = 4, Name = "USB-C dock", Category = Category.Hardware, Price = 189.50m, Stock = 7, Restock = new(2026, 11, 20), Cutoff = new(15, 30), Listed = true },
+        new() { Id = 5, Name = "Backup plan", Category = Category.Software, Price = 9.99m, Stock = 500, Cutoff = new(23, 30), Listed = true },
+        new() { Id = 6, Name = "Monitor arm", Category = Category.Hardware, Price = 64.00m, Stock = 3, Restock = new(2027, 1, 15), Cutoff = new(14, 0), Listed = false },
     ];
 
-    private string _lastChange = "Type over a cell, or paste a block copied from a spreadsheet.";
+    // EditOnClick: a single click edits a cell as a double-click does.
+    private bool _editOnClick;
+
+    private string _lastChange = "Double-click a cell to edit it in place, type over it to replace it, or paste a block copied from a spreadsheet.";
 
     // One call per action: a committed cell, a flipped checkbox, a paste or a Delete.
     private void OnEdit(DataTableEditEventArgs<Product> e)

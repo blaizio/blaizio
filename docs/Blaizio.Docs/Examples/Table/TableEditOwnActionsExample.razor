@@ -1,0 +1,57 @@
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable @ref="_table" TItem="Expense" Items="_expenses" RowKey="@(e => e.Id)" EditMode="DataTableEditMode.Row" OnEdit="OnEdit">
+        <BzPropertyColumn Property="@(e => e.Description)" Editable />
+        <BzPropertyColumn Property="@(e => e.Category)" Editable />
+        <BzPropertyColumn Property="@(e => e.Spent)" Format="d MMM yyyy" Editable />
+        <BzPropertyColumn Property="@(e => e.Amount)" Format="C" Align="end" Editable />
+        @* EditActions: these buttons belong to the row's edit, so a press on Cancel cancels and Tab
+           from the last field reaches them. The columns keep their widths while a row edits, so both
+           sets of buttons share one grid cell (the one not in use invisible and inert): the column
+           is as wide as the wider set from the start. *@
+        <BzTemplateColumn EditActions Align="end" CellClass="w-[1%]">
+            <HeaderContent><span class="sr-only">Actions</span></HeaderContent>
+            <ChildContent>
+                @{ var editing = _table?.IsEditing(context) == true; }
+                <div class="-my-1.5 grid justify-items-end">
+                    <div class="@(editing ? "invisible" : null) col-start-1 row-start-1 flex gap-2" inert="@editing">
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm"
+                                  OnClick="@(() => _table!.BeginEditAsync(context, "Amount"))">Edit amount</BzButton>
+                    </div>
+                    <div class="@(editing ? null : "invisible") col-start-1 row-start-1 flex gap-2" inert="@(!editing)">
+                        <BzButton Size="ButtonSize.Sm" OnClick="@(() => _table!.CommitEditAsync())">Save</BzButton>
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _table!.CancelEditAsync())">Cancel</BzButton>
+                    </div>
+                </div>
+            </ChildContent>
+        </BzTemplateColumn>
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_status</p>
+</div>
+
+@code {
+    private enum Category { Travel, Meals, Software, Equipment }
+
+    private sealed class Expense
+    {
+        public int Id { get; init; }
+        public string Description { get; set; } = "";
+        public Category Category { get; set; }
+        public DateOnly Spent { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    private BzDataTable<Expense>? _table;
+
+    private readonly List<Expense> _expenses =
+    [
+        new() { Id = 1, Description = "Train to the client", Category = Category.Travel, Spent = new(2026, 11, 3), Amount = 86.40m },
+        new() { Id = 2, Description = "Team lunch", Category = Category.Meals, Spent = new(2026, 11, 4), Amount = 142.00m },
+        new() { Id = 3, Description = "Design tool seat", Category = Category.Software, Spent = new(2026, 11, 5), Amount = 15.00m },
+        new() { Id = 4, Description = "Laptop stand", Category = Category.Equipment, Spent = new(2026, 11, 6), Amount = 49.90m },
+    ];
+
+    private string _status = "Edit amount opens the row on its Amount field: BeginEditAsync(row, \"Amount\").";
+
+    private void OnEdit(DataTableEditEventArgs<Expense> e) =>
+        _status = $"Saved {e.Changes[0].Item.Description}: {string.Join(", ", e.Changes.Select(c => c.ColumnKey))}.";
+}

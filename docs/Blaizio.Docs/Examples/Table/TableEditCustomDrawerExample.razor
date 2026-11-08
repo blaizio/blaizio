@@ -1,0 +1,79 @@
+@* Drawer mode with a drawer of your own: a sheet with the order's own header, its fields in two
+   sections, Previous / Next from the context, and the built-in footer buttons (context.Actions). *@
+<div class="w-full max-w-4xl space-y-3">
+    <BzDataTable TItem="Order" Items="_orders" RowKey="@(o => o.Id)" EditMode="DataTableEditMode.Drawer" OnEdit="OnEdit">
+        <ChildContent>
+            <BzPropertyColumn Title="Order" Property="@(o => o.Id)" Sortable />
+            <BzPropertyColumn Property="@(o => o.Customer)" Editable Sortable />
+            <BzPropertyColumn Property="@(o => o.Status)" Editable Sortable />
+            <BzPropertyColumn Property="@(o => o.Ships)" Format="d MMM" Editable Sortable />
+            <BzPropertyColumn Property="@(o => o.Total)" Format="C" Align="end" Editable Sortable
+                              Validate="@(total => total <= 0 ? "Total must be above zero." : null)" />
+            <BzPropertyColumn Property="@(o => o.Gift)" Editor="DataTableEditor.Switch" Editable Visible="false" />
+        </ChildContent>
+        <EditDrawerContent>
+            <BzSheet Open="@context.Open" OpenChanged="@context.OpenChanged">
+                <BzSheetContent Side="PanelSide.End" ShowCloseButton="false" Class="w-full gap-0 sm:max-w-md">
+                    <BzSheetHeader Class="flex-row items-start border-b">
+                        <div class="flex min-w-0 flex-1 flex-col gap-1">
+                            <BzSheetTitle>Order #@context.Item.Id</BzSheetTitle>
+                            <BzSheetDescription>@context.Item.Customer</BzSheetDescription>
+                        </div>
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@(!context.HasPrevious || context.Busy)"
+                                  OnClick="@(() => context.PreviousAsync())">Previous</BzButton>
+                        <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Disabled="@(!context.HasNext || context.Busy)"
+                                  OnClick="@(() => context.NextAsync())">Next</BzButton>
+                    </BzSheetHeader>
+                    <form class="contents" novalidate @onsubmit="@(() => context.SaveAsync())" @onsubmit:preventDefault>
+                        <div class="scrollbar-thin flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
+                            <section class="flex flex-col gap-4">
+                                <h3 class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Customer</h3>
+                                @context.Field("Customer")
+                                @context.Field("Gift")
+                            </section>
+                            <section class="flex flex-col gap-4">
+                                <h3 class="text-muted-foreground text-xs font-medium uppercase tracking-wide">Fulfilment</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    @context.Field("Status")
+                                    @context.Field("Ships")
+                                </div>
+                                @context.Field("Total")
+                            </section>
+                        </div>
+                        <BzSheetFooter Class="flex-col-reverse border-t sm:flex-row sm:justify-end">
+                            @context.Actions
+                        </BzSheetFooter>
+                    </form>
+                </BzSheetContent>
+            </BzSheet>
+        </EditDrawerContent>
+    </BzDataTable>
+    <p class="text-muted-foreground text-sm">@_status</p>
+</div>
+
+@code {
+    private enum OrderStatus { New, Packed, Shipped }
+
+    private sealed class Order
+    {
+        public int Id { get; init; }
+        public string Customer { get; set; } = "";
+        public OrderStatus Status { get; set; }
+        public DateOnly Ships { get; set; }
+        public decimal Total { get; set; }
+        public bool Gift { get; set; }
+    }
+
+    private readonly List<Order> _orders =
+    [
+        new() { Id = 1042, Customer = "Hana Kobayashi", Status = OrderStatus.New, Ships = new(2026, 11, 10), Total = 84.50m },
+        new() { Id = 1043, Customer = "Omar Haddad", Status = OrderStatus.Packed, Ships = new(2026, 11, 9), Total = 212.00m, Gift = true },
+        new() { Id = 1044, Customer = "Elena Petrova", Status = OrderStatus.Shipped, Ships = new(2026, 11, 6), Total = 39.90m },
+        new() { Id = 1045, Customer = "Samuel Osei", Status = OrderStatus.New, Ships = new(2026, 11, 12), Total = 120.00m },
+    ];
+
+    private string _status = "Open an order with Enter or a double-click, then move through the orders with Previous and Next.";
+
+    private void OnEdit(DataTableEditEventArgs<Order> e) =>
+        _status = $"Saved order #{e.Changes[0].Item.Id}: {string.Join(", ", e.Changes.Select(c => c.ColumnKey))}.";
+}

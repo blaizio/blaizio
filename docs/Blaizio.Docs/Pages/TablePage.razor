@@ -65,20 +65,40 @@
           Example="typeof(TableProviderExample)" />
 
     <Demo Title="Editing cells"
-          Description="Mark a BzPropertyColumn Editable and the table becomes a spreadsheet-style grid that edits with the library's own controls, picked from each property's type: a text box for Name, a pick list for the Category enum, number fields for Price and Stock, a date field for Restock, and a switch for Listed, chosen with Editor. Tab in and move with the arrows, Tab and Enter. Type over a cell to replace it (an arrow then commits and moves), or press F2 or double-click to edit it in place. Enter commits and moves down, Escape puts the old value back, Space flips the switch, Delete clears a cell, and a block copied from a spreadsheet pastes across cells. Values pass the property's DataAnnotations (Stock's Range, Name's Required) and the column's Validate (Price) before they are written into the row. OnEdit hears every change once per action."
+          Description="Mark a BzPropertyColumn Editable and the table becomes a spreadsheet-style grid that edits with the library's own controls, picked from each property's type: a text box for Name, a pick list for the Category enum, number fields for Price and Stock, a date field for Restock, a time field for Cut-off, and a switch for Listed, chosen with Editor. A click selects a cell; a double-click edits it in place with the control ready: the caret where you clicked, the list or calendar open, the time part under the pointer. With EditOnClick (the switch) a single click does that already, and a click on another cell commits and opens that one. The chevron and calendar marks on a hovered cell open the list or calendar too, and a click on the switch flips it at once. On the keyboard, type over a cell to replace it (an arrow then commits and moves), press F2 to edit it in place, or Alt+ArrowDown to open a list or calendar. Enter commits and moves down, Escape puts the old value back (with a list open, one Escape closes it and cancels), Delete clears a cell, and a block copied from a spreadsheet pastes across cells. The cursor's ring shows while you use the keyboard; with the mouse, the cell under the pointer is tinted instead. Values pass the property's DataAnnotations (Stock's Range, Name's Required) and the column's Validate (Price) before they are written into the row. OnEdit hears every change once per action."
           Example="typeof(TableEditCellExample)" />
 
+    <Demo Title="Custom cells"
+          Description="A column's cell can be any template while the column keeps its sort, search and editor. ChildContent gets the row: here Status shows a badge and still edits with its pick list. CellContent gets the cell instead: the row (context.Item), the property's value and its formatted text (context.Value, context.Text), whether an edit is open on the row (context.IsEditing), and context.Error and context.Pending, so Progress draws a bar that dims while its save runs. EdgeToEdge drops the cell's padding and stretches the template to the cell's full height, so a background tints the whole cell, as Open issues does from ten up; the template then pads itself. The keyboard cursor stays in the browser, so it is no context value: an editable table's cells carry data-active while they hold it, and group/table-cell, so a template follows it in CSS, here with group-data-active/table-cell on the bar."
+          Example="typeof(TableCustomCellsExample)" />
+
     <Demo Title="Editing rows"
-          Description="EditMode Row edits the whole row in place: Enter, F2 or a double-click opens an editor in every editable cell (a pick list for Room, date fields for the stay, a checkbox for Paid). Tab walks the fields, Enter commits the row as one change and Escape cancels it. The row is already written when OnEdit runs, so a rule can span fields: here a check-out before the check-in is refused with Reject, which puts the old values back and keeps the row open with the message under the field."
+          Description="EditMode Row edits the whole row in place: Enter, F2 or a double-click opens an editor in every editable cell (a pick list for Room, date fields for the stay, a checkbox for Paid), focused on the cell you were on and ready the way a cell's editor is: a double-click on Room opens its list, and typing over a cell replaces it. Tab walks the fields, Enter commits the row as one change and Escape cancels it. The row is already written when OnEdit runs, so a rule can span fields: here a check-out before the check-in is refused with Reject, which puts the old values back and keeps the row open with the message under the field."
           Example="typeof(TableEditRowExample)" />
 
+    <Demo Title="Edit actions column"
+          Description="BzEditActionsColumn gives every row an Edit button; while a row edits in place it shows Save and Cancel instead (in Dialog and Drawer modes Edit opens the form). The buttons are icons named by their labels (EditLabel, SaveLabel, CancelLabel) with a tooltip each, and the column works with Pinned, Width and Align like any other; here it stays at the end edge. It is as wide as Save and Cancel from the start, since the columns keep their widths while a row edits. They belong to the row's edit: a press on Cancel cancels without saving first, Tab from the row's last field reaches Save and then Cancel, and Enter or Space presses them. While OnEdit runs, Save spins and both wait. The column only shows while rows edit as a whole: it is hidden in Cell mode. ChildContent replaces the buttons and gets the row's actions as its context: Item, IsEditing, Busy, BeginAsync, SaveAsync and CancelAsync."
+          Example="typeof(TableEditActionsExample)" />
+
+    <Demo Title="Your own actions column"
+          Description="Any column can hold your own buttons: the table's BeginEditAsync, CommitEditAsync, CancelEditAsync and IsEditing are public, and a template column renders again when an edit opens or closes. Set EditActions on that BzTemplateColumn so its controls belong to the row's edit, as the built-in ones do: a press on Cancel cancels, and Tab from the row's last field reaches Save and Cancel. The columns keep their widths while a row edits, so give the cell room for its wider set of buttons from the start: here both sets share one grid cell, the one not in use invisible and inert. Edit amount opens the row on its Amount field: BeginEditAsync takes the column's key."
+          Example="typeof(TableEditOwnActionsExample)" />
+
     <Demo Title="Editing in a dialog"
-          Description="EditMode Dialog edits the row as a form: Enter on a row, a double-click, or BeginEditAsync from a row action opens it, with a field for every editable column, the hidden Started, Active and Notes columns included. When there are more fields than room, they scroll between the title and the buttons. Options turns Team's strings into a pick list, Editor makes Active a switch, and EditorContent swaps in any control, here a multi-line text box for Notes; it binds context.Value and serves the cell, row and dialog editors alike. The rows are records with no setters, so OnEdit applies the change by replacing the row."
+          Description="EditMode Dialog edits the row as a form: Enter on a row, a double-click, or BeginEditAsync from a row action opens it on the field of the column you were on, with a field for every editable column, the hidden Started, Active and Notes columns included. When there are more fields than room, they scroll between the title and the buttons. Close a changed form with Escape, a press outside or Cancel and the footer asks first: Discard or Keep editing. Options turns Team's strings into a pick list, Editor makes Active a switch, and EditorContent swaps in any control, here a multi-line text box for Notes; it binds context.Value and serves the cell, row and form editors alike. The rows are records with no setters, so OnEdit applies the change by replacing the row."
           Example="typeof(TableEditDialogExample)" />
 
     <Demo Title="Editing in your own dialog"
-          Description="EditDialogContent replaces the built-in dialog with a surface of your own, here a side sheet: bind its Open and OpenChanged to the context and save with context.SaveAsync. context.Field renders a column's built-in field (its label, editor and message), so the fields behave as they do in the dialog while the layout is yours, with Status and Estimate sharing a row. For controls of your own, context.GetValue and SetValue reach the drafts, and ErrorFor and Message say why a save was refused."
+          Description="EditDialogContent replaces the built-in dialog with one of your own: bind its Open and OpenChanged to the context and save with context.SaveAsync. context.Field renders a column's built-in field (its label, editor and message), so the fields behave as they do in the built-in form while the layout is yours, here two to a row. Closing a changed ticket asks first: while context.ConfirmingDiscard is true the footer shows your own question, with context.DiscardAsync and context.KeepEditing as the answers. For controls of your own, context.GetValue and SetValue reach the drafts, and ErrorFor and Message say why a save was refused."
           Example="typeof(TableEditCustomDialogExample)" />
+
+    <Demo Title="Editing in a drawer"
+          Description="EditMode Drawer puts the same form in a sheet at the inline-end edge, full width on a phone: its title and buttons stay put while the fields scroll, and it opens on the field of the column you were on. Previous and Next in its header save the row (a refused value keeps you on it) and open the row before or after it in the table's current order, so sort or search first to walk a subset; they are off at the ends. A changed form asks before it closes, as the dialog does. While the drawer is open its row is marked in the table, and when it closes the focus returns to the row it showed last."
+          Example="typeof(TableEditDrawerExample)" />
+
+    <Demo Title="Editing in your own drawer"
+          Description="EditDrawerContent replaces the built-in drawer with one of your own and gets the same context as EditDialogContent. Here a sheet carries the order's number in its header, the fields in two sections and Previous and Next buttons of its own (context.HasPrevious, context.PreviousAsync and context.NextAsync), while context.Actions renders the built-in footer buttons, the Discard or Keep editing question included."
+          Example="typeof(TableEditCustomDrawerExample)" />
 
     <Demo Title="Editing large tables"
           Description="Editing works with Virtualize: here 10,000 rows in a scroll box, with only the visible band rendered. Moving the cursor never calls .NET, and PageDown, Ctrl+End or an arrow past the edge scrolls the box to bring the row in. There is one editor at a time, and starting or committing an edit re-renders only the rows in view. Total follows Quantity and Unit price as you commit."
@@ -113,13 +133,37 @@
           Example="typeof(TableColumnsRtlExample)" />
 
     <section class="space-y-3">
-        <h2 id="keyboard" data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Keyboard</h2>
+        <h2 id="keyboard" data-toc class="scroll-mt-20 text-xl font-semibold tracking-tight">Pointer and keyboard</h2>
         <p>
             An editable table is one tab stop: Tab moves into it and the arrow keys move between cells.
-            Cell mode follows spreadsheet conventions: Enter moves down, typing replaces a cell and F2
-            edits it in place. Moving the cursor never calls .NET; only starting and committing an
-            edit do. In right-to-left pages the left and right arrows swap.
+            The pointer and the keyboard start an edit differently. A click only selects (with
+            <code>EditOnClick</code> it edits); a double-click edits in place with the control ready.
+            On the keyboard, typing replaces a cell and F2 edits it in place. The cursor's ring shows
+            while you use the keyboard: after Tab brings you in, or after a key pressed once you
+            clicked. A click alone draws no ring. Moving the cursor never calls .NET; only starting
+            and committing an edit do. In right-to-left pages the left and right arrows swap.
         </p>
+        <h3 id="pointer" data-toc class="scroll-mt-20 pt-2">Pointer</h3>
+        <BzTable>
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Pointer</BzTableHead>
+                    <BzTableHead>On a cell</BzTableHead>
+                    <BzTableHead>While editing</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                @foreach (var (action, onCell, editing) in PointerRows)
+                {
+                    <BzTableRow>
+                        <BzTableCell><div class="min-w-28 whitespace-normal font-medium">@action</div></BzTableCell>
+                        <BzTableCell><div class="min-w-48 max-w-md whitespace-normal">@onCell</div></BzTableCell>
+                        <BzTableCell><div class="min-w-48 max-w-md whitespace-normal">@editing</div></BzTableCell>
+                    </BzTableRow>
+                }
+            </BzTableBody>
+        </BzTable>
+        <h3 id="keys" data-toc class="scroll-mt-20 pt-2">Keyboard</h3>
         <BzTable>
             <BzTableHeader>
                 <BzTableRow>
@@ -146,6 +190,45 @@
                 }
             </BzTableBody>
         </BzTable>
+        <h3 id="how-editors-open" data-toc class="scroll-mt-20 pt-2">How each editor opens</h3>
+        <p>
+            What the control looks like when its edit starts. With <code>EditOnClick</code> a single
+            click acts as a double-click. Row mode follows the same rules for the cell you were on;
+            the Dialog and Drawer forms focus that column's field and never open a list or calendar by
+            themselves.
+        </p>
+        @* Wider than a phone: the box scrolls sideways, so it is a stop the keyboard can scroll. *@
+        <BzTable ContainerFocusable ContainerAriaLabel="How each editor opens">
+            <BzTableHeader>
+                <BzTableRow>
+                    <BzTableHead>Editor</BzTableHead>
+                    <BzTableHead>Double-click or tap</BzTableHead>
+                    <BzTableHead>Typing</BzTableHead>
+                    <BzTableHead>F2</BzTableHead>
+                    <BzTableHead>Alt+ArrowDown, Space</BzTableHead>
+                </BzTableRow>
+            </BzTableHeader>
+            <BzTableBody>
+                @foreach (var (editor, pointer, typing, f2, open) in EditorRows)
+                {
+                    <BzTableRow>
+                        <BzTableCell><div class="min-w-24 whitespace-normal font-medium">@editor</div></BzTableCell>
+                        <BzTableCell><div class="min-w-28 max-w-48 whitespace-normal">@pointer</div></BzTableCell>
+                        <BzTableCell><div class="min-w-28 max-w-48 whitespace-normal">@typing</div></BzTableCell>
+                        <BzTableCell><div class="min-w-28 max-w-48 whitespace-normal">@f2</div></BzTableCell>
+                        <BzTableCell><div class="min-w-28 max-w-48 whitespace-normal">@open</div></BzTableCell>
+                    </BzTableRow>
+                }
+            </BzTableBody>
+        </BzTable>
+        <p>
+            A column's own editor (<code>EditorContent</code>) can follow the same rules: its context
+            says how the edit started. <code>context.StartedBy</code> is <code>Pointer</code>,
+            <code>Key</code>, <code>Typing</code> or <code>Code</code> (<code>BeginEditAsync</code>),
+            <code>context.TypedText</code> holds what was typed over the cell (an empty string after
+            Backspace), and <code>context.OpenPopup</code> asks for your control's popup open from the
+            start. Only the editor the edit started in gets the typed text and the popup.
+        </p>
         <p>
             Column keys work on a focused header in any table, editable or not: Tab reaches a header
             through its sort button (or the header itself), and an editable table's cursor reaches it
@@ -180,24 +263,49 @@
 </div>
 
 @code {
+    // How the pointer acts on an editable table's cells, and inside an open editor.
+    private static readonly (string Action, string OnCell, string Editing)[] PointerRows =
+    [
+        ("Click", "Select the cell, with no ring until a key is pressed. A click on a checkbox or switch flips it at once. With EditOnClick: edit in place, as a double-click does.", "Inside the editor: the control's own. On another cell: commit and select that cell, without opening its editor (with EditOnClick, commit and open it). Outside the table: commit."),
+        ("Double-click", "Edit in place with the control ready: the caret at the clicked character, a list or calendar open, the time part under the pointer.", "Selects a word in a text box."),
+        ("Hover", "Cell mode: the cell under the pointer takes the row's hover tint too. A pick list's or date's cell shows its mark.", "-"),
+        ("Chevron or calendar mark", "On a pick list's or date's cell (shown on hover, and on the cursor's cell while you use the keyboard): open the editor with its list or calendar.", "-"),
+        ("Tap", "With touch or a pen: select the cell. A tap on the selected cell edits it in place, as a double-click does. With EditOnClick the first tap does.", "As a click."),
+        ("Pick", "-", "A click on an option or a day: commit and close the editor, staying on the cell."),
+        ("Edit, Save, Cancel", "In an edit actions column (or your own column with EditActions): Edit opens the row's editors or its form.", "Save commits the row and Cancel puts it back; the press never commits the row on its way."),
+    ];
+
     // The editable table's keys: what each does on a cell, and inside an open editor.
     private static readonly (string[] Keys, string OnCell, string Editing)[] KeyboardRows =
     [
-        (["Arrows"], "Move one cell. Up from the first row reaches the header.", "After typing over a cell: commit and move. After F2 or a double-click they stay in the editor: they move the caret, step a number or a date part, or open a pick list."),
+        (["Arrows"], "Move one cell. Up from the first row reaches the header.", "After typing over a cell: commit and move. After F2 or a double-click they stay in the editor: they move the caret, step a number or a date or time part, and move an open list's highlight."),
         (["Ctrl", "Arrow"], "Jump to the first or last row or column.", "Moves the caret."),
         (["Home", "End"], "First or last cell of the row. With Ctrl, of the table.", "Moves the caret."),
         (["PageUp", "PageDown"], "Move a screenful of rows.", "-"),
-        (["Tab"], "Next cell, wrapping to the next row. Leaves the table after the last cell. With Shift, back.", "The editor's next part (a date's day, month and year; a row's fields), then commit and move right. With Shift, left."),
-        (["Enter"], "Cell mode: move down, back to the column where a run of Tabs started. With Shift, up. Row mode: edit the row. Dialog mode: open the form.", "Commit and move down, back to the column where a run of Tabs started. With Shift, up."),
-        (["A", "1"], "Typing replaces the cell; a pick list jumps to the first option that matches.", "Types."),
-        (["F2"], "Edit the cell in place, caret at the end.", "Switch between moving on with the arrows (after typing over a cell) and editing in place."),
+        (["Tab"], "Next cell, wrapping to the next row. Leaves the table after the last cell. With Shift, back.", "The editor's next part (a date's day, month and year; a row's fields, then the row's Save and Cancel), then commit and move right. With Shift, left. In an open list: pick the highlighted option and move right."),
+        (["Enter"], "Cell mode: move down, back to the column where a run of Tabs started. With Shift, up. Row mode: edit the row. Dialog and Drawer modes: open the form.", "Commit and move down, back to the column where a run of Tabs started. With Shift, up. In an open list: pick the highlighted option and commit, staying on the cell. On Save or Cancel: press it."),
+        (["A", "1"], "Typing replaces the cell: the editor opens holding only the typed character. A number cell starts on a digit, a sign or the decimal separator, a date or time cell on a digit; a pick list opens with the highlight on the first option the keys begin. A checkbox or switch ignores it.", "Types. In an open list: moves the highlight to the first option the keys begin."),
+        (["F2"], "Edit the cell in place, caret at the end. A pick list opens its list.", "Switch between moving on with the arrows (after typing over a cell) and editing in place."),
+        (["Alt", "ArrowDown"], "Open a pick list's list or a date's calendar.", "Opens the list or the calendar."),
         (["Ctrl", "Enter"], "-", "Commit and stay."),
-        (["Escape"], "-", "Cancel and put the old value back."),
-        (["Space"], "Flip a checkbox or switch cell. With Shift, select the row.", "Types a space, or opens a pick list."),
+        (["Escape"], "-", "Cancel and put the old value back. With a list or calendar open, one Escape closes it and cancels."),
+        (["Space"], "Flip a checkbox or switch cell, or open a pick list. With Shift, select the row.", "Types a space, picks in an open list, or presses Save or Cancel."),
         (["Delete"], "Clear the cell.", "Deletes text."),
-        (["Backspace"], "Clear the cell and start typing.", "Deletes text."),
+        (["Backspace"], "A text, number, date or time cell: clear it and start typing. Any other cell: clear it, as Delete does.", "Deletes text."),
         (["Ctrl", "C"], "Copy the cell's text.", "Copies the selected text."),
         (["Ctrl", "V"], "Paste one value, or a block copied from a spreadsheet.", "Pastes text."),
+    ];
+
+    // How each built-in editor arrives, by what started its edit.
+    private static readonly (string Editor, string Pointer, string Typing, string F2, string Open)[] EditorRows =
+    [
+        ("Text box", "Caret at the clicked character.", "Holds the typed character.", "Caret at the end.", "-"),
+        ("Number field", "Caret at the clicked character when the cell shows the plain number, else at the end.", "A digit, a sign or the decimal separator starts it.", "Caret at the end; Up and Down step the number.", "-"),
+        ("Pick list", "List open, on the current option.", "List open, the highlight on the first option the keys begin.", "List open.", "List open."),
+        ("Date field", "Calendar open, on the current date.", "A digit starts the first part, the calendar closed.", "In place; Up and Down change the focused part.", "Alt+ArrowDown: calendar open."),
+        ("Time field", "The part under the pointer, else the hour.", "A digit starts the first part.", "In place; Up and Down change the focused part.", "-"),
+        ("Checkbox, switch", "A click flips it at once; a double-click adds nothing.", "Ignored.", "-", "Space flips it."),
+        ("Your own (EditorContent)", "StartedBy Pointer, OpenPopup true.", "StartedBy Typing, the keys in TypedText.", "StartedBy Key.", "Alt+ArrowDown: OpenPopup true."),
     ];
 
     // The column keys (ResizableColumns, ReorderableColumns), on a focused header of any table.

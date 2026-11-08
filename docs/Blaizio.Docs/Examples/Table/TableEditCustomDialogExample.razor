@@ -1,5 +1,6 @@
-@* Dialog mode with an editor of your own, here a side sheet. context.Field renders a column's
-   built-in field (label, editor, message), so only the layout is yours. *@
+@* Dialog mode with a dialog of your own. context.Field renders a column's built-in field (label,
+   editor, message), so only the layout is yours: two fields to a row here, and your own footer,
+   which asks Discard or Keep editing when a changed ticket is closed. *@
 <div class="w-full max-w-4xl space-y-3">
     <BzDataTable TItem="Ticket" Items="_tickets" RowKey="@(t => t.Id)" EditMode="DataTableEditMode.Dialog" OnEdit="OnEdit">
         <ChildContent>
@@ -11,32 +12,44 @@
             <BzPropertyColumn Property="@(t => t.Urgent)" Editor="DataTableEditor.Switch" Editable />
         </ChildContent>
         <EditDialogContent>
-            <BzSheet Open="@context.Open" OpenChanged="@context.OpenChanged">
-                <BzSheetContent Class="flex flex-col">
-                    <BzSheetHeader>
-                        <BzSheetTitle>@context.Item.Title</BzSheetTitle>
-                        <BzSheetDescription>Ticket #@context.Item.Id. Nothing changes until you save.</BzSheetDescription>
-                    </BzSheetHeader>
-                    <form class="flex min-h-0 flex-1 flex-col" novalidate
-                          @onsubmit="@(() => context.SaveAsync())" @onsubmit:preventDefault>
-                        <div class="scrollbar-thin flex flex-1 flex-col gap-6 overflow-y-auto px-4 pb-1">
-                            @context.Field("Title")
-                            <div class="grid grid-cols-2 gap-4">
-                                @context.Field("Status")
-                                @context.Field("Estimate")
-                            </div>
+            <BzDialog Open="@context.Open" OpenChanged="@context.OpenChanged">
+                <BzDialogContent Class="sm:max-w-lg">
+                    <BzDialogHeader>
+                        <BzDialogTitle>@context.Item.Title</BzDialogTitle>
+                        <BzDialogDescription>Ticket #@context.Item.Id. Nothing changes until you save.</BzDialogDescription>
+                    </BzDialogHeader>
+                    <form class="flex flex-col gap-6" novalidate @onsubmit="@(() => context.SaveAsync())" @onsubmit:preventDefault>
+                        @context.Field("Title")
+                        <div class="grid grid-cols-2 gap-4">
+                            @context.Field("Status")
+                            @context.Field("Estimate")
+                        </div>
+                        <div class="grid grid-cols-2 items-end gap-4">
                             @context.Field("Due")
                             @context.Field("Urgent")
                         </div>
-                        <BzSheetFooter>
-                            <BzButton Type="ButtonType.Submit" Loading="@context.Busy">Save ticket</BzButton>
-                            <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Outline" OnClick="@(() => context.CancelAsync())">
-                                Cancel
-                            </BzButton>
-                        </BzSheetFooter>
+                        <BzDialogFooter>
+                            @if (context.ConfirmingDiscard)
+                            {
+                                <p class="text-sm font-medium sm:me-auto sm:self-center" role="alert">Close without saving?</p>
+                                <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Destructive" OnClick="@(() => context.DiscardAsync())">
+                                    Close
+                                </BzButton>
+                                <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Outline" OnClick="@context.KeepEditing" data-bz-autofocus="">
+                                    Back to the ticket
+                                </BzButton>
+                            }
+                            else
+                            {
+                                <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Outline" OnClick="@(() => context.CancelAsync())">
+                                    Cancel
+                                </BzButton>
+                                <BzButton Type="ButtonType.Submit" Loading="@context.Busy">Save ticket</BzButton>
+                            }
+                        </BzDialogFooter>
                     </form>
-                </BzSheetContent>
-            </BzSheet>
+                </BzDialogContent>
+            </BzDialog>
         </EditDialogContent>
     </BzDataTable>
     <p class="text-muted-foreground text-sm">@_status</p>
@@ -62,7 +75,7 @@
         new() { Id = 103, Title = "Dark mode charts", Status = TicketStatus.Done, Due = new(2026, 11, 2), Hours = 5 },
     ];
 
-    private string _status = "Press Enter on a row to open its sheet.";
+    private string _status = "Press Enter on a row to open its dialog.";
 
     private void OnEdit(DataTableEditEventArgs<Ticket> e) =>
         _status = $"Saved ticket #{e.Changes[0].Item.Id}: {string.Join(", ", e.Changes.Select(c => c.ColumnKey))}.";
