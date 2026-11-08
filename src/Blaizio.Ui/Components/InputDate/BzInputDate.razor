@@ -8,9 +8,11 @@
     "dd/MM/yyyy"). You edit the day / month / year segments in place: type digits (the focus hops to
     the next segment once the value is unambiguous) or step with the arrow keys. ShowCalendar adds a
     trailing button that opens a BzCalendar popup - picking a day fills the field and closes it.
+    Bind CalendarOpen to open or close that popup from code, or to know when it opens.
 
         <BzInputDate @bind-Value="_date" />
         <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy" ShowCalendar />
+        <BzInputDate @bind-Value="_date" ShowCalendar @bind-CalendarOpen="_calendarOpen" />
 *@
 
 <div data-slot="input-date" class="@Tw.Merge(RootClasses, Class)" data-disabled="@(Disabled ? "" : null)">
@@ -64,7 +66,7 @@
     </div>
     @if (ShowCalendar)
     {
-        <BzPopover @bind-Open="_calendarOpen">
+        <BzPopover Open="@_calendar.Value" OpenChanged="@SetCalendarOpenAsync">
             <BzPopoverTrigger>
                 @* The trigger is a real BzButton wearing the popover's props - it gets the style's
                    radius, focus ring, disabled treatment and the aria-expanded fill for free. *@
@@ -101,6 +103,19 @@
 
     /// <summary>Show a trailing button that opens a <see cref="BzCalendar"/> popup. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowCalendar { get; set; }
+
+    /// <summary>
+    /// Controlled open state of the calendar popup (with <see cref="ShowCalendar"/>). Use with
+    /// <c>@bind-CalendarOpen</c> to open it from code, for example when the field appears; it turns
+    /// false when a day is picked, on Escape and on a press outside.
+    /// </summary>
+    [Parameter] public bool? CalendarOpen { get; set; }
+
+    /// <summary>Initial open state of the calendar popup when uncontrolled.</summary>
+    [Parameter] public bool DefaultCalendarOpen { get; set; }
+
+    /// <summary>Raised with the calendar popup's new open state. Enables <c>@bind-CalendarOpen</c>.</summary>
+    [Parameter] public EventCallback<bool> CalendarOpenChanged { get; set; }
 
     /// <summary>Earliest selectable day in the calendar popup.</summary>
     [Parameter] public DateOnly? Min { get; set; }
@@ -165,7 +180,7 @@
     private int? _month;
     private int? _year;
     private DateOnly? _synced;
-    private bool _calendarOpen;
+    private readonly ControllableState<bool> _calendar = new();
 
     private ElementReference _dayRef;
     private ElementReference _monthRef;
@@ -174,6 +189,7 @@
     protected override void OnParametersSet()
     {
         _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _calendar.Sync(CalendarOpen.HasValue, CalendarOpen ?? false, DefaultCalendarOpen);
         if (_parsedFormat != Format)
         {
             _parsedFormat = Format;
@@ -331,15 +347,18 @@
         catch (Microsoft.JSInterop.JSException) { /* segment not in the DOM this frame */ }
     }
 
+    // The value first, then the close: a listener on both sees the pick while the popup is still open.
     private async Task OnCalendarPicked(DateOnly? date)
     {
-        _calendarOpen = false;
         _synced = date;
         _day = date?.Day;
         _month = date?.Month;
         _year = date?.Year;
         await _state.SetAsync(date, ValueChanged);
+        await _calendar.SetAsync(false, CalendarOpenChanged);
     }
+
+    private Task SetCalendarOpenAsync(bool open) => _calendar.SetAsync(open, CalendarOpenChanged);
 
     // A date exists once all three segments are set; the day clamps to the month's length.
     private Task EmitAsync()

@@ -56,6 +56,9 @@ lockstep under one version.
   from code. In an editable table a click on a row no longer toggles its selection; use the
   checkbox or Shift+Space. Needs Blaizio.Base 0.3.6 (`CellBinding`, `TabSeparatedText` and the
   grid script).
+- **Input Date**: `CalendarOpen`, `DefaultCalendarOpen` and `CalendarOpenChanged` open the calendar
+  popup from code and report when it opens or closes (`@bind-CalendarOpen`). A picked day raises
+  `ValueChanged` before the popup reports closing.
 - **Data Table column sizing, pinning and moving** (`blaizio update table`). On any column (a
   `BzPropertyColumn`, a `BzTemplateColumn` or a `DataTableColumn`): `Width`, `MinWidth` and
   `MaxWidth` in pixels, and `Fill` to take the room the other columns leave in the row (without
