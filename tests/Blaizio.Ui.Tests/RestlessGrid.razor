@@ -1,0 +1,14 @@
+@* Test host: a column handed a new width on every pass, the way a random or clock-driven value
+   would be. The table has to stop asking for renders instead of looping. *@
+<BzDataTable TItem="Person" Items="Items">
+    <BzPropertyColumn Property="@(p => p.Name)" Width="@NextWidth()" />
+    <BzPropertyColumn Property="@(p => p.Age)" />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Person> Items { get; set; } = [];
+
+    public int Passes { get; private set; }
+
+    private double NextWidth() => 100 + ++Passes;
+}

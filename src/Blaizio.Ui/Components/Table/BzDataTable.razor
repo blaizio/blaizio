@@ -34,7 +34,17 @@
 </CascadingValue>
 
 @{
-    // The display order, settled per render: the columns' keys and pins are final by now.
+    // A render a column asked for (ColumnChanged) counts toward the cap; any other starts it over.
+    _columnRenders = _columnRenderQueued ? _columnRenders + 1 : 0;
+    _columnRenderQueued = false;
+    if (_columnRowsStale)
+    {
+        _columnRowsStale = false;
+        Recompute();
+        SyncEditSession();
+    }
+    // The display order, settled per render from the columns as they stand: one whose parameters
+    // change after this asks for another render.
     ArrangeColumns();
     var columns = VisibleColumns;
     var colSpan = columns.Count + (Selectable ? 1 : 0);
@@ -502,6 +512,26 @@
             if (ServerDriven) RebuildColumns(); else Recompute();
             StateHasChanged();
         }
+    }
+
+    // A child column gets each render's parameters after this table has arranged it (the columns
+    // are its child content), so one that changed asks for one more render, and one whose key, sort
+    // or search text changed has the rows filtered and sorted again first. Capped at two renders in
+    // a row: a column handed a new value on every render (a random width, a ticking title) would
+    // otherwise ask forever.
+    private const int MaxColumnRenders = 2;
+    private int _columnRenders;
+    private bool _columnRenderQueued;
+    private bool _columnRowsStale;
+
+    internal void ColumnChanged(bool rows, bool registering)
+    {
+        // While an edit's answer comes in, the rows keep their order (see OnParametersSet).
+        if (rows && !ServerDriven && _editEcho == 0) _columnRowsStale = true;
+        // A column that is registering has the render Register asked for on its way.
+        if (registering || _columnRenderQueued || _columnRenders >= MaxColumnRenders) return;
+        _columnRenderQueued = true;
+        StateHasChanged();
     }
 
     protected override void OnParametersSet()
@@ -2652,6 +2682,10 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // The batch is done: a column that changes from here on (one inside a component of your own
+        // that renders by itself, say) gets its renders again.
+        _columnRenders = 0;
+
         // Same dev-aid pattern as AriaDiagnostics: rendering every row of a large in-memory list
         // is superlinear in practice (GC pressure; docs/benchmarks.md) and both escape hatches
         // are one parameter away - warn once when the accidental default is hit.

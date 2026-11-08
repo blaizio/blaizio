@@ -1,0 +1,13 @@
+@* Test part: a column inside a component of its own that re-renders by itself (on Toggle), so
+   the table hears about the change from the column alone, with no render of its own before it. *@
+<BzPropertyColumn TItem="Person" TProp="string" Property="@(p => p.Code)" Pinned="_pin" />
+
+@code {
+    private DataTablePin _pin;
+
+    public void Toggle()
+    {
+        _pin = _pin == DataTablePin.Start ? DataTablePin.None : DataTablePin.Start;
+        StateHasChanged();
+    }
+}

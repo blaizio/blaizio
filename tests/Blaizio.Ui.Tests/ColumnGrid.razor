@@ -1,16 +1,19 @@
 @* Test host: a BzDataTable over Person rows with the column features (sizing, pinning, moving),
    recording every ColumnWidthsChanged / ColumnOrderChanged. Bind keeps the state here (as
-   @bind-* does); Reject hears the change but keeps the old value, a controlled parent saying no. *@
+   @bind-* does); Reject hears the change but keeps the old value, a controlled parent saying no.
+   Passes counts the table's renders: each one hands the columns their parameters again. *@
 <BzDataTable @ref="Table" TItem="Person" Items="Items" RowKey="@(p => p.Id)" Selectable="Selectable" StickyHeader="Sticky"
              ResizableColumns="Resizable" ReorderableColumns="Reorderable" LiveReorder="Live" EditMode="DataTableEditMode.Cell"
+             DefaultSort="DefaultSort" DefaultSearch="@DefaultSearch"
              ColumnWidths="Widths" DefaultColumnWidths="DefaultWidths"
              ColumnWidthsChanged="@(Bind ? EventCallback.Factory.Create<IReadOnlyDictionary<string, double>?>(this, OnWidths) : default)"
              ColumnOrder="Order" DefaultColumnOrder="DefaultOrder"
              ColumnOrderChanged="@(Bind ? EventCallback.Factory.Create<IReadOnlyList<string>?>(this, OnOrder) : default)">
-    <BzPropertyColumn Property="@(p => p.Name)" Width="NameWidth" MinWidth="NameMin" MaxWidth="NameMax" Pinned="NamePin" Sortable Editable="Editable" />
+    @{ Passes++; }
+    <BzPropertyColumn Property="@(p => p.Name)" Width="NameWidth" MinWidth="NameMin" MaxWidth="NameMax" Pinned="NamePin" Sortable="NameSortable" Editable="Editable" />
     <BzPropertyColumn Property="@(p => p.Age)" Pinned="AgePin" Editable="Editable" />
     <BzPropertyColumn Property="@(p => p.Score)" Fill="FillScore" Visible="ScoreVisible" />
-    <BzPropertyColumn Property="@(p => p.Code)" Pinned="CodePin" Reorderable="CodeReorderable" Resizable="CodeResizable" Visible="CodeVisible" />
+    <BzPropertyColumn Property="@(p => p.Code)" Pinned="CodePin" Reorderable="CodeReorderable" Resizable="CodeResizable" Visible="CodeVisible" Sortable="CodeSortable" />
 </BzDataTable>
 
 @code {
@@ -26,6 +29,9 @@
     [Parameter] public double? NameWidth { get; set; }
     [Parameter] public double? NameMin { get; set; }
     [Parameter] public double? NameMax { get; set; }
+    [Parameter] public bool NameSortable { get; set; } = true;
+    [Parameter] public SortState? DefaultSort { get; set; }
+    [Parameter] public string? DefaultSearch { get; set; }
     [Parameter] public bool FillScore { get; set; }
     [Parameter] public bool ScoreVisible { get; set; } = true;
     [Parameter] public DataTablePin NamePin { get; set; }
@@ -34,12 +40,15 @@
     [Parameter] public bool CodeReorderable { get; set; } = true;
     [Parameter] public bool CodeResizable { get; set; } = true;
     [Parameter] public bool CodeVisible { get; set; } = true;
+    [Parameter] public bool CodeSortable { get; set; }
     [Parameter] public IReadOnlyDictionary<string, double>? Widths { get; set; }
     [Parameter] public IReadOnlyDictionary<string, double>? DefaultWidths { get; set; }
     [Parameter] public IReadOnlyList<string>? Order { get; set; }
     [Parameter] public IReadOnlyList<string>? DefaultOrder { get; set; }
 
     public BzDataTable<Person>? Table;
+
+    public int Passes { get; private set; }
 
     public List<IReadOnlyDictionary<string, double>?> WidthChanges { get; } = [];
 
