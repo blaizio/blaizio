@@ -80,6 +80,13 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     /// </summary>
     [Parameter] public bool Reorderable { get; set; } = true;
 
+    /// <summary>
+    /// Drop the cells' padding, so the cell's content spans it edge to edge: its root element fills
+    /// the cell's full height, and a background on it fills the whole cell. The content then pads
+    /// itself.
+    /// </summary>
+    [Parameter] public bool EdgeToEdge { get; set; }
+
     private bool _registered;
 
     /// <inheritdoc />
@@ -98,9 +105,9 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     bool IGridColumn<TItem>.Searchable => HasText;
     bool IGridColumn<TItem>.DefaultHidden => !Visible;
     string IGridColumn<TItem>.Align => Align;
-    string? IGridColumn<TItem>.HeaderClass => HeaderClass;
-    string? IGridColumn<TItem>.CellClass => CellClass;
-    RenderFragment? IGridColumn<TItem>.Header => HeaderContent;
+    string? IGridColumn<TItem>.HeaderClass => FrameClass is { } frame ? Tw.Merge(frame, HeaderClass) : HeaderClass;
+    string? IGridColumn<TItem>.CellClass => FrameClass is { } frame ? Tw.Merge(frame, CellClass) : CellClass;
+    RenderFragment? IGridColumn<TItem>.Header => HeaderFragment;
     double? IGridColumn<TItem>.Width => Width;
     double? IGridColumn<TItem>.MinWidth => MinWidth;
     double? IGridColumn<TItem>.MaxWidth => MaxWidth;
@@ -108,7 +115,10 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     DataTablePin IGridColumn<TItem>.Pinned => Pinned;
     bool IGridColumn<TItem>.Resizable => Resizable;
     bool IGridColumn<TItem>.Reorderable => Reorderable;
-    RenderFragment IGridColumn<TItem>.RenderCell(TItem item) => RenderCell(item);
+    bool IGridColumn<TItem>.EditActions => HoldsEditActions;
+    bool IGridColumn<TItem>.RowEditsOnly => RowEditsOnly;
+    bool IGridColumn<TItem>.EdgeToEdge => EdgeToEdge;
+    RenderFragment IGridColumn<TItem>.RenderCell(TItem item, DataTableCellState state) => RenderCell(item, state);
     int IGridColumn<TItem>.Compare(TItem a, TItem b) =>
         Sort is { } sort ? sort.Compare(a, b) : CanSort ? CompareCore(a, b) : 0;
     string? IGridColumn<TItem>.GetText(TItem item) => GetTextCore(item);
@@ -116,6 +126,24 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
 
     /// <summary>The column's editing surface; <see langword="null"/> (read-only) unless a column type opts in.</summary>
     internal virtual IGridEditor<TItem>? GridEditor => null;
+
+    /// <summary>Whether the column's controls act on their row's edit (an edit actions column).</summary>
+    internal virtual bool HoldsEditActions => false;
+
+    /// <summary>Whether the column only shows while rows edit as a whole (Row, Dialog and Drawer modes).</summary>
+    internal virtual bool RowEditsOnly => false;
+
+    /// <summary>Classes a column type always gives its header and body cells, before HeaderClass / CellClass.</summary>
+    internal virtual string? FrameClass => null;
+
+    /// <summary>The header content: <see cref="HeaderContent"/>, unless a column type has a default of its own.</summary>
+    internal virtual RenderFragment? HeaderFragment => HeaderContent;
+
+    /// <summary>The key when neither <see cref="ColumnKey"/> nor a title gives one.</summary>
+    internal virtual string? FallbackKey => null;
+
+    /// <summary>The cell for one row, given its state: a column type with a state-aware template renders that.</summary>
+    internal virtual RenderFragment RenderCell(TItem item, DataTableCellState state) => RenderCell(item);
 
     /// <summary>The cell content for one row.</summary>
     protected abstract RenderFragment RenderCell(TItem item);
@@ -136,7 +164,7 @@ public abstract class BzColumnBase<TItem> : ComponentBase, IGridColumn<TItem>, I
     protected virtual string? ResolveTitle() => Title;
 
     private string ResolveKey() =>
-        !string.IsNullOrEmpty(ColumnKey) ? ColumnKey! : ResolveTitle() ?? GetHashCode().ToString();
+        !string.IsNullOrEmpty(ColumnKey) ? ColumnKey! : ResolveTitle() ?? FallbackKey ?? GetHashCode().ToString();
 
     /// <inheritdoc />
     protected override void BuildRenderTree(RenderTreeBuilder builder)

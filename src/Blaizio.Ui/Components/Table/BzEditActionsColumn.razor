@@ -1,0 +1,127 @@
+@namespace Blaizio.Ui
+@typeparam TItem
+@inherits BzColumnBase<TItem>
+@*
+    Per-row edit buttons for a BzDataTable whose rows edit as a whole (EditMode Row, Dialog or
+    Drawer; the column stays hidden in Cell mode and in a table with nothing editable):
+        <BzEditActionsColumn Pinned="DataTablePin.End" />
+    Idle, each row shows Edit. In Row mode the row being edited shows Save and Cancel instead; in
+    Dialog and Drawer modes Edit opens the row's form. The buttons are icon buttons named by their
+    labels (EditLabel, SaveLabel, CancelLabel) with a tooltip each. ChildContent replaces them and
+    receives DataTableEditActions<TItem> (Item, IsEditing, Busy, BeginAsync, SaveAsync, CancelAsync).
+    Either way the cell's controls belong to the row's edit: a press on Save or Cancel keeps the
+    editors open until its click runs, and Tab from the row's last editor reaches them.
+*@
+
+@code {
+    /// <summary>
+    /// Your own buttons in place of the built-in ones, with the row's edit actions as the
+    /// <c>context</c>. The columns keep their widths while a row edits: when your buttons change
+    /// while the row edits, give the cell room for the wider set from the start (the built-in
+    /// buttons stack both sets in one grid cell, the one not in use invisible and inert).
+    /// </summary>
+    [Parameter] public RenderFragment<DataTableEditActions<TItem>>? ChildContent { get; set; }
+
+    /// <summary>The name and tooltip of the button that opens a row's edit. Defaults to "Edit".</summary>
+    [Parameter] public string EditLabel { get; set; } = "Edit";
+
+    /// <summary>The name and tooltip of the button that saves a row being edited (Row mode). Defaults to "Save".</summary>
+    [Parameter] public string SaveLabel { get; set; } = "Save";
+
+    /// <summary>The name and tooltip of the button that cancels a row being edited (Row mode). Defaults to "Cancel".</summary>
+    [Parameter] public string CancelLabel { get; set; } = "Cancel";
+
+    protected override RenderFragment RenderCell(TItem item) =>
+        Grid is null ? EmptyCell : RenderActions(new DataTableEditActions<TItem>(Grid, item));
+
+    internal override bool HoldsEditActions => true;
+
+    internal override bool RowEditsOnly => true;
+
+    // As narrow as its buttons.
+    internal override string? FrameClass => "bz-table-edit-actions-cell";
+
+    // Without a Title or HeaderContent, the header names the column for screen readers only.
+    internal override RenderFragment? HeaderFragment =>
+        HeaderContent ?? (string.IsNullOrEmpty(Title) ? HiddenHeader : null);
+
+    internal override string? FallbackKey => "actions";
+
+    protected override bool CanSort => false;
+
+    protected override int CompareCore(TItem a, TItem b) => 0;
+
+    protected override string? GetTextCore(TItem item) => null;
+
+    protected override bool HasText => false;
+
+    private RenderFragment RenderActions(DataTableEditActions<TItem> actions) =>
+        ChildContent is not null ? ChildContent(actions) : RenderButtons(actions);
+
+    // Row mode, while the row edits: Save and Cancel. Otherwise Edit (which opens the form in Dialog
+    // and Drawer modes). In Row mode both sets share one grid cell, the set not in use invisible and
+    // inert: the columns keep their widths while a row edits, so the column is as wide as Save and
+    // Cancel from the start (a lone Edit would leave them no room).
+    private RenderFragment RenderButtons(DataTableEditActions<TItem> actions) =>
+        @<div class="bz-table-edit-actions" data-align="@(Align is "center" or "end" ? Align : null)">
+            @if (actions.Mode == DataTableEditMode.Row)
+            {
+                var editing = actions.IsEditing;
+                var busy = actions.Busy;
+                <div class="bz-table-edit-actions-set" data-hidden="@(editing ? "" : null)" inert="@editing">
+                    @if (editing)
+                    {
+                        @RenderPlaceholder(BzGlyphs.Pencil)
+                    }
+                    else
+                    {
+                        @RenderButton(EditLabel, BzGlyphs.Pencil, false, false, () => actions.BeginAsync())
+                    }
+                </div>
+                <div class="bz-table-edit-actions-set" data-hidden="@(editing ? null : "")" inert="@(!editing)">
+                    @if (editing)
+                    {
+                        @RenderButton(SaveLabel, busy ? BzGlyphs.Loader2 : BzGlyphs.Check, busy, busy, actions.SaveAsync)
+                        @RenderButton(CancelLabel, BzGlyphs.X, busy, false, actions.CancelAsync)
+                    }
+                    else
+                    {
+                        @RenderPlaceholder(BzGlyphs.Check)
+                        @RenderPlaceholder(BzGlyphs.X)
+                    }
+                </div>
+            }
+            else
+            {
+                @RenderButton(EditLabel, BzGlyphs.Pencil, false, false, () => actions.BeginAsync())
+            }
+        </div>;
+
+    // The set not in use: the same buttons, only holding their room (no name, no tooltip, no
+    // action; the set around them is inert and invisible).
+    private static RenderFragment RenderPlaceholder(Icon icon) => @<BzButton Type="ButtonType.Button" Variant="ButtonVariant.Ghost"
+        Size="ButtonSize.IconSm" tabindex="-1"><BzIcon Icon="@icon" /></BzButton>;
+
+    // An icon button named by its label, with the label as its tooltip.
+    private RenderFragment RenderButton(string label, Icon icon, bool disabled, bool busy, Func<Task> action) => @<BzTooltip>
+        <BzTooltipTrigger>
+            <RenderAs Context="trigger">
+                <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" Disabled="@disabled"
+                          aria-label="@label" aria-busy="@(busy ? "true" : null)" OnClick="@action" @attributes="trigger.Attributes">
+                    <BzIcon Icon="@icon" Class="@(busy ? "animate-spin" : null)" />
+                </BzButton>
+            </RenderAs>
+        </BzTooltipTrigger>
+        <BzTooltipContent>@label<BzTooltipArrow /></BzTooltipContent>
+    </BzTooltip>;
+
+    private static readonly RenderFragment EmptyCell = _ => { };
+
+    private static readonly RenderFragment HiddenHeader = builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", "sr-only");
+        builder.AddContent(2, "Actions");
+        builder.CloseElement();
+    };
+}

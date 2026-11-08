@@ -64,6 +64,15 @@ public sealed class DataTableColumn<TItem>
 
     /// <summary>Whether a user can move the column when the table's <c>ReorderableColumns</c> is on. Defaults to <see langword="true"/>.</summary>
     public bool Reorderable { get; set; } = true;
+
+    /// <summary>Drop the cells' padding, so the <see cref="Cell"/> content spans each cell edge to edge (it then pads itself).</summary>
+    public bool EdgeToEdge { get; set; }
+
+    /// <summary>
+    /// The column holds controls that act on their row's edit, such as your own Edit, Save and Cancel
+    /// buttons: while the row edits they count as part of the edit (see <c>BzTemplateColumn.EditActions</c>).
+    /// </summary>
+    public bool EditActions { get; set; }
 }
 
 /// <summary>Adapts a data-defined <see cref="DataTableColumn{TItem}"/> to the grid's internal column shape.</summary>
@@ -85,7 +94,10 @@ internal sealed class DataTableColumnAdapter<TItem>(DataTableColumn<TItem> def, 
     public DataTablePin Pinned => def.Pinned;
     public bool Resizable => def.Resizable;
     public bool Reorderable => def.Reorderable;
-    public RenderFragment RenderCell(TItem item) => def.Cell(item);
+    public bool EditActions => def.EditActions;
+    public bool RowEditsOnly => false;
+    public bool EdgeToEdge => def.EdgeToEdge;
+    public RenderFragment RenderCell(TItem item, DataTableCellState state) => def.Cell(item);
     public string? GetText(TItem item) => def.Text?.Invoke(item);
     // Columns defined as data are read-only; editing needs a typed BzPropertyColumn.
     public IGridEditor<TItem>? Editor => null;

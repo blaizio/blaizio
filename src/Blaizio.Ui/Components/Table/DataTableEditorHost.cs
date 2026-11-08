@@ -14,8 +14,8 @@ internal enum DataTableEditorPlacement
     /// <summary>Over one cell of an open row (Row mode).</summary>
     Row,
 
-    /// <summary>As a field of the dialog editor.</summary>
-    Dialog,
+    /// <summary>As a field of the form editor (Dialog and Drawer modes).</summary>
+    Form,
 }
 
 /// <summary>One option of a built-in pick list: the key the select submits, its label and the value it stands for.</summary>
@@ -38,8 +38,11 @@ internal sealed class DataTableEditorRequest
     /// <summary>The column's alignment: <c>start</c>, <c>center</c> or <c>end</c>.</summary>
     public string Align { get; init; } = "start";
 
-    /// <summary>Dialog: this field takes the focus when the dialog opens.</summary>
+    /// <summary>Form: this field takes the focus when the form opens.</summary>
     public bool Focus { get; init; }
+
+    /// <summary>How the edit started, as this editor sees it (the typed text and the popup apply to the editor the edit started in).</summary>
+    public DataTableEditActivation Activation { get; init; }
 
     /// <summary>Counts the times code set this column's draft: a text box takes its text again when it moves.</summary>
     public int Version { get; init; }
@@ -63,10 +66,10 @@ internal sealed class DataTableEditorRequest
 /// <summary>
 /// One built-in editor of an editable column: a BzInputText, BzInputNumber, BzSelect, BzCheckbox,
 /// BzSwitch, BzInputDate or BzInputTime bound to the open edit's draft. It holds the control's value
-/// itself, so a change re-renders this editor alone and never the table (typing in the dialog stays
+/// itself, so a change re-renders this editor alone and never the table (typing in a form stays
 /// off the table body). A text box keeps the text it started from for the whole edit: what was typed
 /// lives in the browser, which sends it with the commit (cells and rows), and in the session's text
-/// draft (the dialog), so no render can put the old text back under the caret.
+/// draft (a form), so no render can put the old text back under the caret.
 /// </summary>
 /// <typeparam name="TItem">The row data type.</typeparam>
 /// <typeparam name="TValue">The column's value type.</typeparam>
@@ -92,6 +95,9 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     private DateOnly? _date;
     private TimeOnly? _time;
     private TimeOnly _timeOfDay;
+    // A date's calendar popup: open from the start when the edit asks for it; a day picked while it
+    // is open commits a cell.
+    private bool _calendarOpen;
 
     // Over a cell, a control fills the editor rather than keeping its form height. Utility classes,
     // so they win over the styles' sizes (which sit in the components layer) and merge with the
@@ -101,7 +107,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     private const string Fill = "h-full min-h-0 w-full";
     private const string FillWide = "h-full min-h-0 w-max min-w-full shrink-0 gap-1 px-2";
 
-    private bool Dialog => Request.Placement == DataTableEditorPlacement.Dialog;
+    private bool InForm => Request.Placement == DataTableEditorPlacement.Form;
 
     // A text box takes its text once per edit (and again only when code sets the draft); every
     // other control shows the draft as it stands, so a value set from code shows up too.
@@ -116,7 +122,19 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
         }
         var draft = Request.ReadValue();
         _value = draft is TValue value ? value : default!;
-        if (fresh && _value is DateTime start) _timeOfDay = TimeOnly.FromDateTime(start);
+        if (fresh)
+        {
+            if (_value is DateTime start) _timeOfDay = TimeOnly.FromDateTime(start);
+            _calendarOpen = Kind == DataTableEditor.Date && Request.Activation.OpenPopup;
+            // Typed over (or cleared with Backspace): a date or time field starts empty, and the
+            // script types the key into its first segment.
+            if (Request.Activation.TypedText is not null && Kind is DataTableEditor.Date or DataTableEditor.Time)
+            {
+                Request.WriteValue(null);
+                draft = null;
+                _value = default!;
+            }
+        }
         // A half-typed date or time is a null draft: the field keeps its segments meanwhile.
         _date = draft switch
         {
@@ -185,9 +203,12 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
                 builder.AddComponentParameter(3, nameof(BzInputDate.Format), DateSegments(CultureInfo.CurrentCulture));
                 builder.AddComponentParameter(4, nameof(BzInputDate.ShowCalendar), true);
                 builder.AddComponentParameter(5, nameof(BzInputDate.ShowIcon), false);
-                builder.AddComponentParameter(6, nameof(BzInputDate.AutoFocus), Dialog && Request.Focus);
-                builder.AddComponentParameter(7, nameof(BzInputDate.Class), Dialog ? "w-full" : FillWide);
-                builder.AddMultipleAttributes(8, ControlAttributes());
+                builder.AddComponentParameter(6, nameof(BzInputDate.AutoFocus), InForm && Request.Focus);
+                builder.AddComponentParameter(7, nameof(BzInputDate.Class), InForm ? "w-full" : FillWide);
+                builder.AddComponentParameter(8, nameof(BzInputDate.CalendarOpen), _calendarOpen);
+                builder.AddComponentParameter(9, nameof(BzInputDate.CalendarOpenChanged),
+                    EventCallback.Factory.Create<bool>(this, open => _calendarOpen = open));
+                builder.AddMultipleAttributes(10, ControlAttributes());
                 builder.CloseComponent();
                 break;
             case DataTableEditor.Time:
@@ -198,8 +219,8 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
                 // The segmented face (not the native time input): typed digits land in a segment.
                 builder.AddComponentParameter(3, nameof(BzInputTime.HourCycle), HourCycle(CultureInfo.CurrentCulture));
                 builder.AddComponentParameter(4, nameof(BzInputTime.ShowIcon), false);
-                builder.AddComponentParameter(5, nameof(BzInputTime.AutoFocus), Dialog && Request.Focus);
-                builder.AddComponentParameter(6, nameof(BzInputTime.Class), Dialog ? "w-full" : FillWide);
+                builder.AddComponentParameter(5, nameof(BzInputTime.AutoFocus), InForm && Request.Focus);
+                builder.AddComponentParameter(6, nameof(BzInputTime.Class), InForm ? "w-full" : FillWide);
                 builder.AddMultipleAttributes(7, ControlAttributes());
                 builder.CloseComponent();
                 break;
@@ -215,12 +236,12 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
         builder.AddComponentParameter(1, nameof(BzInputText.Value), _text);
         builder.AddComponentParameter(2, nameof(BzInputText.ValueChanged),
             EventCallback.Factory.Create<string?>(this, text => Request.WriteText(text)));
-        if (Dialog && Request.Focus)
+        if (InForm && Request.Focus)
         {
             builder.AddComponentParameter(3, nameof(BzInputText.AutoFocus), true);
             builder.AddComponentParameter(4, nameof(BzInputText.AutoSelect), true);
         }
-        if (!Dialog) builder.AddComponentParameter(5, nameof(BzInputText.Class), Fill + (AlignClass is { } align ? " " + align : ""));
+        if (!InForm) builder.AddComponentParameter(5, nameof(BzInputText.Class), Fill + (AlignClass is { } align ? " " + align : ""));
         builder.AddMultipleAttributes(6, ControlAttributes(textBox: true));
         builder.CloseComponent();
     }
@@ -230,7 +251,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     private void BuildNumber(RenderTreeBuilder builder)
     {
         builder.OpenComponent<BzInputNumber<TValue>>(0);
-        if (Dialog)
+        if (InForm)
         {
             builder.AddComponentParameter(1, nameof(BzInputNumber<TValue>.Value), _value);
             builder.AddComponentParameter(2, nameof(BzInputNumber<TValue>.ValueChanged),
@@ -262,10 +283,13 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
         builder.OpenComponent<BzSelect>(0);
         builder.AddComponentParameter(1, nameof(BzSelect.Value), selected);
         builder.AddComponentParameter(2, nameof(BzSelect.ValueChanged), EventCallback.Factory.Create<string?>(this, OnPickAsync));
-        builder.AddComponentParameter(3, nameof(BzSelect.ChildContent), (RenderFragment)(select =>
+        // Opened by a double-click, F2, Space, Alt+ArrowDown or typing: the list is open from the
+        // start, on the current option (the editor is new for each edit, so this applies once).
+        if (Request.Activation.OpenPopup) builder.AddComponentParameter(3, nameof(BzSelect.DefaultOpen), true);
+        builder.AddComponentParameter(4, nameof(BzSelect.ChildContent), (RenderFragment)(select =>
         {
             select.OpenComponent<BzSelectTrigger>(0);
-            select.AddComponentParameter(1, nameof(BzSelectTrigger.Class), Dialog ? "w-full" : Fill);
+            select.AddComponentParameter(1, nameof(BzSelectTrigger.Class), InForm ? "w-full" : Fill);
             select.AddMultipleAttributes(3, ControlAttributes());
             select.AddComponentParameter(4, nameof(BzSelectTrigger.ChildContent), (RenderFragment)(trigger =>
             {
@@ -298,7 +322,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
         Request.WriteValue(value);
     }
 
-    // A pick in a cell ends the cell's edit, as committing a typed value would; in a row or the dialog
+    // A pick in a cell ends the cell's edit, as committing a typed value would; in a row or a form
     // it changes the draft only.
     private async Task OnPickAsync(string? key)
     {
@@ -312,8 +336,9 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     }
 
     // An incomplete date (a segment still empty) is no value: the draft turns null, which a column
-    // that needs a date refuses at the commit, while the field keeps the segments typed so far.
-    private void OnDate(DateOnly? date)
+    // that needs a date refuses at the commit, while the field keeps the segments typed so far. A day
+    // picked in the calendar ends a cell's edit, as a pick from a list does.
+    private async Task OnDate(DateOnly? date)
     {
         _date = date;
         if (date is not { } day)
@@ -323,6 +348,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
         }
         if (s_type == typeof(DateTime)) SetValue((TValue)(object)day.ToDateTime(_timeOfDay));
         else SetValue((TValue)(object)day);
+        if (_calendarOpen && Request.Placement == DataTableEditorPlacement.Cell) await Request.Commit();
     }
 
     private void OnTime(TimeOnly? time)
@@ -352,7 +378,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     {
         var attributes = new Dictionary<string, object>(Request.Attributes);
         // The dialog's first field: controls with no AutoFocus of their own are marked for it.
-        if (Dialog && Request.Focus && Kind is DataTableEditor.Select or DataTableEditor.Checkbox or DataTableEditor.Switch)
+        if (InForm && Request.Focus && Kind is DataTableEditor.Select or DataTableEditor.Checkbox or DataTableEditor.Switch)
             attributes["data-bz-autofocus"] = "";
         if (textBox)
         {

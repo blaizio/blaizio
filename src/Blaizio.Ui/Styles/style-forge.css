@@ -775,7 +775,19 @@
   }
 
   .bz-table-row {
-    @apply hover:bg-muted/60 data-[state=selected]:bg-muted;
+    @apply hover:bg-muted/60 data-[state=selected]:bg-muted data-editing:bg-primary/5;
+  }
+
+  /* An editable table in Cell mode (on its body): the cell under the pointer takes the row hover
+     tint as well, unless it is editing or holds a refused value. A spanning cell (empty state,
+     virtual spacer) never does. */
+  .bz-table-body-hover {
+    @apply *:*:not-[[colspan]]:not-data-editing:not-data-invalid:hover:bg-muted/60;
+  }
+
+  /* The edit drawer's field list, padded like the sheet's header. */
+  .bz-data-table-edit-drawer-body {
+    @apply px-4;
   }
 
   .bz-table-head {

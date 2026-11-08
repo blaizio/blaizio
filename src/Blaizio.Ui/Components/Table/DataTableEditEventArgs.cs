@@ -44,7 +44,7 @@ public sealed class DataTableEditEventArgs<TItem>
 
     /// <summary>
     /// Refuses the whole change: the table restores the old values (where it wrote them), marks the
-    /// cells invalid and announces <paramref name="message"/>. A row or dialog editor stays open.
+    /// cells invalid and announces <paramref name="message"/>. A row or form editor stays open.
     /// </summary>
     public void Reject(string? message = null)
     {
@@ -54,7 +54,7 @@ public sealed class DataTableEditEventArgs<TItem>
 
     /// <summary>
     /// Refuses the whole change and pins <paramref name="message"/> to one cell - a cross-field rule
-    /// in a row or dialog editor ("End must be after Start") shows under that field.
+    /// in a row or form editor ("End must be after Start") shows under that field.
     /// </summary>
     public void Reject(DataTableCellChange<TItem> change, string message)
     {

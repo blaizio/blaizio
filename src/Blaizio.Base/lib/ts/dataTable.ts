@@ -17,6 +17,25 @@
  * validate / write pipeline. Keys typed while .NET is busy (the editor not rendered yet, a commit
  * in flight) are buffered and replayed, so a fast typist on a slow connection loses nothing.
  *
+ * HOW AN EDIT STARTS decides how the editor arrives, and the pointer and the keyboard differ. A
+ * click selects; a double-click (or a tap on the active cell) edits in place with the control ready:
+ * the caret where the text was clicked, a list or calendar open, the time segment under the pointer.
+ * With options.editOnClick a single click or tap does that already. A press on a pick list's or
+ * date's mark opens its popup. On the keyboard, a typed character replaces the cell (quick entry:
+ * arrows then commit), F2 edits in place, Alt+ArrowDown and Space open a popup. A key typed over a
+ * pick list opens it and is typed into the list's type-ahead. While a popup is open, one Escape
+ * closes it and cancels the edit, and Tab picks the highlighted option and moves on.
+ *
+ * THE CURSOR SHOWS FOR THE KEYBOARD. Like :focus-visible, the cursor's cell is marked (data-active)
+ * only while the keyboard drives the grid: after Tab brings focus in, or after a key pressed in the
+ * table. A press with the pointer clears the mark until the next key, so a click selects without
+ * drawing a ring.
+ *
+ * EDIT ACTIONS. Cells marked [data-bz-edit-actions] (an edit actions column) belong to the edit of
+ * their row: a press on one of their controls keeps the focus in the editor (so a Cancel button
+ * cancels instead of the blur committing first), focus moving onto one is no leave, and Tab from the
+ * row's last editor walks them before it leaves the row. Enter and Space press them.
+ *
  * Contract with BzDataTable:
  *   tr[data-bz-row-index]          a body row and its index into the rows .NET navigates
  *   td / th cellIndex              the column; options.columns maps it to a key + editor kind
@@ -25,10 +44,15 @@
  *                                  starts an edit here, its departure ends one. A text or number
  *                                  field's text is read here and sent with the commit; every other
  *                                  control keeps its draft in .NET.
+ *   [data-bz-pick]                 a pick list's or date's mark in an idle cell
+ *   td[data-bz-edit-actions]       a cell whose controls act on its row's edit (see EDIT ACTIONS)
+ *   [data-active]                  written here: the cursor's cell, while the keyboard drives
  *   table[data-bz-grid]            set here once the grid has attached
- *   .NET methods                   BeginEdit(row, col, seed) -> bool
+ *   .NET methods                   BeginEdit(row, col, seed, start, popup) -> bool
  *                                  EndEdit(commit, values, discardOnError) -> { ok, focus }
  *                                  Toggle(row, col), Clear(row, col), Paste(row, col, text)
+ *   called by .NET                 values(), commit(), update(options), formClosed(row),
+ *                                  rememberFocus(), restoreFocus()
  */
 
 import { focusElement, invokeDotNet, invokeDotNetResult, isEditableTarget } from './core';
@@ -73,7 +97,10 @@ export const createRowClicks = (root: HTMLElement, dotNetRef: DotNetReference): 
 // ---------------------------------------------------------------------------------------------
 
 type ColumnKind = 'text' | 'number' | 'select' | 'checkbox' | 'switch' | 'date' | 'time' | 'custom' | 'none';
-type EditMode = 'cell' | 'row' | 'dialog';
+type EditMode = 'cell' | 'row' | 'dialog' | 'drawer';
+
+/** How an edit started: what .NET hears, and how the editor is primed when it arrives. */
+type Start = 'pointer' | 'key' | 'typing';
 
 interface GridColumn {
   key: string;
@@ -81,7 +108,7 @@ interface GridColumn {
 }
 
 interface GridOptions {
-  /** Cell edits one cell at a time; Row opens every editor in the row; Dialog edits the row in a dialog. */
+  /** Cell edits one cell at a time; Row opens every editor in the row; Dialog and Drawer edit the row in a form. */
   mode: EditMode;
   /** The visible data columns in order (the selection column is not listed). */
   columns: GridColumn[];
@@ -89,6 +116,27 @@ interface GridOptions {
   selectable: boolean;
   /** Body rows the cursor can reach: the whole view when virtualized, else the rendered rows. */
   rowCount: number;
+  /** What may start typing over a number cell in the current culture: digits, signs, the decimal separator. */
+  numberChars: string;
+  /** A single click or tap edits a cell in place, as a double-click does (EditOnClick). */
+  editOnClick: boolean;
+}
+
+/** A double-click on a cell's text: the text shown and the character offset clicked (-1: none). */
+interface CaretHint {
+  text: string;
+  offset: number;
+}
+
+/** How a pending edit was started, beyond its typed text. */
+interface Activation {
+  start: Start;
+  /** Ask for the editor's list or calendar open. */
+  popup: boolean;
+  /** Where a double-click put the caret (text and number editors). */
+  caret?: CaretHint | null;
+  /** The pointer's x, for the time segment under it. */
+  pointX?: number | null;
 }
 
 interface EndResult {
@@ -117,15 +165,29 @@ interface KeyInput {
 interface PendingEdit {
   row: number;
   col: number;
-  /** Entry (started by typing over the cell): arrows commit and move. Otherwise they belong to the editor. */
+  /** Entry (started by typing over a cell in Cell mode): arrows commit and move. Otherwise they belong to the editor. */
   entry: boolean;
-  /** Before the editor exists: entry holds the whole typed text, an edit the keys to append. */
+  /** Started by typing (or Backspace): the typed text replaces the value instead of adding to it. */
+  replace: boolean;
+  /** Before the editor exists: a replacing edit holds the whole typed text, an in-place edit the keys to append. */
   text: string | null;
   /** An Enter / Tab / Escape pressed before the editor existed, run as soon as it does. */
   queuedEnd: { commit: boolean; move: Move } | null;
+  /** Where a double-click asked for the caret. */
+  caret: CaretHint | null;
+  /** A double-click's x, for a time field's segment. */
+  pointX: number | null;
 }
 
 const EDITOR = '[data-bz-cell-editor]';
+/** A cell whose controls act on its row's edit (an edit actions column). */
+const ACTIONS = '[data-bz-edit-actions]';
+/** The controls of an edit actions cell, which the sweep took out of the tab sequence (tabindex -1). */
+const ACTION_CONTROLS =
+  "button:not([disabled]), a[href], input:not([type='hidden']):not([disabled]), select:not([disabled]), " +
+  "textarea:not([disabled]), [role='button']:not([aria-disabled='true'])";
+/** Keys that only modify another key: pressing one alone is no sign the keyboard drives the grid. */
+const MODIFIERS = new Set(['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock', 'OS']);
 const FOCUSABLE =
   "a[href], button, input, select, textarea, [contenteditable='true'], [tabindex]:not([tabindex='-1'])";
 /** What Tab walks inside an open editor (a date's segments and calendar button, a template's fields). */
@@ -149,8 +211,73 @@ const isPrintable = (k: KeyInput): boolean => k.key.length === 1 && !k.meta && (
 
 const isToggle = (kind: ColumnKind | undefined): boolean => kind === 'checkbox' || kind === 'switch';
 
+/** Editors with a popup: a pick list's list, a date's calendar, and whatever a template opens. */
+const hasPopup = (kind: ColumnKind | undefined): boolean => kind === 'select' || kind === 'date' || kind === 'custom';
+
+/** Editors whose typed text replaces the value, and which Backspace empties to start again. */
+const TYPED_KINDS = new Set<string>(['text', 'number', 'date', 'time', 'custom']);
+
 const arrowMove = (key: string): Move =>
   key === 'ArrowUp' ? 'up' : key === 'ArrowDown' ? 'down' : key === 'ArrowLeft' ? 'left' : 'right';
+
+const isDigit = (key: string): boolean => key.length === 1 && key >= '0' && key <= '9';
+
+// The page's last input, the way :focus-visible decides: a key (other than a lone modifier) or a
+// pointer press, heard first on the document. One pair of listeners for every grid on the page.
+let lastInput: 'key' | 'pointer' = 'pointer';
+let tracking = false;
+const trackInput = (): void => {
+  if (tracking) return;
+  tracking = true;
+  document.addEventListener('keydown', (e) => {
+    if (!MODIFIERS.has(e.key)) lastInput = 'key';
+  }, true);
+  document.addEventListener('pointerdown', () => {
+    lastInput = 'pointer';
+  }, true);
+};
+
+type CaretDocument = Document & {
+  caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+  caretRangeFromPoint?: (x: number, y: number) => Range | null;
+};
+
+/**
+ * The character a double-click landed on, in the cell's text: the editor puts its caret there when
+ * it starts from the same text. Offset -1 when the point is on no text.
+ */
+const caretHint = (cell: HTMLElement, x: number, y: number): CaretHint => {
+  const raw = cell.textContent ?? '';
+  const text = raw.trim();
+  const doc = document as CaretDocument;
+  let node: Node | null = null;
+  let offset = 0;
+  if (doc.caretPositionFromPoint) {
+    const position = doc.caretPositionFromPoint(x, y);
+    if (position) {
+      node = position.offsetNode;
+      offset = position.offset;
+    }
+  } else if (doc.caretRangeFromPoint) {
+    const range = doc.caretRangeFromPoint(x, y);
+    if (range) {
+      node = range.startContainer;
+      offset = range.startOffset;
+    }
+  }
+  if (!node || node.nodeType !== Node.TEXT_NODE || !cell.contains(node)) return { text, offset: -1 };
+  let total = 0;
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (n === node) {
+      total += offset;
+      break;
+    }
+    total += n.textContent?.length ?? 0;
+  }
+  const lead = raw.length - raw.trimStart().length;
+  return { text, offset: Math.min(Math.max(0, total - lead), text.length) };
+};
 
 class DataTableGrid {
   private readonly table: HTMLTableElement;
@@ -161,7 +288,12 @@ class DataTableGrid {
 
   private active: Cell | null = null;
   private activeEl: HTMLElement | null = null;
+  /** The grid has held focus: from then on the cursor can show. */
   private painted = false;
+  /** The keyboard drives the grid (a key in the table, or Tab brought focus in): the cursor shows. A press clears it. */
+  private keyboard = false;
+  /** EditOnClick: a click on another cell while an edit was ending, run once that edit has closed. */
+  private afterEnd: { pos: Cell; how: Activation } | null = null;
   private pendingFocus = false;
   private jumpRetries = 0;
   private focusedEl: Element | null = null;
@@ -175,6 +307,18 @@ class DataTableGrid {
   private pinned: { cell: HTMLElement; width: string }[] | null = null;
   private pinnedLayout = '';
   private watching = false;
+  /** The last press: its pointer type, its cell and whether that cell held the cursor and focus. */
+  private press: { type: string; cell: HTMLTableCellElement | null; wasActive: boolean } | null = null;
+  /** Keys typed over a pick list, replayed into its list's type-ahead once the list holds focus. */
+  private typeahead: string | null = null;
+  private typeaheadTimer = 0;
+  /** Tab in an open list: the move to make once the pick has committed (see commit). */
+  private afterPick: Move | null = null;
+  /** A form closed: focus goes to the cursor's cell once the surface lets go of it, until then. */
+  private returnUntil = 0;
+  private returnTimer = 0;
+  /** The form field that held focus when a close asked Discard or Keep editing. */
+  private remembered: HTMLElement | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -184,9 +328,12 @@ class DataTableGrid {
     this.table = root.querySelector<HTMLTableElement>('[data-slot="table-container"] > table')!;
     this.container = this.table.parentElement as HTMLElement;
 
+    trackInput();
     root.addEventListener('keydown', this.onEditKeyDown, true);
     root.addEventListener('keydown', this.onKeyDown);
+    root.addEventListener('pointerdown', this.onPointerDown, true);
     root.addEventListener('mousedown', this.onMouseDown);
+    root.addEventListener('click', this.onClick);
     root.addEventListener('dblclick', this.onDoubleClick);
     root.addEventListener('focusin', this.onFocusIn);
     root.addEventListener('input', this.onInput);
@@ -218,7 +365,10 @@ class DataTableGrid {
    */
   public commit = (): void => {
     setTimeout(() => {
-      if (this.phase === 'editing') void this.endEdit(true, 'none');
+      // Tab picked from an open list: commit and move on, as Tab does in an editor.
+      const move = this.afterPick ?? 'none';
+      this.afterPick = null;
+      if (this.phase === 'editing') void this.endEdit(true, move);
     }, 0);
   };
 
@@ -229,13 +379,53 @@ class DataTableGrid {
     this.syncActive();
   };
 
+  /**
+   * A form (Dialog, Drawer) closed: the cursor moves to the row it showed last (Previous / Next may
+   * have moved on), in the same column, and takes the focus once the surface has let go of it - after
+   * the exit animation, before or after the dialog's own focus return.
+   */
+  public formClosed = (row: number): void => {
+    const col = this.active?.col ?? this.offset;
+    this.setActive({ row, col }, false);
+    this.returnUntil = Date.now() + 3000;
+    clearTimeout(this.returnTimer);
+    this.returnFocus();
+  };
+
+  /** A form asks Discard or Keep editing: keep the field that held focus, for Keep editing. */
+  public rememberFocus = (): void => {
+    const now = document.activeElement;
+    this.remembered = now instanceof HTMLElement && now !== document.body ? now : null;
+  };
+
+  /** Keep editing: back to that field, or (a press on Cancel asked) the footer's Cancel once it is back. */
+  public restoreFocus = (): void => {
+    const remembered = this.remembered;
+    this.remembered = null;
+    let tries = 0;
+    const attempt = (): void => {
+      if (remembered?.isConnected && !remembered.matches('[data-bz-edit-cancel]')) {
+        remembered.focus({ preventScroll: true });
+        return;
+      }
+      const cancel = document.querySelector<HTMLElement>('[role=dialog] [data-bz-edit-cancel]');
+      if (cancel) cancel.focus({ preventScroll: true });
+      else if (tries++ < 20) setTimeout(attempt, 16);
+    };
+    attempt();
+  };
+
   public dispose = (): void => {
     this.observer.disconnect();
     this.unlockWidths();
+    clearTimeout(this.typeaheadTimer);
+    clearTimeout(this.returnTimer);
     this.table.removeAttribute('data-bz-grid');
     this.root.removeEventListener('keydown', this.onEditKeyDown, true);
     this.root.removeEventListener('keydown', this.onKeyDown);
+    this.root.removeEventListener('pointerdown', this.onPointerDown, true);
     this.root.removeEventListener('mousedown', this.onMouseDown);
+    this.root.removeEventListener('click', this.onClick);
     this.root.removeEventListener('dblclick', this.onDoubleClick);
     this.root.removeEventListener('focusin', this.onFocusIn);
     this.watchFocus(false);
@@ -295,6 +485,53 @@ class DataTableGrid {
   private get anyEditable(): boolean {
     return this.options.columns.some((c) => c.kind !== 'none');
   }
+
+  /** Dialog and Drawer modes: the row edits in a form .NET renders outside the table. */
+  private get form(): boolean {
+    return this.options.mode === 'dialog' || this.options.mode === 'drawer';
+  }
+
+  /** Whether a typed character can start editing this kind of cell (quick entry). */
+  private typeable(kind: ColumnKind, key: string): boolean {
+    switch (kind) {
+      case 'number':
+        return this.options.numberChars.includes(key);
+      case 'date':
+      case 'time':
+        return isDigit(key);
+      case 'text':
+      case 'select':
+      case 'custom':
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  // After a form closed: once no dialog holds the focus (the surface is gone), it goes to the
+  // cursor's cell; a press or a key elsewhere in the meantime wins.
+  private returnFocus = (): void => {
+    if (!this.returnUntil) return;
+    if (Date.now() > this.returnUntil) {
+      this.returnUntil = 0;
+      return;
+    }
+    const now = document.activeElement;
+    const inDialog = !!now?.closest('[role=dialog], [role=alertdialog]');
+    const free = !now || now === document.body || this.container.contains(now);
+    if (!inDialog && !free) {
+      // The user moved on to something outside the table.
+      this.returnUntil = 0;
+      return;
+    }
+    if (!inDialog && this.phase === 'nav' && this.active) {
+      const cell = this.cellAt(this.active);
+      if (cell && now !== cell) this.go(this.active);
+      else if (!cell) this.go(this.active);
+    }
+    // Keep watching a moment: the dialog's own focus return can land after this one.
+    this.returnTimer = window.setTimeout(this.returnFocus, 50);
+  };
 
   /** Whether F2, typing or a double-click on this cell opens an editor (and Enter does in Row and Dialog modes). */
   private canBegin(pos: Cell): boolean {
@@ -370,7 +607,7 @@ class DataTableGrid {
     if (el === this.activeEl) {
       // A render can take the attribute away (an emptied table's header stop): put it back.
       if (el && el.getAttribute('tabindex') !== '0') el.tabIndex = 0;
-      if (el && this.painted && !el.hasAttribute('data-active')) el.setAttribute('data-active', '');
+      if (el) el.toggleAttribute('data-active', this.showsCursor);
       return;
     }
     if (this.activeEl) {
@@ -383,7 +620,20 @@ class DataTableGrid {
     this.activeEl = el;
     if (!el) return;
     el.tabIndex = 0;
-    if (this.painted) el.setAttribute('data-active', '');
+    if (this.showsCursor) el.setAttribute('data-active', '');
+  }
+
+  // The cursor's cell is marked once the grid has held focus, and only while the keyboard drives it.
+  private get showsCursor(): boolean {
+    return this.painted && this.keyboard;
+  }
+
+  // Follow the page's last input: a key shows the cursor, a pointer press hides it until the next key.
+  private syncInput(): void {
+    const keyboard = lastInput === 'key';
+    if (keyboard === this.keyboard) return;
+    this.keyboard = keyboard;
+    this.activeEl?.toggleAttribute('data-active', this.showsCursor);
   }
 
   // scrollIntoView, minus the part a sticky header covers, and the parts pinned columns cover.
@@ -524,6 +774,8 @@ class DataTableGrid {
   // F2 and an entry's arrows are the grid's even when the editor's own control would act on them
   // (a pick list opens on an arrow, a number field steps).
   private onEditKeyDown = (e: KeyboardEvent): void => {
+    // A key in the table: the cursor shows from here on (the document heard it first).
+    if (e.target instanceof Node && this.container.contains(e.target)) this.syncInput();
     if (this.phase !== 'nav') this.route(e);
   };
 
@@ -535,6 +787,7 @@ class DataTableGrid {
     if (e.defaultPrevented || e.isComposing || e.key === 'Process' || e.key === 'Unidentified') return;
     const target = e.target as HTMLElement | null;
     if (!target || !(this.container.contains(target))) return;
+    this.returnUntil = 0; // a key in the table: a closed form's focus return is over
     if (!this.dispatch(toKey(e), target)) return;
     e.preventDefault();
     // A consumed key is the grid's alone. Blazor handles keys from a listener on the document, and
@@ -552,7 +805,7 @@ class DataTableGrid {
     }
 
     const scope = this.phase === 'editing' ? this.editScope() : null;
-    if (scope && (!target || scope.contains(target))) return this.editKey(k, target);
+    if (scope && (!target || scope.contains(target) || this.isAction(target))) return this.editKey(k, target);
 
     if (target === this.container || !target) return this.active ? this.navKey(k, this.active, false) : false;
 
@@ -574,8 +827,16 @@ class DataTableGrid {
   private navKey(k: KeyInput, pos: Cell, fromControl: boolean): boolean {
     const mode = this.options.mode;
     const column = this.columnAt(pos.col);
+    const kind = column?.kind ?? 'none';
     const plain = !k.ctrl && !k.meta && !k.alt;
     const body = pos.row >= 0 && pos.col >= this.offset;
+
+    // Alt+ArrowDown opens a pick list's list or a date's calendar (the row's, in Row mode).
+    if (k.key === 'ArrowDown' && k.alt && !k.ctrl && !k.meta && !k.shift) {
+      if (!body || fromControl || this.form || !hasPopup(kind) || !this.canBegin(pos)) return false;
+      void this.beginEdit(pos, null, { start: 'key', popup: true });
+      return true;
+    }
 
     if (ARROWS.has(k.key)) {
       if (k.alt || k.shift) return false;
@@ -616,41 +877,47 @@ class DataTableGrid {
         if (pos.row < 0) return k.shift ? false : this.pressControl(pos);
         if (mode === 'cell') {
           // A read-only cell holding a control (row actions, a link): Enter steps into it.
-          if (!k.shift && column?.kind === 'none' && pos.col >= this.offset && this.enterControl(pos)) return true;
+          if (!k.shift && kind === 'none' && pos.col >= this.offset && this.enterControl(pos)) return true;
           // Spreadsheet-style: Enter moves down (back to where a run of Tabs began), Shift+Enter up.
           this.go(this.resolveMove(pos, k.shift ? 'up' : 'down'));
           return true;
         }
-        // Row and Dialog modes: Enter opens the row's editors or its dialog.
+        // Row, Dialog and Drawer modes: Enter opens the row's editors or its form.
         if (k.shift) return false;
         if (this.canBegin(pos)) {
-          void this.beginEdit(pos, null, false);
+          void this.beginEdit(pos, null, { start: 'key', popup: false });
           return true;
         }
         return this.enterControl(pos);
       case 'F2':
+        // In place: the current value, the caret at the end; a pick list opens its list.
         if (!plain || !this.canBegin(pos)) return false;
-        void this.beginEdit(pos, null, false);
+        void this.beginEdit(pos, null, { start: 'key', popup: kind === 'select' });
         return true;
       case ' ':
         if (k.ctrl || k.meta || k.alt) return false;
         if (k.shift) return this.options.selectable && pos.row >= 0 ? this.pressSelect(pos.row) : false;
         if (fromControl) return false;
         if (!body) return this.pressControl(pos);
-        if (isToggle(column?.kind)) {
-          // Cell mode flips it; Row and Dialog modes open their editor with the box flipped.
+        if (isToggle(kind)) {
+          // Cell mode flips it; the other modes open their editor with the box flipped.
           this.toggle(pos);
+          return true;
+        }
+        // A pick list opens its list (a form opens with Enter or F2 instead).
+        if (kind === 'select' && !this.form && this.canBegin(pos)) {
+          void this.beginEdit(pos, null, { start: 'key', popup: true });
           return true;
         }
         break; // a space is text: falls through to typing below
       case 'Delete':
-        if (!plain || fromControl || mode !== 'cell' || !body || !column || column.kind === 'none') return false;
+        if (!plain || fromControl || mode !== 'cell' || !body || kind === 'none') return false;
         void invokeDotNet(this.ref, 'Clear', pos.row, pos.col);
         return true;
       case 'Backspace':
-        if (!plain || fromControl || mode === 'dialog' || !body || !column || column.kind === 'none') return false;
-        // A text or number cell starts over empty; any other value clears, as Delete does.
-        if (TEXT_KINDS.has(column.kind)) void this.beginEdit(pos, '', true);
+        if (!plain || fromControl || this.form || !body || kind === 'none') return false;
+        // A typed value starts over empty (quick entry); any other value clears, as Delete does.
+        if (TYPED_KINDS.has(kind)) void this.beginEdit(pos, '', { start: 'typing', popup: false });
         else if (mode === 'cell') void invokeDotNet(this.ref, 'Clear', pos.row, pos.col);
         else return false;
         return true;
@@ -658,28 +925,45 @@ class DataTableGrid {
         break;
     }
 
-    // Typing over a cell: Cell mode replaces it (the typed text seeds the editor, arrows then commit
-    // and move); Row mode opens the row with the key typed into this column's editor.
-    if (!isPrintable(k) || fromControl || !body || mode === 'dialog' || !column) return false;
-    if (mode === 'cell') {
-      if (column.kind === 'none' || isToggle(column.kind)) return false;
-      void this.beginEdit(pos, k.key, true);
-      return true;
-    }
-    if (!this.anyEditable || isToggle(column.kind)) return false;
-    void this.beginEdit(pos, k.key, false);
+    // Typing over a cell (quick entry): the editor opens holding only the typed character, in Cell
+    // mode (where the arrows then commit and move) and in the row's editor of this column in Row
+    // mode. A number takes only what can start one; a date or time a digit; a pick list opens and
+    // types it into its list. A checkbox or switch ignores it, and a form opens with Enter or F2.
+    if (!isPrintable(k) || fromControl || !body || this.form || !column) return false;
+    if (isToggle(kind) || !this.typeable(kind, k.key)) return false;
+    if (mode === 'row' && !this.anyEditable) return false;
+    void this.beginEdit(pos, k.key, { start: 'typing', popup: kind === 'select' });
     return true;
   }
 
   private editKey(k: KeyInput, target: Element | null): boolean {
     const scope = this.editScope();
-    if (!scope || this.popupOpen(scope)) return false;
+    if (!scope) return false;
     const cell = this.options.mode === 'cell';
 
-    switch (k.key) {
-      case 'Escape':
-        void this.endEdit(false, 'none');
+    // One Escape cancels, even with the editor's list or calendar open.
+    if (k.key === 'Escape' && !k.ctrl && !k.meta && !k.alt) {
+      void this.endEdit(false, 'none');
+      return true;
+    }
+    // On an edit action (Save, Cancel): Tab walks on with the editors, every other key is the
+    // control's own (Enter and Space press it).
+    if (target && this.isAction(target) && !target.closest(EDITOR)) {
+      if (k.key !== 'Tab' || k.ctrl || k.meta || k.alt) return false;
+      if (this.tabWithin(scope, target, k.shift)) return true;
+      void this.endEdit(true, cell ? (k.shift ? 'prev' : 'next') : k.shift ? 'rowPrev' : 'rowNext');
+      return true;
+    }
+    if (this.popupOpen(scope)) {
+      // Typed over a pick list before its list took the focus: the keys wait for its type-ahead.
+      if (this.typeahead !== null && isPrintable(k)) {
+        this.typeahead += k.key;
         return true;
+      }
+      return false;
+    }
+
+    switch (k.key) {
       case 'Enter':
         if (k.alt) return false;
         void this.endEdit(true, k.ctrl || k.meta ? 'none' : k.shift ? 'up' : 'down');
@@ -709,6 +993,7 @@ class DataTableGrid {
   }
 
   // Tab inside an open edit: to the next of its fields, when there is one past the focused field.
+  // After the row's last editor come its edit actions (Save, Cancel), wherever their column sits.
   private tabWithin(scope: HTMLElement, target: Element | null, back: boolean): boolean {
     const fields = this.tabbables(scope);
     const current = fields.findIndex((el) => el === target || el.contains(target));
@@ -716,15 +1001,13 @@ class DataTableGrid {
     if (current < 0 || next < 0 || next >= fields.length) return false;
     const field = fields[next];
     const wrapper = field.closest<HTMLElement>(EDITOR);
-    if (wrapper && wrapper !== this.editorEl) {
-      // Row mode: into the next cell's editor - the cursor follows.
-      const pos = this.position(wrapper.closest('td'));
-      if (pos && this.edit) {
-        this.edit.col = pos.col;
-        this.setActive(pos, false);
-      }
-      this.editorEl = wrapper;
+    // Into another cell's editor or an edit action: the cursor follows.
+    const pos = this.position(field.closest('td'));
+    if (pos && this.edit && (pos.row !== this.active?.row || pos.col !== this.active?.col)) {
+      this.edit.col = pos.col;
+      this.setActive(pos, false);
     }
+    if (wrapper) this.editorEl = wrapper;
     field.focus({ preventScroll: true });
     if (field instanceof HTMLInputElement && isTextInput(field)) field.select();
     return true;
@@ -737,6 +1020,8 @@ class DataTableGrid {
         if (el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length > 0) fields.push(el);
       }),
     );
+    // A row's Save and Cancel come after its editors. A cell edit keeps spreadsheet Tab: commit and move.
+    if (this.options.mode === 'row') fields.push(...this.actionControls(scope));
     return fields;
   }
 
@@ -781,24 +1066,35 @@ class DataTableGrid {
 
   // ---- edit lifecycle ----
 
-  private async beginEdit(pos: Cell, seed: string | null, entry: boolean): Promise<void> {
+  private async beginEdit(pos: Cell, seed: string | null, how: Activation): Promise<void> {
     if (this.phase !== 'nav') return;
+    this.afterEnd = null;
+    const typing = how.start === 'typing';
     this.phase = 'beginning';
-    this.edit = { row: pos.row, col: pos.col, entry, text: seed, queuedEnd: null };
+    this.edit = {
+      row: pos.row,
+      col: pos.col,
+      entry: typing && this.options.mode === 'cell',
+      replace: typing,
+      text: seed,
+      queuedEnd: null,
+      caret: how.caret ?? null,
+      pointX: how.pointX ?? null,
+    };
     this.setActive(pos, false);
     // Widths first, measured before the editor arrives: nothing the editor brings can move them.
-    if (this.options.mode !== 'dialog') this.lockWidths();
+    if (!this.form) this.lockWidths();
 
     let ok = false;
     try {
-      ok = await invokeDotNetResult<boolean>(this.ref, false, 'BeginEdit', pos.row, pos.col, seed);
+      ok = await invokeDotNetResult<boolean>(this.ref, false, 'BeginEdit', pos.row, pos.col, seed, how.start, how.popup);
     } catch (e) {
       this.resetEdit();
       throw e;
     }
 
-    if (!ok || this.options.mode === 'dialog') {
-      // Refused, or the dialog owns the edit from here (focus returns to this cell when it closes).
+    if (!ok || this.form) {
+      // Refused, or the form owns the edit from here (focus returns to this row when it closes).
       this.resetEdit();
       this.drain();
       return;
@@ -811,6 +1107,9 @@ class DataTableGrid {
     this.phase = 'nav';
     this.edit = null;
     this.editorEl = null;
+    this.typeahead = null;
+    this.afterPick = null;
+    clearTimeout(this.typeaheadTimer);
     this.lastValues.clear();
     this.unlockWidths();
     this.watchFocus(false);
@@ -822,27 +1121,38 @@ class DataTableGrid {
     const foundPos = this.position(found.closest('td'));
     if (!foundPos) return;
 
-    // Row mode: focus the editor in the column the edit started from (or the cursor's column when
-    // .NET opened the row), else the row's first.
+    // Row mode: focus the editor in the column the edit started from; when .NET opened the row, the
+    // column it asked for (BeginEditAsync with a key: [data-bz-focus]) or the cursor's column; else
+    // the row's first.
     let editor = found;
     if (this.options.mode === 'row') {
-      const col = edit && edit.row === foundPos.row ? edit.col : this.active?.row === foundPos.row ? this.active.col : -1;
-      const wanted = col >= 0 ? this.cellAt({ row: foundPos.row, col })?.querySelector<HTMLElement>(EDITOR) : null;
+      const own = edit && edit.row === foundPos.row ? edit.col : -1;
+      const asked = own < 0 ? this.rowEl(foundPos.row)?.querySelector<HTMLElement>(`${EDITOR}[data-bz-focus]`) : null;
+      const col = own >= 0 ? own : this.active?.row === foundPos.row ? this.active.col : -1;
+      const wanted = asked ?? (col >= 0 ? this.cellAt({ row: foundPos.row, col })?.querySelector<HTMLElement>(EDITOR) : null);
       editor = wanted ?? found;
     }
     const pos = this.position(editor.closest('td'))!;
-    const entry = !!edit?.entry && this.options.mode === 'cell';
-    const text = edit?.text ?? null;
+    const primed: PendingEdit = {
+      row: pos.row,
+      col: pos.col,
+      entry: !!edit?.entry && this.options.mode === 'cell',
+      replace: !!edit?.replace,
+      text: edit?.text ?? null,
+      queuedEnd: null,
+      caret: edit?.caret ?? null,
+      pointX: edit?.pointX ?? null,
+    };
     const queued = edit?.queuedEnd ?? null;
 
     this.lockWidths(); // an edit .NET opened by itself never passed through beginEdit
     this.watchFocus(true);
     this.phase = 'editing';
-    this.edit = { row: pos.row, col: pos.col, entry, text: null, queuedEnd: null };
+    this.edit = { ...primed, text: null, caret: null, pointX: null };
     this.editorEl = editor;
     this.setActive(pos, false);
     this.fit();
-    this.prime(editor, entry, text);
+    this.prime(editor, primed);
 
     if (queued) void this.endEdit(queued.commit, queued.move);
     else this.drain();
@@ -855,45 +1165,114 @@ class DataTableGrid {
       const field = wrapper.firstElementChild as HTMLElement | null;
       const button = field?.querySelector<HTMLElement>(':scope > button:last-child');
       const room = wrapper.clientWidth - 4; // the editor's own hairline padding
-      if (field && button && field.offsetWidth > room) button.style.display = 'none';
+      // A calendar opened from the start keeps its button: the popup is anchored to it.
+      if (field && button && field.offsetWidth > room && button.getAttribute('aria-expanded') !== 'true') button.style.display = 'none';
     });
   }
 
-  // Focus the editor's first field, hand it what was typed before it existed (entry replaces the
-  // field's text, an edit appends), and put the caret at the end.
-  private prime(editor: HTMLElement, entry: boolean, text: string | null): void {
-    editor.toggleAttribute('data-entry', entry);
+  // Focus the editor and hand it what was typed before it existed: typing replaces the field's text,
+  // an in-place edit appends. The caret goes where a double-click asked when the text is the one
+  // that was clicked, else to the end; a time field focuses the segment under the pointer. Typed
+  // over a pick list, the keys go to its list's type-ahead once the list holds the focus.
+  private prime(editor: HTMLElement, edit: PendingEdit): void {
+    editor.toggleAttribute('data-entry', edit.entry);
+    const kind = editor.dataset.bzCellEditor ?? '';
+    const text = edit.text;
+    if (kind === 'select' && edit.replace && text) this.queueTypeahead(editor, text);
+    if (kind === 'date' && editor.querySelector('[aria-controls][aria-expanded="true"]')) this.focusCalendar(editor);
+
     const place = (): void => {
       const field = this.typingField(editor);
-      if (field && (entry ? text !== null : !!text)) {
-        field.value = entry ? text! : field.value + text;
+      if (field && (edit.replace ? text !== null : !!text)) {
+        field.value = edit.replace ? text! : field.value + text;
         // The control keeps its own state in step with its field (a number's value, a date segment).
         field.dispatchEvent(new Event('input', { bubbles: true }));
       }
-      // A text box starts with the caret at the end; a date or time segment keeps its own
-      // select-all, so a typed digit replaces it.
+      // A text box starts with the caret at the end, or where a double-click landed; a date or
+      // time segment keeps its own select-all, so a typed digit replaces it.
       const focused = document.activeElement;
-      const caret = TEXT_KINDS.has(editor.dataset.bzCellEditor ?? '') || editor.dataset.bzCellEditor === 'custom';
+      const caret = TEXT_KINDS.has(kind) || kind === 'custom';
       if (caret && focused instanceof HTMLInputElement && editor.contains(focused) && isTextInput(focused)) {
-        const end = focused.value.length;
-        focused.setSelectionRange(end, end);
+        const hint = edit.caret;
+        const at = hint && hint.offset >= 0 && !edit.replace && focused.value === hint.text ? hint.offset : focused.value.length;
+        focused.setSelectionRange(at, at);
       }
       if (this.activeEl) this.reveal(this.activeEl);
       this.rememberAll();
     };
-    const focusing = focusElement(this.focusTarget(editor), { preventScroll: true });
+
+    // The editor's popup may already hold the focus (its list or calendar opened at once): leave it.
+    const now = document.activeElement;
+    const scope = this.editScope();
+    if (now && scope && this.ownsPopup(scope, now)) {
+      place();
+      return;
+    }
+    const focusing = focusElement(this.focusTarget(editor, edit.pointX), { preventScroll: true });
     // The first try focuses synchronously; a field still mid-render gets the retries.
     if (document.activeElement && editor.contains(document.activeElement)) place();
     else void focusing.then(place);
   }
 
-  // Where focus goes in an editor: its first field. A pick list, a checkbox or a switch is a button,
-  // which the shared focus helper would not look for inside a wrapper.
-  private focusTarget(editor: HTMLElement): HTMLElement {
-    for (const el of editor.querySelectorAll<HTMLElement>(TABBABLE)) {
-      if (el.tabIndex >= 0) return el;
+  // A date's calendar opened with the edit: the focus moves onto its current day, as opening it
+  // from its button does, so the arrows walk the days (the popup only takes focus once it is shown).
+  private focusCalendar(editor: HTMLElement): void {
+    let tries = 0;
+    const attempt = (): void => {
+      if (this.phase !== 'editing' || this.editorEl !== editor) return;
+      const trigger = editor.querySelector<HTMLElement>('[aria-controls][aria-expanded="true"]');
+      const popup = trigger ? document.getElementById(trigger.getAttribute('aria-controls') ?? '') : null;
+      // The calendar's own focus target, else the picked day, else today, else the month's first.
+      const grid = popup?.querySelector<HTMLElement>('[data-slot=calendar-month-grid]');
+      const day = grid?.querySelector<HTMLElement>('button[tabindex="0"]') ??
+        grid?.querySelector<HTMLElement>('button[data-selected]:not([data-outside])') ??
+        grid?.querySelector<HTMLElement>('button[data-today]:not([data-outside])') ??
+        grid?.querySelector<HTMLElement>('button:not([data-outside]):not([aria-disabled="true"])');
+      if (popup && day && day.getClientRects().length > 0 && getComputedStyle(popup).visibility !== 'hidden') {
+        day.focus({ preventScroll: true });
+        if (document.activeElement === day) return;
+      }
+      if (tries++ < 60) window.setTimeout(attempt, 16);
+    };
+    attempt();
+  }
+
+  // Keys typed over a pick list: once its list holds the focus (the menu script places it on the
+  // current option), they are typed into the list as its own type-ahead, which moves the highlight.
+  private queueTypeahead(editor: HTMLElement, text: string): void {
+    this.typeahead = text;
+    let tries = 0;
+    const flush = (): void => {
+      if (this.phase !== 'editing' || this.editorEl !== editor || this.typeahead === null) return;
+      const scope = this.editScope();
+      const now = document.activeElement;
+      if (scope && now && now.matches('[role=option]') && this.ownsPopup(scope, now)) {
+        const keys = this.typeahead;
+        this.typeahead = null;
+        for (const key of keys) {
+          (document.activeElement ?? now).dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        }
+        return;
+      }
+      if (tries++ < 60) this.typeaheadTimer = window.setTimeout(flush, 16);
+      else this.typeahead = null;
+    };
+    flush();
+  }
+
+  // Where focus goes in an editor: its first field, or the time segment under a double-click. A
+  // pick list, a checkbox or a switch is a button, which the shared focus helper would not look for
+  // inside a wrapper.
+  private focusTarget(editor: HTMLElement, pointX: number | null = null): HTMLElement {
+    const fields = Array.from(editor.querySelectorAll<HTMLElement>(TABBABLE)).filter((el) => el.tabIndex >= 0);
+    if (pointX !== null && editor.dataset.bzCellEditor === 'time') {
+      const under = fields.find((el) => {
+        const box = el.getBoundingClientRect();
+        return el instanceof HTMLInputElement && pointX >= box.left && pointX <= box.right;
+      });
+      if (under) return under;
     }
-    return editor;
+    return fields[0] ?? editor;
   }
 
   // The field typed keys go to: a text or number editor's input, else the focused text field inside
@@ -944,6 +1323,7 @@ class DataTableGrid {
       scope?.querySelectorAll(EDITOR).forEach((el) => this.retired.delete(el));
       this.phase = 'editing';
       this.queue = [];
+      this.afterEnd = null;
       const editor = this.editorFor(result.focus ?? null) ?? this.editorEl;
       if (editor && editor.isConnected) {
         this.editorEl = editor;
@@ -961,6 +1341,7 @@ class DataTableGrid {
     this.resetEdit();
     if (!blur) this.go(this.resolveMove(from, move));
     this.drain();
+    this.runAfterEnd();
   }
 
   // The live element an edit spans: the cell in Cell mode, the row in Row mode.
@@ -968,6 +1349,33 @@ class DataTableGrid {
     const editor = this.editorEl;
     if (!editor || !editor.isConnected) return null;
     return this.options.mode === 'row' ? editor.closest('tr') : editor.closest('td');
+  }
+
+  // A control in one of the editing row's edit actions cells (Save, Cancel, a consumer's own): it
+  // belongs to the edit, though it sits outside the editors.
+  private isAction(el: Element | null): boolean {
+    if (!el || !this.editorEl?.isConnected) return false;
+    const cell = el.closest<HTMLElement>(ACTIONS);
+    return !!cell && el !== cell && cell.parentElement === this.editorEl.closest('tr') && cell.closest('table') === this.table;
+  }
+
+  // Inside the open edit: its editors, the popups they own, and its row's edit actions.
+  private inEdit(scope: Element, el: Element): boolean {
+    return scope.contains(el) || this.ownsPopup(scope, el) || this.isAction(el);
+  }
+
+  // The editing row's action controls, in the order Tab reaches them.
+  private actionControls(scope: Element): HTMLElement[] {
+    const row = scope instanceof HTMLTableRowElement ? scope : scope.closest('tr');
+    if (!row) return [];
+    const controls: HTMLElement[] = [];
+    for (const cell of Array.from(row.cells)) {
+      if (!cell.matches(ACTIONS)) continue;
+      cell.querySelectorAll<HTMLElement>(ACTION_CONTROLS).forEach((el) => {
+        if (!el.closest('[inert]') && el.getClientRects().length > 0) controls.push(el);
+      });
+    }
+    return controls;
   }
 
   private editorFor(key: string | null): HTMLElement | null {
@@ -1039,23 +1447,70 @@ class DataTableGrid {
     return false;
   }
 
-  // Focus leaving an open edit commits it. Heard on the document, and only while an edit is open:
-  // focus can leave from the editor's own popup (a list, a calendar), which lives outside the table.
+  // Focus leaving an open edit commits it, and keys inside its popup are the edit's too. Heard on the
+  // document, and only while an edit is open: the editor's own popup (a list, a calendar) lives
+  // outside the table.
   private watchFocus(on: boolean): void {
     if (on === this.watching) return;
     this.watching = on;
-    if (on) document.addEventListener('focusout', this.onFocusOut, true);
-    else document.removeEventListener('focusout', this.onFocusOut, true);
+    if (on) {
+      document.addEventListener('focusout', this.onFocusOut, true);
+      document.addEventListener('keydown', this.onPopupKeyDown, true);
+    } else {
+      document.removeEventListener('focusout', this.onFocusOut, true);
+      document.removeEventListener('keydown', this.onPopupKeyDown, true);
+    }
   }
+
+  // Keys inside the open editor's popup, heard first (capture, on the document): one Escape closes
+  // the popup and cancels the edit, and Tab in a list picks the highlighted option and moves on, as
+  // Tab does in an editor. Everything else (arrows, type-ahead, Enter) is the popup's own.
+  private onPopupKeyDown = (e: KeyboardEvent): void => {
+    if (this.phase !== 'editing' || e.defaultPrevented || e.isComposing) return;
+    const target = e.target as Element | null;
+    const scope = this.editScope();
+    if (!target || !scope || this.container.contains(target) || !this.ownsPopup(scope, target)) return;
+    this.syncInput();
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      void this.endEdit(false, 'none');
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    const option = target.closest<HTMLElement>('[role=option]');
+    if (!option) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (this.options.mode === 'cell') {
+      // The pick commits through .NET (commit), which then moves as this Tab asked.
+      if (!e.shiftKey && this.tabRunCol === null && this.edit) this.tabRunCol = this.edit.col;
+      this.afterPick = e.shiftKey ? 'prev' : 'next';
+      option.click();
+      return;
+    }
+    // Row mode: the pick is the row's draft; then on to the row's next editor.
+    const trigger = scope.querySelector<HTMLElement>('[aria-expanded="true"]');
+    option.click();
+    const back = e.shiftKey;
+    setTimeout(() => {
+      if (this.phase !== 'editing') return;
+      const live = this.editScope();
+      if (live && !this.tabWithin(live, trigger, back)) void this.endEdit(true, back ? 'rowPrev' : 'rowNext');
+    }, 0);
+  };
 
   private onFocusOut = (e: FocusEvent): void => {
     if (this.phase !== 'editing') return;
     const scope = this.editScope();
     const target = e.target as Element | null;
-    if (!scope || !target || !(scope.contains(target) || this.ownsPopup(scope, target))) return;
+    if (!scope || !target || !this.inEdit(scope, target)) return;
 
+    // Onto another part of the edit (its popup, the row's Save or Cancel): still editing.
     const next = e.relatedTarget as Element | null;
-    if (next && (scope.contains(next) || this.ownsPopup(scope, next))) return;
+    if (next && this.inEdit(scope, next)) return;
 
     // Commit on the next task, never inside focusout. Under WebAssembly the .NET call runs
     // synchronously, so committing here would re-render and remove the editor while the browser is
@@ -1066,7 +1521,7 @@ class DataTableGrid {
       if (!live) return;
       const now = document.activeElement;
       if (now && now !== document.body) {
-        if (live.contains(now) || this.ownsPopup(live, now)) return;
+        if (this.inEdit(live, now)) return;
       } else if (this.popupOpen(live)) {
         // Focus dropped to the page while the editor's popup is open (a press on an item that takes
         // no focus): the popup is still the edit's.
@@ -1132,11 +1587,34 @@ class DataTableGrid {
 
   // ---- pointer ----
 
+  // Before mousedown: which pointer pressed (a tap edits the cell it lands on only when that cell
+  // already held the cursor), and the end of any closed form's focus return.
+  private onPointerDown = (e: PointerEvent): void => {
+    // Any press in the table hides the cursor's mark until the next key (the document heard it first).
+    if (e.target instanceof Node && this.container.contains(e.target)) this.syncInput();
+    if (e.button !== 0) return;
+    this.returnUntil = 0;
+    const target = e.target as Element | null;
+    const cell = target ? this.cellOf(target) : null;
+    this.press = {
+      type: e.pointerType || 'mouse',
+      cell,
+      wasActive: !!cell && cell === this.activeEl && document.activeElement === cell,
+    };
+  };
+
   private onMouseDown = (e: MouseEvent): void => {
     if (e.button !== 0 || this.phase === 'beginning' || this.phase === 'ending') return;
     const target = e.target as Element | null;
     if (!target) return;
     const scope = this.phase === 'editing' ? this.editScope() : null;
+    // A press on the editing row's Save, Cancel or own action keeps the focus in the editor: no
+    // blur commits the edit before the button's click runs, and the cursor stays put.
+    const control = scope ? target.closest(INTERACTIVE) : null;
+    if (control && this.isAction(control)) {
+      e.preventDefault();
+      return;
+    }
     if (scope?.contains(target)) {
       // A press on the editor's own frame or padding (no field under it) would focus the cell and
       // end the edit: keep the focus where it is instead.
@@ -1148,12 +1626,58 @@ class DataTableGrid {
     const pos = this.position(cell);
     if (!cell || !pos) return;
 
+    // A pick list's or date's mark: the editor opens with its list or calendar (the mark shows on
+    // hover, so a touch press counts only on the cell that already holds the cursor).
+    const mark = this.phase === 'nav' ? target.closest('[data-bz-pick]') : null;
+    if (mark && cell.contains(mark) && this.canBegin(pos) && (this.press?.type === 'mouse' || this.press?.wasActive)) {
+      e.preventDefault();
+      this.tabRunCol = null;
+      this.go(pos);
+      void this.beginEdit(pos, null, { start: 'pointer', popup: true });
+      return;
+    }
+
     // No word selection on a double-click: it opens the editor instead.
     if (e.detail > 1) e.preventDefault();
     this.tabRunCol = null;
     // Tab stop first, so the press's own default focuses this cell (unless it hit a control).
     this.setActive(pos, false);
   };
+
+  // Touch and pen: a tap on the cell that already held the cursor edits it in place, as a
+  // double-click does with a mouse (a first tap only selects). With EditOnClick any click or tap
+  // does, the first one included.
+  private onClick = (e: MouseEvent): void => {
+    const press = this.press;
+    if (!press) return;
+    const instant = this.options.editOnClick;
+    if (!instant && (press.type === 'mouse' || !press.wasActive || this.phase !== 'nav')) return;
+    const target = e.target as Element | null;
+    const cell = target ? this.cellOf(target) : null;
+    const pos = this.position(cell);
+    if (!target || !cell || !pos || cell !== press.cell || !this.canBegin(pos)) return;
+    const control = target.closest(INTERACTIVE);
+    if (control && cell.contains(control)) return;
+    const how = this.pointerActivation(cell, pos, e.clientX, e.clientY);
+    if (this.phase === 'nav') {
+      void this.beginEdit(pos, null, how);
+      return;
+    }
+    // A click on another cell while an edit is open: the press committed it on its way out (the
+    // blur), and the clicked cell's editor opens once that commit has landed. A click inside the
+    // open edit is the editor's own.
+    const scope = this.phase === 'editing' || this.phase === 'ending' ? this.editScope() : null;
+    if (this.phase === 'beginning' || (scope && scope.contains(cell))) return;
+    this.afterEnd = { pos, how };
+  };
+
+  // EditOnClick: the click that ended an edit opens its own cell's editor now.
+  private runAfterEnd(): void {
+    const next = this.afterEnd;
+    this.afterEnd = null;
+    if (!next || this.phase !== 'nav' || !this.canBegin(next.pos)) return;
+    void this.beginEdit(next.pos, null, next.how);
+  }
 
   private onDoubleClick = (e: MouseEvent): void => {
     const target = e.target as Element | null;
@@ -1163,8 +1687,20 @@ class DataTableGrid {
     if (!cell || !pos || !this.canBegin(pos)) return;
     const control = target.closest(INTERACTIVE);
     if (control && cell.contains(control)) return;
-    void this.beginEdit(pos, null, false);
+    void this.beginEdit(pos, null, this.pointerActivation(cell, pos, e.clientX, e.clientY));
   };
+
+  // A double-click or tap edits in place with the control ready: the caret at the clicked
+  // character, a list or calendar open, the time segment under the pointer.
+  private pointerActivation(cell: HTMLTableCellElement, pos: Cell, x: number, y: number): Activation {
+    const kind = this.columnAt(pos.col)?.kind ?? 'none';
+    return {
+      start: 'pointer',
+      popup: hasPopup(kind),
+      caret: TEXT_KINDS.has(kind) || kind === 'custom' ? caretHint(cell, x, y) : null,
+      pointX: kind === 'time' ? x : null,
+    };
+  }
 
   private onFocusIn = (e: FocusEvent): void => {
     const target = e.target as Element | null;
@@ -1173,9 +1709,10 @@ class DataTableGrid {
 
   private noteFocus(target: Element): void {
     this.focusedEl = target;
+    this.syncInput();
     if (!this.painted) {
       this.painted = true;
-      this.activeEl?.setAttribute('data-active', '');
+      this.activeEl?.toggleAttribute('data-active', this.showsCursor);
     }
     if (this.phase !== 'nav' || target.closest(EDITOR)) return;
     // Keep the cursor where focus went (Tab in, a click on a control inside a cell).
@@ -1256,6 +1793,7 @@ class DataTableGrid {
     this.resetEdit();
     if (hadFocus && this.active) this.go(this.active);
     else this.reclaimFocus();
+    this.runAfterEnd();
   }
 
   // The editor's popup may still hold focus and drop it to the page when it closes: if it does,

@@ -7,11 +7,22 @@
         <BzTemplateColumn Title="Status" SortBy="@(p => p.Status)">
             <BzBadge>@context.Status</BzBadge>
         </BzTemplateColumn>
+    CellContent is the same template with the cell's state as its context (context.Item,
+    context.IsEditing, context.Error, context.Pending). EditActions makes the column's controls part
+    of their row's edit: your own Edit / Save / Cancel buttons calling the table's BeginEditAsync,
+    CommitEditAsync and CancelEditAsync.
 *@
 
 @code {
     /// <summary>The cell content for a row (the row is the <c>context</c>).</summary>
     [Parameter] public RenderFragment<TItem>? ChildContent { get; set; }
+
+    /// <summary>
+    /// The cell content for a row, with the cell's state as the <c>context</c>: <c>context.Item</c>,
+    /// whether an edit is open on the row (<c>context.IsEditing</c>), and so on. Takes the place of
+    /// <see cref="ChildContent"/> when both are given.
+    /// </summary>
+    [Parameter] public RenderFragment<DataTableCell<TItem>>? CellContent { get; set; }
 
     /// <summary>Sort key accessor. Provide it (and set <c>Sortable</c>) to make the column sortable.</summary>
     [Parameter] public Func<TItem, object?>? SortBy { get; set; }
@@ -19,7 +30,22 @@
     /// <summary>Search-text accessor. Provide it to include the column in the search filter.</summary>
     [Parameter] public Func<TItem, string?>? Text { get; set; }
 
+    /// <summary>
+    /// The column holds controls that act on their row's edit, such as your own Edit, Save and Cancel
+    /// buttons. While the row edits they count as part of the edit: a press on one keeps the editors
+    /// open until its click runs (so Cancel cancels instead of a blur saving first), and in Row mode
+    /// Tab from the row's last editor reaches them before it leaves the row. The columns keep their
+    /// widths while a row edits, so when the buttons change, give the cell room for the wider set
+    /// from the start.
+    /// </summary>
+    [Parameter] public bool EditActions { get; set; }
+
     protected override RenderFragment RenderCell(TItem item) => ChildContent?.Invoke(item) ?? EmptyCell;
+
+    internal override RenderFragment RenderCell(TItem item, DataTableCellState state) =>
+        CellContent is { } content ? content(new DataTableCell<TItem>(item, state)) : RenderCell(item);
+
+    internal override bool HoldsEditActions => EditActions;
 
     protected override bool CanSort => SortBy is not null;
 

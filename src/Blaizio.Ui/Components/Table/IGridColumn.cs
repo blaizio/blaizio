@@ -59,8 +59,20 @@ internal interface IGridColumn<TItem>
     /// <summary>Whether a user may move the column (when the table's <c>ReorderableColumns</c> is on).</summary>
     bool Reorderable { get; }
 
-    /// <summary>Renders the cell for one row.</summary>
-    RenderFragment RenderCell(TItem item);
+    /// <summary>
+    /// Whether the column's cells hold controls that act on their row's edit (Save, Cancel): the
+    /// keyboard grid treats them as part of that edit (<c>data-bz-edit-actions</c>).
+    /// </summary>
+    bool EditActions { get; }
+
+    /// <summary>Whether the column only shows while rows edit as a whole (Row, Dialog and Drawer modes): the built-in edit actions column.</summary>
+    bool RowEditsOnly { get; }
+
+    /// <summary>Whether the cells drop their padding, so the content spans each cell edge to edge.</summary>
+    bool EdgeToEdge { get; }
+
+    /// <summary>Renders the cell for one row, given the cell's state (what a <c>CellContent</c> template sees).</summary>
+    RenderFragment RenderCell(TItem item, DataTableCellState state);
 
     /// <summary>Ascending comparison of two rows by this column (only meaningful when <see cref="Sortable"/>).</summary>
     int Compare(TItem a, TItem b);
@@ -140,6 +152,7 @@ internal interface IGridEditor<TItem>
         string? title,
         string? error,
         bool inDialog,
+        DataTableEditActivation activation,
         IReadOnlyDictionary<string, object> attributes,
         Func<object?> read,
         Action<object?> write,
