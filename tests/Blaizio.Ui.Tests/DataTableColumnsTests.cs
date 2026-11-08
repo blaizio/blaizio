@@ -396,6 +396,20 @@ public class DataTableColumnsTests : BunitContext
     }
 
     [Fact]
+    public void Edge_to_edge_switched_on_at_runtime_drops_the_padding_in_the_same_render()
+    {
+        const string score = "tbody tr:first-child > td:nth-child(3)";
+        var cut = Grid();
+        Assert.DoesNotContain("bz-table-cell-edge", cut.Find(score).ClassList);
+
+        cut.Render(p => p.Add(x => x.ScoreEdge, true));
+
+        // The cell loses its padding in the render its content starts filling it.
+        Assert.Contains("bz-table-cell-edge", cut.Find(score).ClassList);
+        Assert.NotNull(cut.Find(score).QuerySelector(".bz-table-cell-fill"));
+    }
+
+    [Fact]
     public void A_sort_switch_changed_at_runtime_sorts_the_rows_in_the_same_render()
     {
         var cut = Grid(p => p.Add(x => x.NameSortable, false).Add(x => x.DefaultSort, new SortState("Name", SortDirection.Descending)));
