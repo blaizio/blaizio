@@ -47,7 +47,10 @@ const acceptable = (text: string, options: NumericOptions): boolean => {
  * Refuse non-numeric input on `input`. Returns a disposer; call it from the component's dispose.
  * Re-guarding an already-guarded input replaces the previous guard rather than stacking one.
  */
-export const guardNumeric = (input: HTMLInputElement, options: NumericOptions): void => {
+export const guardNumeric = (input: HTMLInputElement | null, options: NumericOptions): void => {
+  // Rendered and removed again before the guard landed (a data table cell editor committed at
+  // once): nothing left to guard.
+  if (!input) return;
   guards.get(input)?.();
 
   const onBeforeInput = (event: InputEvent): void => {
@@ -68,7 +71,8 @@ export const guardNumeric = (input: HTMLInputElement, options: NumericOptions): 
 };
 
 /** Drop the guard on an input - call from the component's dispose. */
-export const releaseNumeric = (input: HTMLInputElement): void => {
+export const releaseNumeric = (input: HTMLInputElement | null): void => {
+  if (!input) return;
   guards.get(input)?.();
   guards.delete(input);
 };

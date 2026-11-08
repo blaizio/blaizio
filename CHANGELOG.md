@@ -160,6 +160,9 @@ lockstep under one version.
   needs the new name.
 
 ### Fixed
+- **Base**: a number field removed right after it rendered (a data table cell editor committed by
+  a fast typist) no longer throws "Cannot read properties of null" from its input guard, which
+  surfaced as an unhandled rendering error.
 - **Input Date** and **Input Time** (`blaizio update input-date input-time`): a day, month, year,
   hour or minute takes all its digits when typed. The first digit showed padded ("1" as "01" or
   "0001"), which filled the part and refused the next one. The calendar button and the AM/PM
