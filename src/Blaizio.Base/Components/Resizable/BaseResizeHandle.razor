@@ -53,7 +53,15 @@
 
     protected override void OnInitialized()
     {
-        if (Group is not null) _index = Group.RegisterHandle();
+        if (Group is null) return;
+        _index = Group.RegisterHandle();
+        Group.LayoutChanged += OnLayoutChanged;
+    }
+
+    // Sizes live on the group; re-render so aria-valuenow/min/max follow them.
+    private void OnLayoutChanged()
+    {
+        if (!_disposed) StateHasChanged();
     }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
@@ -128,6 +136,7 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        if (Group is not null) Group.LayoutChanged -= OnLayoutChanged;
         var instance = _instance;
         _instance = null;
         // Instances only - the modules are shared via JsModules and outlive this component.

@@ -11,6 +11,9 @@ lockstep under one version.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.
+- **Resizable**: a resize handle's `aria-valuenow`, `aria-valuemin` and `aria-valuemax` now follow
+  the layout. They used to stay at their first-render values (`0`, then never updated on drag or
+  keyboard resize). Panels with no content now resize too.
 
 ### Changed
 - **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
