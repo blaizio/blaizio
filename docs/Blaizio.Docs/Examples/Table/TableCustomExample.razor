@@ -1,35 +1,148 @@
-<div class="w-full max-w-2xl">
-    <BzTable Class="overflow-hidden rounded-lg border">
-        <BzTableCaption Class="text-indigo-600">Invoices billed this month.</BzTableCaption>
-        <BzTableHeader>
-            <BzTableRow Class="[&_[data-slot=table-head]]:text-white bg-indigo-600 hover:bg-indigo-600">
-                <BzTableHead>Invoice</BzTableHead>
-                <BzTableHead>Status</BzTableHead>
-                <BzTableHead Class="text-end">Amount</BzTableHead>
-            </BzTableRow>
-        </BzTableHeader>
-        <BzTableBody>
-            @foreach (var invoice in _invoices)
-            {
-                <BzTableRow>
-                    <BzTableCell Class="font-medium">@invoice.Number</BzTableCell>
-                    <BzTableCell>@invoice.Status</BzTableCell>
-                    <BzTableCell Class="text-end">@invoice.Amount.ToString("C")</BzTableCell>
-                </BzTableRow>
-            }
-        </BzTableBody>
-    </BzTable>
+<div class="w-full max-w-3xl">
+    <BzDataTable TItem="Account" Items="_shown" RowKey="@(a => a.Id)" DefaultSort="ByMrr"
+                 Searchable SearchColumn="account" SearchPlaceholder="Search accounts...">
+        <Toolbar>
+            @* A press on the pressed button would clear the value (null): keep the filter instead. *@
+            <BzToggleGroup Value="@_show" ValueChanged="Show" Variant="ToggleVariant.Outline" Size="ToggleSize.Sm" Spacing="0" aria-label="Status">
+                <BzToggleGroupItem Value="all">All</BzToggleGroupItem>
+                @foreach (var status in Enum.GetValues<Status>())
+                {
+                    <BzToggleGroupItem Value="@status.ToString()">@Label(status)</BzToggleGroupItem>
+                }
+            </BzToggleGroup>
+        </Toolbar>
+        <ChildContent>
+            <BzPropertyColumn Title="Account" ColumnKey="account" Property="@(a => a.Name)" Fill MinWidth="184" Sortable>
+                <CellContent>
+                    <div class="flex items-center gap-3">
+                        <BzAvatar Class="rounded-lg after:rounded-lg">
+                            <BzAvatarFallback Class="@($"rounded-lg text-xs font-semibold {LogoClass(context.Item.Id)}")">@Initials(context.Value)</BzAvatarFallback>
+                        </BzAvatar>
+                        <div class="min-w-0">
+                            <div class="truncate font-medium">@context.Value</div>
+                            <div class="text-muted-foreground truncate text-xs">@context.Item.Plan · @context.Item.City</div>
+                        </div>
+                    </div>
+                </CellContent>
+            </BzPropertyColumn>
+
+            <BzPropertyColumn Property="@(a => a.Status)" Width="108" Sortable>
+                <CellContent>
+                    <BzBadge Variant="@StatusVariant(context.Value)">@Label(context.Value)</BzBadge>
+                </CellContent>
+            </BzPropertyColumn>
+
+            <BzPropertyColumn Title="MRR" ColumnKey="mrr" Property="@(a => a.Mrr)" Format="C0" Align="end" Width="92"
+                              CellClass="font-medium tabular-nums" Sortable />
+
+            @* EdgeToEdge: the tint fills the cell and the template pads itself, so the header takes the same padding. *@
+            <BzPropertyColumn Title="Change" Property="@(a => a.Change)" Format="+0.0%;-0.0%;0.0%" Align="end" Width="104"
+                              EdgeToEdge HeaderClass="px-3" Sortable>
+                <CellContent>
+                    <div class="@ChangeClass(context.Value) flex items-center justify-end gap-1 px-3 font-medium tabular-nums">
+                        @if (context.Value != 0)
+                        {
+                            <BzIcon Icon="@(context.Value > 0 ? Tabler.Outline.TrendingUp : Tabler.Outline.TrendingDown)" Class="size-4 shrink-0" />
+                        }
+                        @context.Text
+                    </div>
+                </CellContent>
+            </BzPropertyColumn>
+
+            @* HeaderContent takes the place of the title, and of the sort button with it. *@
+            <BzPropertyColumn Title="Health" Property="@(a => a.Health)" Width="116">
+                <HeaderContent>
+                    <span class="inline-flex items-center gap-1">
+                        Health
+                        <BzTooltip>
+                            <BzTooltipTrigger>
+                                <RenderAs Context="p">
+                                    <BzButton @attributes="p.Attributes" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconXs"
+                                              Class="text-muted-foreground size-5 rounded-full" aria-label="How health is scored">
+                                        <BzIcon Icon="@Tabler.Outline.InfoCircle" />
+                                    </BzButton>
+                                </RenderAs>
+                            </BzTooltipTrigger>
+                            <BzTooltipContent Class="max-w-56">
+                                Product usage, open tickets and on-time payments, scored from 0 to 100.
+                                <BzTooltipArrow />
+                            </BzTooltipContent>
+                        </BzTooltip>
+                    </span>
+                </HeaderContent>
+                <CellContent>
+                    <div class="flex items-center gap-2">
+                        <BzProgress Value="@context.Value" Color="@HealthColor(context.Value)" AriaLabel="Health score" Class="h-1.5 w-14" />
+                        <span class="tabular-nums">@context.Value</span>
+                    </div>
+                </CellContent>
+            </BzPropertyColumn>
+        </ChildContent>
+    </BzDataTable>
 </div>
 
 @code {
-    private sealed record Invoice(string Number, string Status, string Method, decimal Amount);
+    private enum Status { Active, Renewing, PastDue }
 
-    private static readonly Invoice[] _invoices =
+    private sealed record Account(int Id, string Name, string Plan, string City, Status Status, decimal Mrr, decimal Change, int Health);
+
+    private static readonly Account[] _accounts =
     [
-        new("INV-001", "Paid", "Credit card", 250.00m),
-        new("INV-002", "Pending", "Wallet", 150.00m),
-        new("INV-003", "Unpaid", "Bank transfer", 350.00m),
-        new("INV-004", "Paid", "Credit card", 450.00m),
-        new("INV-005", "Paid", "Wallet", 550.00m),
+        new(1, "Harbor & Pine", "Enterprise", "Lisbon", Status.Active, 12_400m, 0.062m, 88),
+        new(2, "Tidewater Savings", "Enterprise", "Singapore", Status.Renewing, 21_800m, -0.017m, 58),
+        new(3, "Northline Freight", "Enterprise", "Rotterdam", Status.PastDue, 9_600m, -0.048m, 41),
+        new(4, "Fernwood Clinic", "Business", "Dublin", Status.Active, 4_640m, 0.124m, 92),
+        new(5, "Quillstone Legal", "Business", "Toronto", Status.Renewing, 3_680m, 0.021m, 74),
+        new(6, "Bramble Robotics", "Growth", "Austin", Status.Active, 2_160m, 0.183m, 81),
+        new(7, "Lark & Wren Studio", "Growth", "Melbourne", Status.Active, 1_120m, 0m, 67),
+        new(8, "Saffron Table", "Starter", "Mumbai", Status.PastDue, 290m, -0.125m, 33),
     ];
+
+    private static readonly SortState ByMrr = new("mrr", SortDirection.Descending);
+
+    private string _show = "all";
+    private Account[] _shown = _accounts;
+
+    private void Show(string? value)
+    {
+        if (value is null) return;
+        _show = value;
+        _shown = value == "all" ? _accounts : [.. _accounts.Where(a => a.Status.ToString() == value)];
+    }
+
+    private static string Label(Status status) => status == Status.PastDue ? "Past due" : status.ToString();
+
+    private static BadgeVariant StatusVariant(Status status) => status switch
+    {
+        Status.Active => BadgeVariant.Success,
+        Status.Renewing => BadgeVariant.Info,
+        _ => BadgeVariant.Warning,
+    };
+
+    private static string Initials(string name) =>
+        string.Concat(name.Split(' ').Where(word => char.IsLetter(word[0])).Take(2).Select(word => word[0]));
+
+    private static string LogoClass(int id) => (id % 5) switch
+    {
+        0 => "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+        1 => "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+        2 => "bg-amber-500/15 text-amber-800 dark:text-amber-300",
+        3 => "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+        _ => "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+    };
+
+    // The badges' success and destructive colors: the text stays readable on the tint.
+    private static string ChangeClass(decimal change) => change switch
+    {
+        > 0 => "bg-success/10 text-[color:color-mix(in_oklab,var(--success),black_20%)] dark:bg-success/20 dark:text-success",
+        < 0 => "bg-destructive/10 text-[color:color-mix(in_oklab,var(--destructive),black_20%)] dark:bg-destructive/20 dark:text-[oklch(from_var(--destructive)_max(l,0.74)_c_h)]",
+        _ => "text-muted-foreground",
+    };
+
+    private static StatusColor HealthColor(int health) => health switch
+    {
+        >= 70 => StatusColor.Success,
+        >= 45 => StatusColor.Warning,
+        _ => StatusColor.Destructive,
+    };
 }
