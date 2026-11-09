@@ -374,4 +374,27 @@ public class CalendarRenderTests : BunitContext
         Assert.Empty(cut.FindAll("select"));                       // the native selects are gone
         Assert.Equal("June-2026-12", cut.Find("[data-testid=cap]").TextContent); // template got the data
     }
+
+    // ---- labels ---------------------------------------------------------------------------------
+
+    [Fact]
+    public void Month_buttons_are_named_in_English_by_default()
+    {
+        var cut = Render();
+
+        Assert.Equal("Go to the previous month", cut.Find("[data-slot=calendar-button-previous]").GetAttribute("aria-label"));
+        Assert.Equal("Go to the next month", cut.Find("[data-slot=calendar-button-next]").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void Month_buttons_take_their_names_from_the_parameters()
+    {
+        var cut = Render(p => p
+            .Add(x => x.NumberOfMonths, 2)
+            .Add(x => x.PreviousMonthAriaLabel, "الشهر السابق")
+            .Add(x => x.NextMonthAriaLabel, "الشهر التالي"));
+
+        Assert.Equal("الشهر السابق", Assert.Single(cut.FindAll("[data-slot=calendar-button-previous]")).GetAttribute("aria-label"));
+        Assert.Equal("الشهر التالي", Assert.Single(cut.FindAll("[data-slot=calendar-button-next]")).GetAttribute("aria-label"));
+    }
 }

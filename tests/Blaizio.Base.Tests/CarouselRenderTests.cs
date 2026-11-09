@@ -16,7 +16,9 @@ public class CarouselRenderTests : BunitContext
     public CarouselRenderTests() => JSInterop.Mode = JSRuntimeMode.Loose;
 
     private IRenderedComponent<BaseCarousel> RenderCarousel(
-        Orientation orientation, int slides, EventCallback<int>? onSelected = null)
+        Orientation orientation, int slides, EventCallback<int>? onSelected = null,
+        Action<ComponentParameterCollectionBuilder<BaseCarousel>>? configure = null,
+        Func<int, string?>? slideLabel = null)
     {
         RenderFragment content = builder =>
         {
@@ -27,6 +29,8 @@ public class CarouselRenderTests : BunitContext
                 for (var i = 0; i < slides; i++)
                 {
                     cb.OpenComponent<BaseCarouselItem>(seq++);
+                    if (slideLabel?.Invoke(i) is { } label) cb.AddAttribute(seq, nameof(BaseCarouselItem.AriaLabel), label);
+                    seq++;
                     cb.CloseComponent();
                 }
             }));
@@ -37,6 +41,7 @@ public class CarouselRenderTests : BunitContext
         {
             ps.Add(x => x.Orientation, orientation).AddChildContent(content);
             if (onSelected is { } cb) ps.Add(x => x.SelectedIndexChanged, cb);
+            configure?.Invoke(ps);
         });
     }
 
@@ -151,5 +156,41 @@ public class CarouselRenderTests : BunitContext
         Assert.False(cut.Instance.IsPlaying);
 
         Assert.Equal(new[] { true, false }, raised);
+    }
+
+    // ---- labels ---------------------------------------------------------------------------------
+
+    [Fact]
+    public void Role_descriptions_and_slide_names_take_the_parameters()
+    {
+        var cut = RenderCarousel(Orientation.Horizontal, 3, configure: ps => ps
+            .Add(x => x.RoleDescription, "دوّار")
+            .Add(x => x.SlideRoleDescription, "شريحة")
+            .Add(x => x.SlideAriaLabel, slide => $"{slide.Position} من {slide.Count}"));
+
+        Assert.Equal("دوّار", cut.Find("[data-slot=carousel]").GetAttribute("aria-roledescription"));
+        var slides = cut.FindAll("[data-slot=carousel-item]");
+        Assert.All(slides, s => Assert.Equal("شريحة", s.GetAttribute("aria-roledescription")));
+        Assert.Equal(new[] { "1 من 3", "2 من 3", "3 من 3" }, slides.Select(s => s.GetAttribute("aria-label")));
+    }
+
+    [Fact]
+    public void A_slides_own_AriaLabel_wins_over_SlideAriaLabel()
+    {
+        var cut = RenderCarousel(Orientation.Horizontal, 2,
+            configure: ps => ps.Add(x => x.SlideAriaLabel, slide => $"Slide {slide.Position}"),
+            slideLabel: i => i == 0 ? "Cover" : null);
+
+        var labels = cut.FindAll("[data-slot=carousel-item]").Select(s => s.GetAttribute("aria-label"));
+        Assert.Equal(new[] { "Cover", "Slide 2" }, labels);
+    }
+
+    [Fact]
+    public void An_empty_SlideAriaLabel_keeps_the_English_position()
+    {
+        var cut = RenderCarousel(Orientation.Horizontal, 2, configure: ps => ps.Add(x => x.SlideAriaLabel, _ => ""));
+
+        var labels = cut.FindAll("[data-slot=carousel-item]").Select(s => s.GetAttribute("aria-label"));
+        Assert.Equal(new[] { "1 of 2", "2 of 2" }, labels);
     }
 }

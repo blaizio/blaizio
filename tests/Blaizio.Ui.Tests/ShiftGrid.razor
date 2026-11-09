@@ -1,0 +1,20 @@
+@* Test host: a date column and a time column edited a row at a time, worded by EditorLabels. *@
+<BzDataTable @ref="Table" TItem="Shift" Items="Items" RowKey="@(s => s.Id)" EditMode="DataTableEditMode.Row"
+             EditorLabels="Labels" OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Shift>>(this, _ => { }))">
+    <BzPropertyColumn Property="@(s => s.Day)" Editable />
+    <BzPropertyColumn Property="@(s => s.Start)" Editable />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Shift> Items { get; set; } = [];
+    [Parameter] public DataTableEditorLabels? Labels { get; set; }
+
+    public BzDataTable<Shift>? Table;
+
+    public sealed class Shift
+    {
+        public int Id { get; init; }
+        public DateOnly Day { get; set; } = new(2026, 11, 9);
+        public TimeOnly Start { get; set; } = new(9, 0);
+    }
+}
