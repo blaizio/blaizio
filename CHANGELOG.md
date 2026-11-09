@@ -7,6 +7,11 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **Resizable**: leaving a page while its resize handles are still starting up no longer throws
+  `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
+  setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.
+
 ### Changed
 - **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
   stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.

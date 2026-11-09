@@ -44,6 +44,10 @@
     private int _index = -1;
     private IJSObjectReference? _instance;
     private DotNetObjectReference<BaseResizeHandle>? _selfRef;
+    // Set by DisposeAsync. The first-render init awaits twice (diagnostics, module import) before it
+    // hands _selfRef to JS; a fast navigation can dispose the handle in between, and passing the
+    // disposed reference throws ObjectDisposedException out of OnAfterRenderAsync.
+    private bool _disposed;
 
     private bool Horizontal => Group?.IsHorizontal ?? true;
 
@@ -95,11 +99,21 @@
         if (!firstRender || Disabled) return;
         if (!AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
             await AriaDiagnostics.WarnUnnamedAsync(Js, "ResizeHandle");
+        if (_disposed) return;
         try
         {
-            _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/resizable.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createResizeHandle", _element, _selfRef, Horizontal, DragCursor);
+            if (_disposed) return;
+            _selfRef ??= DotNetObjectReference.Create(this);
+            var instance = await module.InvokeAsync<IJSObjectReference>("createResizeHandle", _element, _selfRef, Horizontal, DragCursor);
+            if (_disposed)
+            {
+                // Disposed while createResizeHandle was in flight: DisposeAsync saw no instance, so
+                // tear this one down here or its pointer listeners outlive the component.
+                await DisposeInstanceAsync(instance);
+                return;
+            }
+            _instance = instance;
         }
         catch (JSDisconnectedException)
         {
@@ -113,15 +127,24 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
+        var instance = _instance;
+        _instance = null;
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        if (instance is not null) await DisposeInstanceAsync(instance);
+        _selfRef?.Dispose();
+    }
+
+    private static async Task DisposeInstanceAsync(IJSObjectReference instance)
+    {
         try
         {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            await instance.InvokeVoidAsync("dispose");
+            await instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
             // Circuit gone.
         }
-        _selfRef?.Dispose();
     }
 }
