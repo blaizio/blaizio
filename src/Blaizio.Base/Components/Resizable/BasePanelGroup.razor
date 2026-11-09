@@ -31,6 +31,14 @@
     private double[] _snapshot = System.Array.Empty<double>();
     private bool _initialized;
 
+    /// <summary>
+    /// Raised after the panel sizes change (initial seeding, drag, keyboard). The group re-rendering
+    /// only reaches children through ChildContent, so a handle (or an empty panel) whose own
+    /// parameters didn't change would keep its first-render aria-valuenow / flex size; they
+    /// subscribe and re-render themselves.
+    /// </summary>
+    public event Action? LayoutChanged;
+
     /// <summary>Whether the group lays out (and resizes) along the inline axis.</summary>
     public bool IsHorizontal => Orientation == Orientation.Horizontal;
 
@@ -84,6 +92,7 @@
         _initialized = true;
         InitSizes();
         StateHasChanged();
+        LayoutChanged?.Invoke();
     }
 
     // Seed each panel's size: from DefaultSize, sharing the remainder equally among the rest, then
@@ -127,6 +136,7 @@
         pa.Size = newA;
         pb.Size = newB;
         StateHasChanged();
+        LayoutChanged?.Invoke();
         return OnLayout.InvokeAsync(_panels.Select(p => p.Size).ToList());
     }
 

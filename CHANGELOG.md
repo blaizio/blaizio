@@ -8,6 +8,14 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **Resizable**: leaving a page while its resize handles are still starting up no longer throws
+  `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
+  setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.
+- **Resizable**: a resize handle's `aria-valuenow`, `aria-valuemin` and `aria-valuemax` now follow
+  the layout. They used to stay at their first-render values (`0`, then never updated on drag or
+  keyboard resize). Panels with no content now resize too.
+
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
   components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every

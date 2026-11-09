@@ -124,4 +124,33 @@ public class ResizableRenderTests : BunitContext
         });
         Assert.Equal(new[] { 0, 100 }, Sizes(cut, 2));
     }
+
+    // Handles and empty panels have no ChildContent and unchanged parameters, so the group's own
+    // re-render skips them; they must follow the group's sizes through LayoutChanged.
+    [Fact]
+    public async Task Handle_aria_and_empty_panel_size_follow_the_layout()
+    {
+        var cut = RenderGroup(Orientation.Horizontal, (30, 10, 80, false), (70, 10, 100, false));
+        var handle = () => cut.Find("[data-slot=resizable-handle]");
+        var firstPanel = () => cut.FindAll("[data-slot=resizable-panel]")[0];
+
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("30", handle().GetAttribute("aria-valuenow"));
+            Assert.Equal("10", handle().GetAttribute("aria-valuemin"));
+            Assert.Equal("80", handle().GetAttribute("aria-valuemax"));
+            Assert.Equal("30", firstPanel().GetAttribute("data-panel-size"));
+        });
+
+        await cut.InvokeAsync(async () =>
+        {
+            cut.Instance.BeginResize();
+            await cut.Instance.DragResize(0, 25);
+        });
+        cut.WaitForAssertion(() =>
+        {
+            Assert.Equal("55", handle().GetAttribute("aria-valuenow"));
+            Assert.Equal("55", firstPanel().GetAttribute("data-panel-size"));
+        });
+    }
 }

@@ -1,5 +1,6 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@implements IDisposable
 @*
     A single resizable panel. Registers itself with the enclosing BasePanelGroup (in document order) and
     takes a share of the group's space via flex-grow = its current size. Constraints (min/max/collapsible)
@@ -47,6 +48,16 @@
             CollapsedSize = CollapsedSize,
         };
         Group.RegisterPanel(_info);
+        Group.LayoutChanged += OnLayoutChanged;
+    }
+
+    // Re-render with the group's new size even when this panel's own parameters (and content) are
+    // unchanged - e.g. an empty panel, which the group's re-render would otherwise skip.
+    private void OnLayoutChanged() => StateHasChanged();
+
+    public void Dispose()
+    {
+        if (Group is not null && _info is not null) Group.LayoutChanged -= OnLayoutChanged;
     }
 
     protected override void OnParametersSet()
