@@ -1,27 +1,45 @@
 @* Right to left, the start edge is on the right: the pinned Name column stays there, the resize
    handles sit on each header's left edge, and Alt+Shift+Left widens a column. *@
 <RtlDemo Context="t">
+    @{ _t = t; }
     <BzDirectionProvider Dir="Direction.Rtl">
         <div class="w-full max-w-md">
-            <BzDataTable TItem="Member" Items="_members" Selectable RowKey="@(m => m.Id)" ResizableColumns ReorderableColumns>
-                <BzPropertyColumn Title='@t["الاسم", "שם"]' ColumnKey="name" Property="@(m => m.Name)" Pinned="DataTablePin.Start" Sortable />
-                <BzPropertyColumn Title='@t["البريد الإلكتروني", "דוא״ל"]' ColumnKey="email" Property="@(m => m.Email)" />
-                <BzPropertyColumn Title='@t["المدينة", "עיר"]' ColumnKey="city" Property="@(m => m.City)" Sortable />
-                <BzPropertyColumn Title='@t["الفريق", "צוות"]' ColumnKey="team" Property="@(m => m.Team)" Sortable />
-                <BzPropertyColumn Title='@t["الرصيد", "יתרה"]' ColumnKey="balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            <BzDataTable TItem="Member" Items="_members" Selectable RowKey="@(m => m.Id)" ResizableColumns ReorderableColumns
+                         SelectAllAriaLabel='@t["تحديد كل الصفوف", "בחירת כל השורות"]' SelectRowAriaLabel='@t["تحديد الصف", "בחירת שורה"]'
+                         ColumnAnnouncement="Announce">
+                <ChildContent>
+                    <BzPropertyColumn Title='@t["الاسم", "שם"]' ColumnKey="name" Property="@(m => t[m.Name.Ar, m.Name.He])" Pinned="DataTablePin.Start" Sortable />
+                    <BzPropertyColumn Title='@t["البريد الإلكتروني", "דוא״ל"]' ColumnKey="email" Property="@(m => t[m.Email.Ar, m.Email.He])" />
+                    <BzPropertyColumn Title='@t["المدينة", "עיר"]' ColumnKey="city" Property="@(m => t[m.City.Ar, m.City.He])" Sortable />
+                    <BzPropertyColumn Title='@t["الفريق", "צוות"]' ColumnKey="team" Property="@(m => t[m.Team.Ar, m.Team.He])" Sortable />
+                    <BzPropertyColumn Title='@t["الرصيد", "יתרה"]' ColumnKey="balance" Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+                </ChildContent>
+                <SelectionSummaryContent>
+                    @t[$"الصفوف المحددة: {context.Selected} من {context.Total}", $"שורות שנבחרו: {context.Selected} מתוך {context.Total}"]
+                </SelectionSummaryContent>
             </BzDataTable>
         </div>
     </BzDirectionProvider>
 </RtlDemo>
 
 @code {
-    private sealed record Member(int Id, string Name, string Email, string City, string Team, decimal Balance);
+    private RtlLang _t;
+
+    private sealed record Member(int Id, (string Ar, string He) Name, (string Ar, string He) Email, (string Ar, string He) City, (string Ar, string He) Team, decimal Balance);
 
     private static readonly Member[] _members =
     [
-        new(1, "Amara Okafor", "amara.okafor@example.com", "Lisbon", "Platform", 1999.00m),
-        new(2, "Lucas Ferreira", "lucas.ferreira@example.com", "Osaka", "Design", 39.00m),
-        new(3, "Mei Tanaka", "mei.tanaka@example.com", "Toronto", "Billing", 299.00m),
-        new(4, "Daniel Brooks", "daniel.brooks@example.com", "Nairobi", "Support", 99.00m),
+        new(1, ("ليلى حداد", "נועה כהן"), ("layla.haddad@example.com", "noa.cohen@example.com"), ("دبي", "תל אביב"), ("المنصة", "פלטפורמה"), 1999.00m),
+        new(2, ("عمر الخطيب", "איתי לוי"), ("omar.khatib@example.com", "itay.levi@example.com"), ("عمّان", "חיפה"), ("التصميم", "עיצוב"), 39.00m),
+        new(3, ("سارة المنصوري", "מיכל אברהם"), ("sara.mansouri@example.com", "michal.avraham@example.com"), ("الرياض", "ירושלים"), ("الفواتير", "חיוב"), 299.00m),
+        new(4, ("يوسف النجار", "יונתן מזרחי"), ("youssef.najjar@example.com", "yonatan.mizrahi@example.com"), ("القاهرة", "באר שבע"), ("الدعم", "תמיכה"), 99.00m),
     ];
+
+    // What screen readers hear after a key resizes or moves a column.
+    private string Announce(DataTableColumnAnnouncement a) => a.Kind switch
+    {
+        DataTableColumnAnnouncementKind.Resized => _t[$"{a.Column}: {a.Width} بكسل", $"{a.Column}: {a.Width} פיקסלים"],
+        DataTableColumnAnnouncementKind.Moved => _t[$"نُقل عمود {a.Column} إلى الموضع {a.Position} من {a.Count}", $"העמודה {a.Column} הועברה למקום {a.Position} מתוך {a.Count}"],
+        _ => _t[$"لا يمكن نقل عمود {a.Column} أبعد من ذلك", $"אי אפשר להזיז את העמודה {a.Column} הלאה"],
+    };
 }
