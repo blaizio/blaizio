@@ -8,46 +8,46 @@
             <h1 class="text-2xl font-bold tracking-tight">Dialog</h1>
             <DocBadges Slug="dialog" />
         </div>
-        <p>A modal window overlaid on the page: focus is trapped inside, page scroll locks, and Escape or a click on the backdrop dismisses it.</p>
+        <p>A modal layer with the expected behavior built in. Focus stays inside while it is open and returns to the trigger when it closes, the page behind stops scrolling, and Escape or a backdrop click dismisses it unless you turn that off.</p>
     </header>
 
     <UsageBlock Example="typeof(DialogUsageExample)"
-                Description="Import Blaizio.Ui once, then compose a trigger and content. Wrap any action in BzDialogClose to dismiss." />
+                Description="After importing `Blaizio.Ui`, a trigger and a content block are all you need. Any action wrapped in `BzDialogClose` closes the dialog when clicked." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Header holds the title and description; wrap footer actions in BzDialogClose to close the dialog." />
+                     Description="Every part of a dialog. The header holds the title and description, which also give the dialog its accessible name and description. Footer actions that should close it go inside `BzDialogClose`." />
 
     <ExamplesHeading />
 
     <Demo Title="Default"
-          Description="The trigger and close buttons render a styled BzButton by default - no RenderAs needed. Set Variant/Size to restyle them."
+          Description="The trigger and close parts render as a `BzButton` out of the box, so they accept `Variant` and `Size` directly."
           Example="typeof(DialogDefaultExample)" />
 
     <Demo Title="Custom trigger element (RenderAs)"
-          Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and spread the behavior onto your element."
+          Description="If the trigger should be a link, a card or one of your own components, use `RenderAs` and apply the attributes it provides to that element. It then opens the dialog and carries the right ARIA state."
           Example="typeof(DialogRenderAsTriggerExample)" />
 
     <Demo Title="Scrollable content" Example="typeof(DialogScrollableExample)" />
 
     <Demo Title="Sticky footer" Example="typeof(DialogStickyFooterExample)" />
 
-    <Demo Title="Controlled" Description="The open state lives in the page - here each change raises a toast."
+    <Demo Title="Controlled" Description="Bind the open state to a field in your page when other code needs to open or close the dialog. In this example, every change shows a toast so you can follow it."
           Example="typeof(DialogControlledExample)" />
 
     <Demo Title="Nested dialogs"
-          Description="A dialog can open another dialog - the inner one stacks above, and its result flows back into the outer one."
+          Description="A dialog can open another one. The inner dialog stacks on top, and when it closes, its result is passed back to the outer dialog."
           Example="typeof(DialogNestedExample)" />
 
     <Demo Title="Alert dialog inside"
-          Description="Guard a destructive action inside a dialog with an AlertDialog - it stacks above with its own inert backdrop; Cancel returns to the dialog, the action closes both."
+          Description="To confirm a destructive action, open an `AlertDialog` from inside the dialog. It stacks above with its own backdrop. Cancel returns to the first dialog, and confirming closes both."
           Example="typeof(DialogAlertInsideExample)" />
 
     <Demo Title="Without close button" Example="typeof(DialogNoCloseExample)" />
-    <Demo Title="Non-dismissible" Description="DismissOnOutsideClick=false pins the dialog: Escape and the backdrop do nothing and the corner close button is hidden. Only an explicit DialogClose (or your code) closes it." Example="typeof(DialogPreventDismissExample)" />
+    <Demo Title="Non-dismissible" Description="Set `DismissOnOutsideClick` to `false` when the user must make a choice. Escape and backdrop clicks are ignored and the corner close button is hidden, so only a `BzDialogClose` or your own code can close it." Example="typeof(DialogPreventDismissExample)" />
     <Demo Title="Customization"
-          Description="Restyle any part via Class, and the backdrop via OverlayClass - here a branded surface (custom radius, tinted border and background), an indigo title, a matching primary action, and an indigo-blurred backdrop."
+          Description="Every part accepts `Class`, and the backdrop takes `OverlayClass`. This example uses them for a branded look with a custom radius, tinted surface and blurred backdrop."
           Example="typeof(DialogCustomExample)" />
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the layout, labels and footer buttons flip to the opposite side."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the layout mirrors itself: text aligns to the right, the close button moves to the left corner and the footer buttons swap order."
           Example="typeof(DialogRtlExample)" />
 </div>
 

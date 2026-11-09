@@ -8,55 +8,55 @@
             <h1 class="text-2xl font-bold tracking-tight">Input Number</h1>
             <DocBadges Slug="input-number" />
         </div>
-        <p>A numeric field with step buttons, built on the WAI-ARIA spinbutton pattern. Type a value, use the arrow keys (Shift for the large step, Home / End for the bounds), or press and hold a button to spin. Bind with <code>@@bind-Value</code> and set <code>Min</code> / <code>Max</code> / <code>Step</code>. A .NET <code>Format</code> string formats the resting display; while you edit, the text stays a plain number.</p>
-        <p>It supports the same numeric types as Blazor's own <code>InputNumber</code> (<code>int</code>, <code>long</code>, <code>short</code>, <code>float</code>, <code>double</code>, <code>decimal</code>), bare or nullable, with <code>TValue</code> inferred from the binding. All internal math runs in <code>decimal</code>, so integer and money math is exact.</p>
+        <p>A numeric field with step buttons that follows the WAI-ARIA spinbutton pattern. The arrow keys step the value, Shift with an arrow takes the large step, Home and End jump to the bounds, and pressing and holding a button keeps spinning. A .NET <code>Format</code> string formats the value at rest, while editing always shows a plain number.</p>
+        <p>It accepts the same numeric types as Blazor's own <code>InputNumber</code> (<code>int</code>, <code>long</code>, <code>short</code>, <code>float</code>, <code>double</code>, <code>decimal</code>), bare or nullable, and infers <code>TValue</code> from the binding. All internal math runs in <code>decimal</code>, so integer and money math stays exact.</p>
     </header>
 
-    <UsageBlock Example="typeof(InputNumberUsageExample)" Description="Two-way bind the number and limit it with Min / Max / Step." />
+    <UsageBlock Example="typeof(InputNumberUsageExample)" Description="Two-way bind the number and limit it with `Min`, `Max` and `Step`." />
 
     <ExamplesHeading />
 
-    <Demo Title="Basic" Description="A plain number field. Type a value, step it with the arrow keys, or press and hold a button to spin. The default step is 1."
+    <Demo Title="Basic" Description="With no extra parameters you get a plain number field that steps by 1. Type a value, step it with the arrow keys, or press and hold a button to spin."
           Example="typeof(InputNumberBasicExample)" />
 
-    <Demo Title="Numeric types" Description="TValue follows the bound field: an int accepts whole numbers only (a typed fraction is invalid, not truncated), a decimal keeps money math exact, and only a nullable type can rest empty - clearing a non-nullable field reverts to the last value on blur."
+    <Demo Title="Numeric types" Description="`TValue` follows the bound field. An `int` accepts whole numbers only, so a typed fraction is invalid rather than truncated, and a `decimal` keeps money math exact. Only a nullable type can be left empty; clearing a non-nullable field restores the last value on blur."
           Example="typeof(InputNumberTypesExample)" />
 
-    <Demo Title="Min and max" Description="Bound the value with Min and Max - it clamps on blur, and the step button at a reached edge disables itself."
+    <Demo Title="Min and max" Description="`Min` and `Max` clamp the value on blur, and the step button at a reached limit disables itself."
           Example="typeof(InputNumberMinMaxExample)" />
 
-    <Demo Title="Step and large step" Description="Step sets the grid the value snaps to and the amount one arrow / button press moves. Hold Shift with an arrow key (or PageUp / PageDown) for the LargeStep jump."
+    <Demo Title="Step and large step" Description="`Step` sets both the grid the value snaps to and how far one arrow or button press moves it. Shift with an arrow key, or PageUp and PageDown, jumps by `LargeStep`."
           Example="typeof(InputNumberStepExample)" />
 
-    <Demo Title="Formatted" Description="Pass a .NET Format string for the resting display - currency, percent, fixed decimals. While focused the field shows the plain editable number so you type digits, not symbols."
+    <Demo Title="Formatted" Description="Pass a .NET `Format` string for the resting display, such as currency, percent or fixed decimals. While the field has focus it shows the plain number, so you type digits rather than symbols."
           Example="typeof(InputNumberFormatExample)" />
 
-    <Demo Title="Programmatic focus" Description="Hold a reference to the component and call FocusAsync to move the keyboard yourself - here a preset button sets the amount and hands focus back with the value selected, so the next digit replaces it. Every input component has the method."
+    <Demo Title="Programmatic focus" Description="Keep a reference to the component and call `FocusAsync` to move focus from code. Here a preset button sets the amount and returns focus with the value selected, so the next digit replaces it. Every input component has this method."
           Example="typeof(InputNumberFocusMethodExample)" />
 
-    <Demo Title="Auto select" Description="AutoSelect selects the whole number whenever the field gains focus, so typing replaces it outright - for amounts the user overwrites rather than edits. AutoFocus is also available, focusing the field when it appears."
+    <Demo Title="Auto select" Description="`AutoSelect` selects the whole number whenever the field gains focus, which suits amounts that get overwritten rather than edited. `AutoFocus` is also available and focuses the field when it appears."
           Example="typeof(InputNumberAutoSelectExample)" />
 
-    <Demo Title="Controlled" Description="Drive the value yourself with two-way binding. The live value is shown above, and a button resets it."
+    <Demo Title="Controlled" Description="Bind the value two-way to drive it from your own state. The live value shows above the field, and a button resets it."
           Example="typeof(InputNumberControlledExample)" />
 
-    <Demo Title="Disabled" Description="Disabled grays out the field and its buttons and blocks every interaction, while still showing the value."
+    <Demo Title="Disabled" Description="`Disabled` grays out the field and its buttons and blocks all interaction, while the value stays visible."
           Example="typeof(InputNumberDisabledExample)" />
 
-    <Demo Title="Read only" Description="ReadOnly shows the value and lets it be focused and copied, but blocks typing and the steppers."
+    <Demo Title="Read only" Description="`ReadOnly` keeps the value focusable and copyable but blocks typing and the step buttons."
           Example="typeof(InputNumberReadOnlyExample)" />
 
-    <Demo Title="Without steppers" Description="Set Buttons to false to drop the +/- buttons, leaving only the styled numeric field. Typing and the arrow keys still work."
+    <Demo Title="Without steppers" Description="Set `Buttons` to `false` to drop the +/- buttons and keep only the styled field. Typing and the arrow keys still work."
           Example="typeof(InputNumberNoButtonsExample)" />
 
-    <Demo Title="Invalid" Description="Pass aria-invalid to mark the field invalid - the group picks up the destructive ring, like the other inputs."
+    <Demo Title="Invalid" Description="Pass `aria-invalid` to mark the field invalid. The group picks up the destructive ring, as the other inputs do."
           Example="typeof(InputNumberInvalidExample)" />
 
     <Demo Title="Customization"
-          Description="Recolor the group with border and ring utilities in Class, and tint the step buttons by targeting their slot."
+          Description="Border and ring utilities in `Class` recolor the group, and the step buttons are tinted by targeting their data slot."
           Example="typeof(InputNumberCustomExample)" />
 
-    <Demo Title="RTL" Description="Inside a right-to-left DirectionProvider the step buttons swap sides (logical borders) and the field mirrors; the math is unchanged."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the step buttons swap sides through logical borders and the field mirrors. The math is unchanged."
           Example="typeof(InputNumberRtlExample)" />
 
 </div>

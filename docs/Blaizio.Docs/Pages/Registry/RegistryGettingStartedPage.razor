@@ -7,39 +7,39 @@
             <h1 class="text-2xl font-bold tracking-tight">Getting started</h1>
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
         </div>
-        <p class="max-w-3xl">From a folder of components to a URL other projects can install from. Four commands, and a static host at the end of them.</p>
+        <p class="max-w-3xl">This guide takes a folder of components to a URL other projects can install from. It needs four commands and a static host to serve the result.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Lay out the source</h2>
-        <p>A registry is an ordinary repository. The manifest sits at the root; item files live wherever you like, as long as the paths in the manifest are relative to the manifest itself. The build output is the only part that gets hosted.</p>
+        <p>A registry is an ordinary repository. The manifest, <code>registry.json</code>, sits at the root. Item files can live wherever you like, as long as the paths in the manifest are relative to the manifest itself. Only the build output gets hosted.</p>
         <CodeBlock Snippet="Registry/Layout" Language="text" />
-        <p>One list is fine to start with. When it stops being fine, split it: <code>include</code> folds a manifest per folder into the root one, covered on the <a href="docs/registry/registry-json">manifest reference</a>.</p>
+        <p>A single list of items is fine to start with. When it grows too long, split it with <code>include</code>, which folds a manifest per folder into the root one, as described on the <a href="docs/registry/registry-json">manifest reference</a>.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Write the components</h2>
-        <p>Author under the <code>Blaizio.Ui</code> root namespace, the same convention the official registry uses. On install the CLI rewrites that prefix to the consumer's namespace (<code>MyApp.Components.Ui.&lt;YourRegistry&gt;</code>), so cross-references between your own components keep compiling wherever they land. <a href="docs/registry/author-a-component">Author a component</a> walks one component from the first line to the install, with the conventions that make it fit.</p>
-        <p>Reference the headless layer (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>Blaizio.Icons.Tabler</code>) as NuGet dependencies on the item. Never copy Base sources into a registry: the consumer already has that package, and a copied primitive stops receiving fixes.</p>
+        <p>Declare your components under the <code>Blaizio.Ui</code> root namespace, the same convention the official registry uses. On install the CLI rewrites that prefix to the consumer's namespace (<code>MyApp.Components.Ui.&lt;YourRegistry&gt;</code>), so cross-references between your own components keep compiling wherever they land. <a href="docs/registry/author-a-component">Author a component</a> walks one component from the first line to the install, with the conventions that make it fit.</p>
+        <p>Reference the headless layer (<code>Blaizio.Base</code>, <code>Blaizio.Icons</code>, <code>Blaizio.Icons.Tabler</code>) as NuGet dependencies on the item. Never copy Base sources into a registry, because the consumer already has that package and a copied primitive stops receiving fixes.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Generate, validate, build</h2>
-        <p>For a tree of components, <CmdChip Command="blaizio generate" /> writes the manifest for you: one item per component folder, with dependencies between your own components inferred from the <code>Bz*</code> types each file references, and the official components you build on named for you to add as <code>@("@default/<item>")</code>. Hand-writing it is fine too, and easier for themes.</p>
+        <p>For a tree of components, <CmdChip Command="blaizio generate" /> writes <code>registry.json</code> for you, with one item per component folder. It infers dependencies between your own components from the <code>Bz*</code> types each file references, and names the official components you build on so you can add them as <code>@("@default/<item>")</code>. Writing the manifest by hand works too, and is easier for themes.</p>
         <CodeBlock Snippet="Registry/BuildValidate" />
-        <p><CmdChip Command="blaizio registry validate" /> is the gate worth putting in CI: it checks the manifest parses, that names are unique, that theme and font items carry their payloads, and that every declared file exists on disk. <CmdChip Command="blaizio build" /> then inlines each file's contents into a per-item JSON and writes the <code>index.json</code> catalog beside them.</p>
+        <p><CmdChip Command="blaizio registry validate" /> is the check worth putting in CI. It confirms that the manifest parses, that names are unique, that theme and font items carry their payloads, and that every declared file exists on disk. <CmdChip Command="blaizio build" /> then inlines each file's contents into a per-item JSON and writes the <code>index.json</code> catalog beside them.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Host the output</h2>
-        <p>Anything that serves files over HTTPS will do. The CLI only ever issues GETs for <code>&lt;base&gt;/index.json</code> and <code>&lt;base&gt;/&lt;name&gt;.json</code>. A GitHub Pages workflow that validates then builds on every push is the whole pipeline:</p>
+        <p>Anything that serves files over HTTPS will do, because the CLI only ever issues GET requests for <code>&lt;base&gt;/index.json</code> and <code>&lt;base&gt;/&lt;name&gt;.json</code>. A GitHub Pages workflow that validates and then builds on every push is the whole pipeline:</p>
         <CodeBlock Snippet="Registry/Workflow" Language="yaml" />
-        <p>Serve the output over HTTPS with permissive CORS if you expect browser tooling to read it. A local folder path works as a registry too, which is the fastest way to test one before it is published anywhere.</p>
+        <p>If you expect browser tooling to read the output, serve it with permissive CORS headers as well. A local folder path also works as a registry, which is the fastest way to test one before publishing it anywhere.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Try it as a consumer</h2>
-        <p>Point a scratch project at the built output, either the deployed URL or the local directory, and install something. What consumers do from here is covered on <a href="docs/registry/namespaces">Namespaces</a>.</p>
+        <p>To confirm everything works, point a scratch project at the built output, either the deployed URL or the local directory, and install an item. If the files land and the project builds, the registry is ready. What consumers do from here is covered on <a href="docs/registry/namespaces">Namespaces</a>.</p>
         <CodeBlock Snippet="Registry/ConsumerAdd" />
     </section>
 </div>

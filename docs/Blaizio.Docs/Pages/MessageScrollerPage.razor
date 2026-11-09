@@ -8,20 +8,20 @@
             <h1 class="text-2xl font-bold tracking-tight">Message Scroller</h1>
             <DocBadges Slug="message-scroller" />
         </div>
-        <p>A chat transcript scroller built for streaming conversations: it opens at the newest message, follows streamed responses, anchors new turns, loads history without jumping, and can jump to any message.</p>
+        <p>A transcript scroller for streaming conversations. It opens at the newest message, follows a streamed reply while you stay near the bottom, anchors each new turn, and keeps your place when older history loads above. You can also jump to any message from code.</p>
     </header>
 
     <UsageBlock Example="typeof(MessageScrollerUsageExample)" />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Wrap every direct child of the content in an Item so the engine can anchor, preserve position, and jump to it; the buttons are optional and sit as siblings of the viewport." />
+                     Description="Wrap every direct child of the content in a `BzMessageScrollerItem` so the scroller can anchor it, keep its position and jump to it. The buttons are optional and sit beside the viewport rather than inside it." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Sizing</h2>
         <p>
-            The scroller fills its container. Give it a height directly (Class="h-96") or make it
-            the flex-1 child of a height-constrained column - a chat page layout. All the scroll
-            state lives in the browser; appending, prepending, or streaming messages from C# never
+            The scroller fills its container. Give it a height directly (<code>Class="h-96"</code>) or make it
+            the <code>flex-1</code> child of a height-constrained column, as in a chat page layout. All the scroll
+            state lives in the browser, so appending, prepending or streaming messages from C# never
             round-trips through .NET for scrolling.
         </p>
     </section>
@@ -29,43 +29,43 @@
     <ExamplesHeading />
 
     <Demo Title="Streaming"
-          Description="The transcript follows the streamed reply while you are within FollowMargin of the bottom. Scroll up above that margin mid-stream and it stays put - the button appears the moment follow pauses; scroll back within it (or press the button) and it picks the stream up again."
+          Description="While you are within `FollowMargin` of the bottom, the transcript follows the streamed reply. Scroll above that margin mid-stream and it stays put, with the scroll button appearing as soon as following pauses. Scroll back down or press the button to pick the stream up again."
           Example="typeof(MessageScrollerStreamExample)" />
 
     <Demo Title="Streaming typeset prose"
-          Description="Markdown-shaped blocks landing in a wrapper with the typeset and typeset-chat classes, one arrival at a time. The typeset spaces blocks only from above (margin-block-start, sibling-gated), so everything already on screen holds still while the next block appears. See the Typeset guide for the contract."
+          Description="Markdown-shaped blocks arrive one at a time in a wrapper with the `typeset` and `typeset-chat` classes. The typeset only adds space above a block that follows another, so everything already on screen holds still while the next block appears. See the Typeset guide for details."
           Example="typeof(MessageScrollerTypesetExample)" />
 
     <Demo Title="Anchored turns"
-          Description="ScrollAnchor marks turn boundaries. A turn you send anchors near the viewport top, keeping AnchorPeek pixels of the previous turn visible, and the reply streams into the space reserved below it. Once the reply reaches the bottom, the view follows it like any other stream. If the reply ends short, call ReleaseReservedSpaceAsync to give the leftover space back; the engine also releases it when you scroll above the follow margin or press the end button."
+          Description="`ScrollAnchor` marks turn boundaries. A turn you send anchors near the top of the viewport with `AnchorPeek` pixels of the previous turn still visible, and the reply streams into space reserved below it. If the reply ends short, call `ReleaseReservedSpaceAsync` to give the leftover space back; the scroller also releases it when you scroll above the follow margin or press the end button."
           Example="typeof(MessageScrollerAnchorExample)" />
 
     <Demo Title="Keeping context visible"
-          Description="AnchorPeek sets how much of the previous turn stays visible above an anchored one - here a generous 64px slice, so the question being answered never fully leaves the screen."
+          Description="`AnchorPeek` sets how much of the previous turn stays visible above an anchored one. Here it is a generous 64px, so the question being answered never fully leaves the screen."
           Example="typeof(MessageScrollerPeekExample)" />
 
     <Demo Title="Group chat"
-          Description="ScrollAnchor works on any row, not only messages - here the Markers announcing room events anchor each burst of activity so it reads top-down."
+          Description="`ScrollAnchor` works on any row, not only messages. Here the markers announcing room events anchor each burst of activity so it reads from the top down."
           Example="typeof(MessageScrollerGroupChatExample)" />
 
     <Demo Title="Prepending history"
-          Description="Older messages added above keep the row you were reading exactly where it was. Always give looped items a key directive - without it Blazor recycles the rows in place and a prepend reaches the DOM as an append."
+          Description="Older messages added above keep the row you were reading exactly where it was. Always give looped items a key directive, because without one Blazor reuses the rows in place and a prepend reaches the DOM as an append."
           Example="typeof(MessageScrollerPrependExample)" />
 
     <Demo Title="Commands"
-          Description="Capture the scroller with a ref and drive it from outside: ScrollToMessageAsync jumps to any MessageId, ScrollToStartAsync and ScrollToEndAsync take either edge."
+          Description="Keep a reference to the scroller to drive it from outside. `ScrollToMessageAsync` jumps to any `MessageId`, while `ScrollToStartAsync` and `ScrollToEndAsync` go to either edge."
           Example="typeof(MessageScrollerCommandsExample)" />
 
     <Demo Title="Animated arrivals"
-          Description="Entrance utilities on the item animate new rows in (gated behind motion-safe); the scroller keeps hugging the live edge while they play."
+          Description="Entrance utilities on the item animate new rows in, gated behind `motion-safe`. The scroller keeps the newest content in view while they play."
           Example="typeof(MessageScrollerAnimationExample)" />
 
     <Demo Title="Scroll buttons"
-          Description="A control per edge, each inert and hidden until there is content in its direction. DefaultPosition Start opens the transcript at the oldest message instead of the newest."
+          Description="Each edge gets a button that stays hidden and inert until there is content in its direction. Setting `DefaultPosition` to `Start` opens the transcript at the oldest message instead of the newest."
           Example="typeof(MessageScrollerButtonsExample)" />
 
     <Demo Title="RTL"
-          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: bubbles flip to the opposite side and the scroll button stays centered."
+          Description="Inside a right-to-left `DirectionProvider`, bubbles swap to the opposite side while the scroll button stays centered."
           Example="typeof(MessageScrollerRtlExample)" />
 </div>
 

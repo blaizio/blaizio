@@ -17,19 +17,19 @@
     <section>
         <h2 data-toc class="scroll-mt-20">Where you are asked</h2>
         <ul>
-            <li><b>Recording a registry.</b> <CmdChip Command="blaizio registry add" /> says what installing from it will mean and confirms before writing the mapping. <code>-y</code> skips the prompt for scripts.</li>
+            <li><b>Recording a registry.</b> <CmdChip Command="blaizio registry add" /> says what installing from it will mean and confirms before writing the mapping. Pass <code>-y</code> to skip the prompt in scripts.</li>
             <li><b>A direct URL from an unknown host.</b> <CmdChip Command="blaizio add" /> with a URL whose origin is neither your default registry, nor one you have recorded, nor a listed trusted host, warns and asks the same way.</li>
             <li><b>A repository address.</b> <code>owner/repo/item</code> asks per repository, so approving one project on a host approves that project and nothing else.</li>
-            <li><b>A directory-listed namespace.</b> An <code>@("@namespace")</code> the project never recorded is looked up in the <a href="docs/registry/directory">community directory</a>; the CLI shows the listing and asks before recording it. Once recorded it resolves locally, like any registry you added yourself.</li>
+            <li><b>A directory-listed namespace.</b> An <code>@("@namespace")</code> the project never recorded is looked up in the <a href="docs/registry/directory">community directory</a>, and the CLI shows the listing and asks before recording it. Once recorded it resolves locally, like any registry you added yourself.</li>
             <li><b>Nothing else.</b> Names, recorded namespaces and local paths resolve against sources the project already chose, so they do not ask again.</li>
         </ul>
-        <p>Origins you deal with routinely can be listed once under <code>trustedHosts</code> in <code>blaizio.json</code>. It is an allowlist of origins, not of items: it stops the prompt, it does not review the code.</p>
+        <p>Origins you deal with routinely can be listed once under <code>trustedHosts</code> in <code>blaizio.json</code>. The list allows origins, not items: it stops the prompt but does not review any code.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Looking before you install</h2>
         <CodeBlock Snippet="Registry/TrustCommands" />
-        <p><CmdChip Command="blaizio view" /> prints every file an item carries without writing anything, which is the honest way to read unfamiliar source. <code>--dry-run</code> shows the whole plan instead: which files would be written and where, which packages would be added, and which sibling items get pulled in behind the one you asked for.</p>
+        <p><CmdChip Command="blaizio view" /> prints every file an item carries without writing anything, so you can read unfamiliar source before it touches your project. <code>--dry-run</code> shows the whole plan instead: which files would be written and where, which packages would be added, and which sibling items get pulled in behind the one you asked for.</p>
     </section>
 
     <section>
@@ -44,6 +44,6 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">If you publish one</h2>
-        <p>Run <CmdChip Command="blaizio registry validate" /> in CI, serve over HTTPS, keep <code>nugetDependencies</code> to what the source actually references, and describe items honestly: the description is what a consumer reads before deciding to look further. Registries listed on the <a href="community">community page</a> are maintained by their authors and are not audited by Blaizio.</p>
+        <p>Run <CmdChip Command="blaizio registry validate" /> in CI, serve over HTTPS, keep <code>nugetDependencies</code> to what the source actually references, and describe items honestly, because the description is what a consumer reads before deciding to look further. Registries listed on the <a href="community">community page</a> are maintained by their authors and are not audited by Blaizio.</p>
     </section>
 </div>

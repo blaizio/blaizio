@@ -8,14 +8,14 @@
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">pull request</BzBadge>
         </div>
-        <p class="max-w-3xl">The community directory is the reviewed index of public registries and themes. A listed registry appears on the <a href="community">community page</a>, and the CLI consults the directory when someone references your <code>@("@namespace")</code> without having recorded it: the CLI offers the entry and, if they accept, records it into their <code>blaizio.json</code>. Your registry's content stays on your host; the listing is a pointer, and adding one is a pull request.</p>
+        <p class="max-w-3xl">The community directory is the reviewed index of public registries and themes. A listed registry appears on the <a href="community">community page</a>, and when someone references your <code>@("@namespace")</code> without having recorded it, the CLI offers your entry and records it into their <code>blaizio.json</code> if they accept. Your content stays on your own host, since a listing is only a pointer, and adding one takes a single pull request.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">When you do not need a listing</h2>
         <ul>
             <li><b>A public repository.</b> <code>owner/repo/item</code> addresses install without any listing. The directory exists for <code>@("@namespace")</code>s.</li>
-            <li><b>A team or private registry.</b> Consumers record it directly with <CmdChip Command="blaizio registry add" />; the directory only lists public registries.</li>
+            <li><b>A team or private registry.</b> Consumers record it directly with <CmdChip Command="blaizio registry add" />, and the directory only lists public registries anyway.</li>
             <li><b>Trying things out.</b> A local folder path or a direct URL already works as a registry, unlisted.</li>
         </ul>
     </section>
@@ -23,13 +23,13 @@
     <section>
         <h2 data-toc class="scroll-mt-20">Requirements</h2>
         <ol>
-            <li>The built output is publicly reachable over HTTPS - <code>&lt;url&gt;/index.json</code> answers without credentials.</li>
+            <li>The built output is publicly reachable over HTTPS: <code>&lt;url&gt;/index.json</code> answers without credentials.</li>
             <li>The manifest passes <CmdChip Command="blaizio registry validate" />.</li>
             <li>The entry's <code>name</code> is the <code>@("@namespace")</code> consumers will use, and it is not already taken in the directory.</li>
             <li>The description is one accurate line about what the registry ships.</li>
             <li>The homepage is a real page about the registry or its publisher.</li>
         </ol>
-        <p>Review checks all of these. Listings are pointers maintained by their authors and are not audited by Blaizio - the CLI's trust gates still apply when anyone installs.</p>
+        <p>Review checks all of these. Listings are pointers maintained by their authors and Blaizio does not audit their content, so the CLI's <a href="docs/registry/trust">trust gates</a> still apply whenever anyone installs.</p>
     </section>
 
     <section>
@@ -48,11 +48,11 @@
         <h2 data-toc class="scroll-mt-20">The steps</h2>
         <ol>
             <li>Fork <a href="https://github.com/blaizio/blaizio" target="_blank" rel="noopener">blaizio/blaizio</a>, or use GitHub's pencil button on the file, which forks for you.</li>
-            <li>Add your entry - registries go in <code>docs/Blaizio.Docs/wwwroot/community/registries.json</code>, themes in <code>docs/Blaizio.Docs/wwwroot/community/themes.json</code> - keeping the existing formatting.</li>
+            <li>Add your entry, keeping the existing formatting. Registries go in <code>docs/Blaizio.Docs/wwwroot/community/registries.json</code> and themes in <code>docs/Blaizio.Docs/wwwroot/community/themes.json</code>.</li>
             <li>Run <CmdChip Command="pnpm validate:community" /> in <code>docs/Blaizio.Docs</code> to check both files. Every pull request touching them runs the same script, so if it passes locally, it passes the structural check in review.</li>
             <li>Open the pull request.</li>
             <li>Once merged, the next docs deployment shows your entry on <a href="community">the community page</a> and in the directory the CLI consults.</li>
         </ol>
-        <p>The directory is a fallback, not a silent resolver: when a consumer references your <code>@("@namespace")</code> unrecorded, the CLI shows your entry and asks before recording it - after that, their project resolves it locally like any registry they added themselves.</p>
+        <p>The directory is a fallback, not a silent resolver. When a consumer references your <code>@("@namespace")</code> without having recorded it, the CLI shows your entry and asks before recording it. After that, their project resolves the namespace locally like any registry they added themselves.</p>
     </section>
 </div>

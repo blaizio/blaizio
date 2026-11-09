@@ -7,12 +7,12 @@
             <h1 class="text-2xl font-bold tracking-tight">Examples</h1>
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
         </div>
-        <p class="max-w-3xl">One manifest entry per kind of item. Copy the shape closest to what you are shipping; the field-by-field detail is on the <a href="docs/registry/registry-item-json">item reference</a>.</p>
+        <p class="max-w-3xl">One <code>registry.json</code> entry for each kind of item. Copy the shape closest to what you are shipping, and look up individual fields on the <a href="docs/registry/registry-item-json">item reference</a>.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">A component</h2>
-        <p>Several files, a sibling item it needs, and the packages its source references. The dependency is pulled in first, so installing <code>tag</code> alone still compiles.</p>
+        <p>A component item lists several files, a sibling item it needs, and the packages its source references. The CLI installs the dependency first, so installing <code>tag</code> on its own still compiles.</p>
         <CodeBlock Snippet="Registry/ItemUi" />
     </section>
 
@@ -24,7 +24,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">A theme</h2>
-        <p>Data, not files. Dial in a look on the <a href="themes">Themes</a> composer, copy the theme CSS, and translate the tokens you actually changed into the two maps. Check the result with <CmdChip Command="blaizio contrast" /> before publishing.</p>
+        <p>A theme item carries token values instead of files. Dial in a look on the <a href="themes">Themes</a> composer, copy the theme CSS, and translate the tokens you actually changed into the <code>light</code> and <code>dark</code> maps. Check the result with <CmdChip Command="blaizio contrast" /> before publishing.</p>
         <CodeBlock Snippet="Registry/ItemTheme" />
     </section>
 
@@ -36,7 +36,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">A file that lands somewhere else</h2>
-        <p>By default a file's destination follows its path. <code>target</code> overrides it, relative to the consumer's output folder, which is how a helper that lives beside a component in your tree can land in a folder of its own in theirs.</p>
+        <p>By default a file's destination follows its path. Set <code>target</code> to override the destination, relative to the consumer's output folder. That way a helper that lives beside a component in your tree can land in a folder of its own in theirs.</p>
         <CodeBlock Snippet="Registry/ItemTarget" />
     </section>
 
@@ -48,17 +48,19 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">A template</h2>
-        <p>A <code>registry:template</code> item is a whole application, scaffolded by <CmdChip Command="blaizio new" /> rather than installed by <code>add</code>. Its files are the project layout, written with the <code>@("{{ProjectName}}")</code>/<code>@("{{RootNamespace}}")</code>/<code>@("{{ComponentNamespace}}")</code>/<code>@("{{Style}}")</code> tokens substituted, and <code>registryDependencies</code> name the component set installed once the project is wired.</p>
+        <p>A <code>registry:template</code> item is a whole application, scaffolded by <CmdChip Command="blaizio new" /> rather than installed by <code>add</code>. Its files make up the project layout, and the CLI substitutes the <code>@("{{ProjectName}}")</code>/<code>@("{{RootNamespace}}")</code>/<code>@("{{ComponentNamespace}}")</code>/<code>@("{{Style}}")</code> tokens as it writes them. <code>registryDependencies</code> names the components to install once the project is wired.</p>
         <CodeBlock Snippet="Registry/ItemTemplate" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Depending on another registry</h2>
-        <p>A <code>registryDependencies</code> entry written as <code>@("@ns/item")</code> resolves through the consumer's own record for that namespace, so your item can build on one from elsewhere. It only installs for consumers who have recorded that namespace, and the failure is explicit: the CLI names the unknown registry and the command that records it. Depending on a namespace you do not control is a promise about someone else's code, so keep it rare and say so in the description.</p>
+        <p>A <code>registryDependencies</code> entry written as <code>@("@ns/item")</code> resolves through the consumer's own record for that namespace, so your item can build on an item from another registry. The install only works for consumers who have recorded that namespace. For everyone else it fails explicitly: the CLI names the unknown registry and the command that records it.</p>
+        <p>Depending on a namespace you do not control is a promise about someone else's code, so keep it rare and mention it in the item's <code>description</code>.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Shipping style variants</h2>
-        <p>Put a <code>Styles/shared.css</code> and one <code>Styles/style-&lt;name&gt;.css</code> per style next to the manifest and the build writes an extra copy of every item under <code>&lt;base&gt;/&lt;name&gt;/</code>, with that style's utilities inlined into the source. Consumers resolve through the sub-folder matching their recorded style automatically, and fall back to the base copy when you do not ship theirs.</p>
+        <p>To ship a different look per style, put a <code>Styles/shared.css</code> and one <code>Styles/style-&lt;name&gt;.css</code> per style next to <code>registry.json</code>. The build then writes an extra copy of every item under <code>&lt;base&gt;/&lt;name&gt;/</code>, with that style's utilities inlined into the source.</p>
+        <p>Consumers automatically resolve through the sub-folder that matches their recorded style, and fall back to the base copy when you do not ship theirs.</p>
     </section>
 </div>

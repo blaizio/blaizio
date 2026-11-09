@@ -9,56 +9,56 @@
             <BzBadge Variant="BadgeVariant.Outline">headless</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">zero CSS</BzBadge>
         </div>
-        <p>The headless layer every styled component stands on - and a complete toolkit on its own. Each <code>Base*</code> primitive renders the correct element with the correct ARIA roles, keyboard behavior, focus management and a <code>data-state</code> attribute contract, and ships <b>not one line of CSS</b>. The styled <code>Bz*</code> components the CLI copies are thin Tailwind layers over these primitives; if you're building your own design system, you can skip them entirely and dress Base yourself.</p>
+        <p>The headless layer every styled component is built on, and a complete toolkit on its own. Each <code>Base*</code> primitive renders the right element with the right ARIA roles, keyboard behavior, focus management and <code>data-state</code> attributes, and ships <b>not one line of CSS</b>. The styled <code>Bz*</code> components the CLI copies into your project are thin Tailwind layers over them, so for your own design system you can skip those and style Base directly.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Install &amp; register</h2>
         <CodeBlock Snippet="Base/Install" />
-        <p>One DI call registers everything the package needs - the imperative <a href="docs/dialog-service">dialog</a> / <a href="docs/components/toast">toast</a> services with their scoped stores, the <code>IThemeService</code>, and the app-wide defaults. Scoped means per-circuit on Blazor Server and per-app on WebAssembly; calling <code>AddBlaizio()</code> twice is safe (first registration wins).</p>
+        <p>One DI call registers everything the package needs: the imperative <a href="docs/dialog-service">dialog</a> and <a href="docs/components/toast">toast</a> services with their scoped stores, the <code>IThemeService</code>, and the app-wide defaults. Scoped means one instance per circuit on Blazor Server and one per app on WebAssembly. Calling <code>AddBlaizio()</code> twice is safe, because the first registration wins.</p>
         <CodeBlock Snippet="Base/Register" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Anatomy of a primitive</h2>
-        <p>Primitives compose: a stateful root cascades its context to the parts inside it, and every part exposes its state as <b>attributes</b>, not styles. Three ideas cover the whole library:</p>
+        <p>Primitives compose. A stateful root cascades its context to the parts inside it, and every part exposes its state as <b>attributes</b> rather than styles. Three ideas cover the whole library:</p>
         <ul>
-            <li><b>Composition</b> - a root owns the state (<code>BaseCollapsible</code>), parts consume it (<code>BaseCollapsibleTrigger</code>, <code>BaseCollapsibleContent</code>). No configuration object; the markup <em>is</em> the configuration.</li>
-            <li><b>The <code>data-state</code> contract</b> - <code>data-state="open"</code>, <code>data-disabled</code>, <code>data-[side=top]</code>... your stylesheet targets those attributes with anything: Tailwind variants, plain CSS, CSS modules.</li>
-            <li><b>Accessibility built in</b> - roles, <code>aria-*</code> wiring, ids, focus and keyboard handling are the primitive's job, not yours.</li>
+            <li><b>Composition.</b> A root owns the state (<code>BaseCollapsible</code>) and its parts read it (<code>BaseCollapsibleTrigger</code>, <code>BaseCollapsibleContent</code>). There is no configuration object, because the markup <em>is</em> the configuration.</li>
+            <li><b>The <code>data-state</code> contract.</b> Parts carry attributes such as <code>data-state="open"</code>, <code>data-disabled</code> and <code>data-side="top"</code>, and your stylesheet targets them with whatever you use: Tailwind variants, plain CSS or CSS modules.</li>
+            <li><b>Accessibility built in.</b> Roles, <code>aria-*</code> wiring, ids, focus and keyboard handling are the primitive's job, not yours.</li>
         </ul>
         <CodeBlock Snippet="Base/Collapsible" />
-        <p>Then style the contract. The collapse machinery even measures the panel for you into <code>--bz-collapsible-content-height</code> (and keeps it fresh while the panel is open), so height animations are one keyframe pair:</p>
+        <p>Then style those attributes. The collapsible also measures its panel into <code>--bz-collapsible-content-height</code> and keeps the value current while the panel is open, so a height animation takes a single pair of keyframes:</p>
         <CodeBlock Snippet="Base/CollapsibleCss" />
     </section>
 
     <section>
-        <h2 data-toc class="scroll-mt-20">RenderAs - your element, our behavior</h2>
-        <p>Every interactive part accepts a <code>RenderAs</code> template. Instead of the primitive's default element you render <em>your own</em>, and spread the provided <code>Attributes</code> onto it with <code>@@attributes</code> - the ARIA, <code>data-*</code> and event handlers ride along. This is how the styled layer dresses the primitives, and how you graft Blaizio behavior onto an existing design system:</p>
+        <h2 data-toc class="scroll-mt-20">RenderAs: your element, our behavior</h2>
+        <p>Every interactive part accepts a <code>RenderAs</code> template. Instead of the primitive's default element, you render <em>your own</em> and apply the provided <code>Attributes</code> to it with <code>@@attributes</code>, which carries over the ARIA attributes, <code>data-*</code> attributes and event handlers. The styled layer uses this to style the primitives, and you can use it to add Blaizio behavior to an existing design system:</p>
         <CodeBlock Snippet="Base/RenderAs" />
     </section>
 
     <section>
-        <h2 data-toc class="scroll-mt-20">Controlled or uncontrolled - your choice</h2>
-        <p>Stateful primitives work both ways, decided per instance by which parameters you pass:</p>
+        <h2 data-toc class="scroll-mt-20">Controlled or uncontrolled: your choice</h2>
+        <p>Stateful primitives work both ways. Each instance decides based on the parameters you pass:</p>
         <ul>
-            <li><b>Uncontrolled</b> - pass nothing (or a <code>Default*</code> seed) and the primitive keeps its own state.</li>
-            <li><b>Controlled</b> - bind the state (<code>@@bind-Open</code>, <code>@@bind-Value</code>, ...) and you own it: persist it, sync it, drive it from anywhere. The primitive never mutates a controlled value - it raises the change and your new value flows back in.</li>
+            <li><b>Uncontrolled.</b> Pass nothing, or a <code>Default*</code> starting value, and the primitive keeps its own state.</li>
+            <li><b>Controlled.</b> Bind the state (<code>@@bind-Open</code>, <code>@@bind-Value</code> and so on) and you own it, so you can persist it, sync it or change it from anywhere. The primitive never changes a controlled value itself. It raises the change, and your new value flows back in.</li>
         </ul>
         <CodeBlock Snippet="Base/Controlled" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Renderless utilities</h2>
-        <p>Some primitives render nothing at all - they exist for the behavior:</p>
+        <p>Some primitives render no markup of their own and exist only for their behavior:</p>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader><BzTableRow Class="bg-muted/50"><BzTableHead>Primitive</BzTableHead><BzTableHead>What it does</BzTableHead></BzTableRow></BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseHotkey</code></BzTableCell><BzTableCell>A global keyboard shortcut: <code>Combo="mod+k"</code> invokes a callback anywhere on the page. Bare keys are suppressed while typing in inputs.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseFocusScope</code></BzTableCell><BzTableCell>Traps and restores focus around a region - the machinery dialogs and menus use, available for your own overlays.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseDirectionProvider</code></BzTableCell><BzTableCell>Cascades a reading direction (<code>Ltr</code>/<code>Rtl</code>) to everything inside - see <a class="underline underline-offset-4" href="docs/direction">Direction</a>.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseFocusScope</code></BzTableCell><BzTableCell>Traps focus inside a region and restores it afterwards. Dialogs and menus use it, and it is available for your own overlays.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseDirectionProvider</code></BzTableCell><BzTableCell>Cascades a reading direction (<code>Ltr</code> or <code>Rtl</code>) to everything inside it. See <a class="underline underline-offset-4" href="docs/direction">Direction</a>.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseRovingFocusGroup</code></BzTableCell><BzTableCell>Arrow-key focus movement across a set of items (toolbars, radio groups, menus).</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseVisuallyHidden</code></BzTableCell><BzTableCell>Content for screen readers only - rendered, announced, invisible.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell Class="whitespace-nowrap"><code>BaseVisuallyHidden</code></BzTableCell><BzTableCell>Content for screen readers only: it is rendered and announced, but not visible.</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
         <CodeBlock Snippet="Base/Hotkey" />
@@ -68,10 +68,10 @@
         <h2 data-toc class="scroll-mt-20">Services</h2>
         <p>Four imperative APIs come with the package, all registered by <code>AddBlaizio()</code>:</p>
         <ul>
-            <li><b><code>ICore</code></b> - the browser-side pieces Blazor cannot provide reliably from C#. <code>FocusAsync</code> (by reference or id) retries across animation frames until the element is actually focusable. That means focusing something during an open animation works, where the built-in <code>ElementReference.FocusAsync</code> silently fails. <code>EnsureGuardsAsync</code> installs the delegated guards behind <code>data-bz-prevent-keys</code> (per-combo <code>preventDefault</code>), <code>data-bz-autoselect</code> and <code>data-bz-autofocus</code>.</li>
-            <li><b><code>IDialogService</code></b> - open any component as a modal and await its result; confirm/alert sugar included. Full guide: <a href="docs/dialog-service">Dialog Service</a>.</li>
-            <li><b><code>IToastService</code></b> - fire-and-forget notifications with promise/loading flows. See <a href="docs/components/toast">Toast</a>.</li>
-            <li><b><code>IThemeService</code></b> - programmatic control of everything the theme switcher touches: light/dark mode, style, color preset, direction, chart palette, radius and fonts - persisted and kept in sync with every switcher on the page.</li>
+            <li><b><code>ICore</code></b> covers the browser-side pieces Blazor cannot provide reliably from C#. <code>FocusAsync</code>, by reference or id, retries across animation frames until the element can actually take focus, so focusing something during an opening animation works where the built-in <code>ElementReference.FocusAsync</code> silently fails. <code>EnsureGuardsAsync</code> installs the page-level handlers behind <code>data-bz-prevent-keys</code> (<code>preventDefault</code> for specific key combinations), <code>data-bz-autoselect</code> and <code>data-bz-autofocus</code>.</li>
+            <li><b><code>IDialogService</code></b> opens any component as a modal and lets you await its result, with shortcuts for confirm and alert dialogs. The full guide is <a href="docs/dialog-service">Dialog Service</a>.</li>
+            <li><b><code>IToastService</code></b> shows notifications without waiting on them, including toasts that track a loading task until it finishes. See <a href="docs/components/toast">Toast</a>.</li>
+            <li><b><code>IThemeService</code></b> gives you control in code over everything the theme switcher touches: light or dark mode, style, color preset, direction, chart palette, radius and fonts. Changes are persisted and kept in sync with every switcher on the page.</li>
         </ul>
         <CodeBlock Snippet="Base/Core" />
         <CodeBlock Snippet="Base/ThemeService" />
@@ -79,22 +79,22 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">The primitive catalog</h2>
-        <p>Every styled component's behavior lives here, and each component page covers the behavior of both layers. The families:</p>
+        <p>Every styled component's behavior lives here, and each component page documents the behavior of both layers. The families are:</p>
         <div class="flex flex-wrap gap-1.5">
             @foreach (var family in Families)
             {
                 <BzBadge Variant="BadgeVariant.Secondary">Base@(family)</BzBadge>
             }
         </div>
-        <p>Plus the building blocks above and the shared plumbing (<code>BasePrimitive</code>, <code>PropBuilder</code>, <code>ControllableState&lt;T&gt;</code>) if you want to author primitives of your own the same way.</p>
+        <p>The package also includes the utilities above and the shared infrastructure (<code>BasePrimitive</code>, <code>PropBuilder</code>, <code>ControllableState&lt;T&gt;</code>) for writing primitives of your own the same way.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Base and the styled layer</h2>
         <ul>
-            <li>Start <b>Base-only</b> and hand-craft your look - nothing else is required.</li>
-            <li>Or run <a href="docs/cli">the CLI</a> and get the styled components as <b>source you own</b> - each one a worked example of dressing these primitives.</li>
-            <li>Mix freely: styled components where they fit, raw primitives where your design diverges. Same behavior, same accessibility, either way.</li>
+            <li>Start <b>Base-only</b> and build your own look. Nothing else is required.</li>
+            <li>Or run <a href="docs/cli">the CLI</a> to get the styled components as <b>source you own</b>. Each one is a worked example of styling these primitives.</li>
+            <li>Mix the two freely: styled components where they fit, raw primitives where your design differs. The behavior and accessibility are the same either way.</li>
         </ul>
     </section>
 </div>

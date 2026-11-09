@@ -8,49 +8,56 @@
             <h1 class="text-2xl font-bold tracking-tight">Panel</h1>
             <DocBadges Slug="panel" />
         </div>
-        <p>An in-flow side panel that pushes its siblings aside instead of overlaying them: no backdrop, no focus trap, so the rest of the page stays interactive - the surface for item details, inspectors, and contextual editors. Because it sits in normal flow it is bounded by whatever parent it lives in: give it the page as a parent for a full-height panel, or any div for a contained one. Needs an overlay that blocks the page instead? That is the <a href="docs/components/sheet">Sheet</a>.</p>
+        <p>A side panel that pushes its siblings aside instead of covering them. There is no backdrop and no focus trap, so the rest of the page stays interactive, which makes it a good fit for item details, inspectors and contextual editors. It sits in normal flow and is bounded by its parent, so place it in the page for a full-height panel or in any container for a contained one. When you need an overlay that blocks the page, use the <a href="docs/components/sheet">Sheet</a>.</p>
     </header>
 
     <UsageBlock Example="typeof(PanelUsageExample)"
-                Description="Make the panel a flex sibling of your main content (a flex parent for Start/End, flex-col for Top/Bottom) and bind Open to any button. While closed the panel is inert - nothing inside it can be tabbed to or read." />
+                Description="Make the panel a flex sibling of your main content and bind `Open` to any button. Use a row flex parent for `Start` and `End`, or `flex-col` for `Top` and `Bottom`. While closed, the panel is inert, so nothing inside it can be tabbed to or read." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. The header and footer stay pinned while the content scrolls; BzPanelClose closes the panel from inside." />
+                     Description="Every part of a panel. The header and footer stay pinned while the content scrolls, and `BzPanelClose` closes the panel from inside." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Resizing</h2>
-        <p>Set <code>Resizable</code> to add a drag handle on the edge that faces the content. The size is clamped between <code>MinSize</code> and <code>MaxSize</code>: any CSS length, and a bare number means px. The drag runs in the browser, so it tracks the pointer with no interop per move. The settled size in px arrives in <code>SizeChanged</code>; persist it and pass it back through <code>Size</code> to restore it.</p>
-        <p>The handle sits centered on the panel's edge and takes the same options as the <a href="docs/components/resizable">Resizable</a> component. <code>Handle</code> picks the affordance: None (a bare strip, no feedback), Line (a thin centered line on hover and drag), or a grip on top of that feedback (Grip, Dots, Knob, Pill). <code>RevealOnHover</code> hides the grip until the handle is hovered, focused or dragged, <code>HandleContent</code> replaces the grip with your own, <code>HandleClass</code> restyles the strip, and <code>Cursor</code> and <code>DragCursor</code> swap the OS resize arrows.</p>
+        <p>Set <code>Resizable</code> to add a drag handle on the edge that faces the content. The size is clamped between <code>MinSize</code> and <code>MaxSize</code>, which accept any CSS length, and a bare number means px. The drag runs in the browser, so it tracks the pointer without an interop call per move.</p>
+        <p>When the drag ends, the size in px arrives in <code>SizeChanged</code>. Persist it and pass it back through <code>Size</code> to restore it on the next visit.</p>
+        <p>The handle sits centered on the panel's edge and takes the same options as the <a href="docs/components/resizable">Resizable</a> component. <code>Handle</code> picks the affordance:</p>
+        <ul>
+            <li><code>None</code> is a bare strip with no visual feedback.</li>
+            <li><code>Line</code> shows a thin centered line on hover and drag.</li>
+            <li><code>Grip</code>, <code>Dots</code>, <code>Knob</code> and <code>Pill</code> add a grip on top of that line.</li>
+        </ul>
+        <p><code>RevealOnHover</code> hides the grip until the handle is hovered, focused or dragged, and <code>HandleContent</code> replaces it with your own. <code>HandleClass</code> restyles the strip, while <code>Cursor</code> and <code>DragCursor</code> replace the OS resize arrows.</p>
     </section>
 
     <ExamplesHeading />
 
     <Demo Title="Default"
-          Description="Open and close animate the panel's width between 0 and Size (a CSS length, 20rem by default): the surface slides in from its docked edge like a sheet while the siblings are pushed aside. The button outside keeps counting while the panel is open - nothing is trapped or covered."
+          Description="Opening and closing animate the panel's width between 0 and `Size`, which defaults to `20rem`, while its siblings move aside. The counter button outside keeps working while the panel is open, because nothing is trapped or covered."
           Example="typeof(PanelDefaultExample)" />
 
     <Demo Title="Sides"
-          Description="Side docks the panel to any edge. Start and End are logical inline edges and flip under RTL; Top and Bottom push along the block axis inside a flex-col parent."
+          Description="`Side` docks the panel to any edge. `Start` and `End` are logical edges that flip in right-to-left layouts, while `Top` and `Bottom` push content vertically inside a `flex-col` parent."
           Example="typeof(PanelSidesExample)" />
 
     <Demo Title="Floating"
-          Description="Variant controls whether the panel reads as part of the content or as its own surface. Attached (the default) sits flat with one shared border; Floating insets it from the edges as a rounded, bordered, shadowed card - composable with everything else, resizing included."
+          Description="`Variant` decides whether the panel reads as part of the content or as its own surface. `Attached`, the default, sits flat with one shared border, while `Floating` insets it from the edges as a rounded card with a border and shadow. Both work with every other option, resizing included."
           Example="typeof(PanelFloatingExample)" />
 
     <Demo Title="Tall scrolling content"
-          Description="A page-level panel should stick to the viewport, not stretch down to where the long content ends. Pin it with Class=&quot;sticky top-0 self-start h-svh&quot; (this demo simulates the page with a scrollable box, so it uses h-96): the page scrolls past while the panel stays one screen tall, its body scrolling independently. Alternative when a column scrolls instead of the page: make the row h-svh and put overflow-y-auto on the main column only."
+          Description="A page-level panel should stay in the viewport instead of stretching down to where long content ends. Pin it with `Class=&quot;sticky top-0 self-start h-svh&quot;` so the page scrolls past while the panel stays one screen tall and scrolls its own body. This demo stands in for the page with a scrollable box, so it uses `h-96`."
           Example="typeof(PanelScrollExample)" />
 
     <Demo Title="Resizable"
-          Description="Resizable adds a drag handle on the content-facing edge, clamped between MinSize and MaxSize; the settled width arrives in SizeChanged. This one uses the Knob grip, revealed on hover."
+          Description="With `Resizable` set, the panel gets a drag handle on its content-facing edge, clamped between `MinSize` and `MaxSize`. This one uses the `Knob` grip and reveals it on hover."
           Example="typeof(PanelResizableExample)" />
 
     <Demo Title="Customization"
-          Description="Every part takes Class. The handle's hover line is colored through HandleClass with after: utilities (the strip itself is the full-height hit area - a plain background would wash the whole edge), HandleContent swaps in a custom grip, and RevealOnHover keeps it quiet until approached."
+          Description="Every part accepts `Class`. Here `HandleClass` colors the handle's hover line with `after:` utilities, since the strip itself is the full-height hit area, and `HandleContent` swaps in a custom grip."
           Example="typeof(PanelCustomExample)" />
 
     <Demo Title="RTL"
-          Description="Side is logical, so under a DirectionProvider the default End panel docks to the left edge and the resize handle's drag direction flips with it."
+          Description="Inside a right-to-left `DirectionProvider`, the default `End` panel docks to the left edge and the resize handle's drag direction flips with it."
           Example="typeof(PanelRtlExample)" />
 </div>
 

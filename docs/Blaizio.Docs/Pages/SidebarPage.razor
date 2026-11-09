@@ -8,40 +8,40 @@
             <h1 class="text-2xl font-bold tracking-tight">Sidebar</h1>
             <DocBadges Slug="sidebar" />
         </div>
-        <p>A composable application sidebar. Wrap your layout in a BzSidebarProvider, then build the panel from a header, scrollable content (groups and menus), and a footer. It collapses to an icon rail or slides off-canvas, becomes a Sheet on mobile, persists its state to a cookie, and toggles with Ctrl/Cmd+B.</p>
+        <p>An application shell sidebar built from small parts: a provider that owns the open state, the panel itself, and an inset for the page beside it. On desktop it collapses off-canvas or down to an icon rail, and below the mobile breakpoint it becomes a sheet instead. Ctrl+B (Cmd+B on a Mac) toggles it from anywhere, and when you leave the state unbound the provider remembers it in a cookie, so the sidebar comes back the way the user left it.</p>
     </header>
 
     <UsageBlock Example="typeof(SidebarUsageExample)"
-                Description="Wrap the page in a BzSidebarProvider, put a BzSidebar (header / content / footer) beside a BzSidebarInset, and drop a BzSidebarTrigger in the inset to toggle it." />
+                Description="Wrap the page in a `BzSidebarProvider`, then place a `BzSidebar` beside a `BzSidebarInset`. A `BzSidebarTrigger` in the inset toggles the panel." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The provider owns the state; the sidebar holds a header, a scrollable content area of groups and menus, and a footer; the inset is the page beside it." />
+                     Description="The provider owns the open state. The sidebar holds a header, a scrollable content area of groups and menus, and a footer, while the inset is the page next to it." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="A full app shell: header logo, nav group with a badge, a footer user menu, and a rounded content surface in the inset. The trigger (or Ctrl/Cmd+B) collapses the sidebar off-canvas and the inset reclaims the space. The demos are framed in a contained box; in your app the provider wraps the whole screen." Example="typeof(SidebarDefaultExample)" />
+    <Demo Title="Default" Description="A complete shell with a logo, a navigation group, a footer user menu and a content surface. The trigger or Ctrl/Cmd+B slides the sidebar off-canvas and the inset takes back the space. These demos sit in a framed box, while in your app the provider wraps the whole screen." Example="typeof(SidebarDefaultExample)" />
 
-    <Demo Title="Collapse to icons" Description="With CollapseMode=Icon the sidebar shrinks to a narrow rail of icons instead of vanishing - labels hide, rows become square, and each row reveals its label as a tooltip on hover (set Tooltip on the menu button). Toggle it to see the rail." Example="typeof(SidebarIconExample)" />
+    <Demo Title="Collapse to icons" Description="Set `CollapseMode` to `SidebarCollapsible.Icon` and the sidebar shrinks to a rail of icons instead of disappearing. Labels hide and rows turn square, and a row with `Tooltip` set on its menu button shows its label on hover." Example="typeof(SidebarIconExample)" />
 
-    <Demo Title="Trigger in the sidebar header" Description="The trigger works anywhere under the provider, including the sidebar's own header. Here it sits next to the logo, hides when the sidebar collapses to the rail, and clicking the logo expands it again." Example="typeof(SidebarHeaderTriggerExample)" />
+    <Demo Title="Trigger in the sidebar header" Description="A `BzSidebarTrigger` works anywhere under the provider, including the sidebar's own header. Here it sits next to the logo and hides when the sidebar collapses to the rail, where a click on the logo expands it again." Example="typeof(SidebarHeaderTriggerExample)" />
 
-    <Demo Title="Variants" Description="Three surfaces, one per tab. Sidebar is flush to the edge; Floating detaches into a rounded, bordered card; Inset pairs a flush sidebar with a lifted content card (collapse to icons here too)." Example="typeof(SidebarVariantsExample)" />
+    <Demo Title="Variants" Description="`Variant` picks the surface, one per tab. `Sidebar` sits flush against the edge, `Floating` detaches into a rounded, bordered card, and `Inset` pairs a flush sidebar with the page content lifted into a card." Example="typeof(SidebarVariantsExample)" />
 
-    <Demo Title="Submenus, actions and badges" Description="Nest a BzSidebarMenuSub under a row for child links, pin a BzSidebarMenuBadge (e.g. a count) to a row, and add a BzSidebarMenuAction for a trailing button. A group can carry a BzSidebarGroupAction in its corner." Example="typeof(SidebarRichExample)" />
+    <Demo Title="Submenus, actions and badges" Description="Nest a `BzSidebarMenuSub` under a row for child links, add a `BzSidebarMenuBadge` for a count, and use `BzSidebarMenuAction` for a trailing button. A whole group can also carry a `BzSidebarGroupAction` in its corner." Example="typeof(SidebarRichExample)" />
 
-    <Demo Title="Collapsible sections" Description="Wrap a menu row in a BzCollapsible and make the button its trigger (via RenderAs) to expand and collapse a nested BzSidebarMenuSub. The chevron rotates with the section's open state. The header also holds a BzSidebarInput." Example="typeof(SidebarCollapsibleExample)" />
+    <Demo Title="Collapsible sections" Description="Wrap a menu row in a `BzCollapsible` and use `RenderAs` to make the menu button its trigger, so the row expands and collapses a nested `BzSidebarMenuSub`. The chevron rotates with the open state." Example="typeof(SidebarCollapsibleExample)" />
 
-    <Demo Title="User menu" Description="The footer user row opens a BzDropdownMenu: pass the trigger behavior onto the BzSidebarMenuButton with RenderAs, and style its open state via data-state. The menu carries the avatar, account items and sign-out." Example="typeof(SidebarUserMenuExample)" />
+    <Demo Title="User menu" Description="The footer user row opens a `BzDropdownMenu`. `RenderAs` applies the menu trigger's attributes to the `BzSidebarMenuButton`, and `data-state` lets you style the row while the menu is open." Example="typeof(SidebarUserMenuExample)" />
 
-    <Demo Title="Loading state" Description="Render a stack of BzSidebarMenuSkeleton while the menu data loads - each gets a randomized text width so the placeholder reads naturally. Set ShowIcon for a leading icon block." Example="typeof(SidebarSkeletonExample)" />
+    <Demo Title="Loading state" Description="Render a stack of `BzSidebarMenuSkeleton` while the menu data loads. Each one picks a random text width so the placeholder looks like real labels, and `ShowIcon` adds a leading icon block." Example="typeof(SidebarSkeletonExample)" />
 
-    <Demo Title="End side" Description="Anchor the sidebar to the inline-end edge with Side=End - the panel, its border and its collapse direction all flip to the other side. Pass ChildContent to the trigger to swap its default glyph for a right-side collapse arrow." Example="typeof(SidebarEndExample)" />
+    <Demo Title="End side" Description="Set `Side` to `End` to anchor the sidebar to the inline-end edge. The panel, its border and its collapse direction all move to that side, and here the trigger's `ChildContent` swaps in a matching arrow." Example="typeof(SidebarEndExample)" />
 
-    <Demo Title="Controlled" Description="Bind the open state two-way to drive the sidebar from your own state, or read it. The keyboard shortcut and the trigger update the same value." Example="typeof(SidebarControlledExample)" />
+    <Demo Title="Controlled" Description="Bind `Open` on the provider when your own code needs to read or set the state. The keyboard shortcut and the trigger update the same value." Example="typeof(SidebarControlledExample)" />
 
-    <Demo Title="Customization" Description="Every part is customizable: set the panel width on the provider, and restyle any part via Class - here a branded gradient header and an indigo active row - merged over the defaults." Example="typeof(SidebarCustomExample)" />
+    <Demo Title="Customization" Description="Every part accepts `Class`, merged over the defaults, and the provider sets the panel `Width`. This example adds a gradient header and an indigo active row." Example="typeof(SidebarCustomExample)" />
 
-    <Demo Title="RTL" Description="Side is logical (Start/End), so under a right-to-left DirectionProvider a Start sidebar moves to the right edge and the content flows right-to-left - no extra configuration." Example="typeof(SidebarRtlExample)" />
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, a `Start` sidebar moves to the right edge and its contents flow right to left, because `Side` is logical rather than physical." Example="typeof(SidebarRtlExample)" />
 
 </div>
 

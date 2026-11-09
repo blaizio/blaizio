@@ -8,21 +8,21 @@
             <h1 class="text-2xl font-bold tracking-tight">Icons</h1>
             <DocBadges Slug="icons" />
         </div>
-        <p>Five icon sets - Tabler, Lucide, Phosphor, Remix Icon and Hugeicons - rendered by one component, <code>BzIcon</code>. Every member (<code>Tabler.Outline.Home</code>, <code>Lucide.Outline.House</code>, <code>Phosphor.Bold.House</code>...) is a typed <code>Icon</code> value that carries its own paint, grid and stroke width, so a single value is all you pass and the sets mix freely. Color follows <code>currentColor</code>; size it with a CSS class.</p>
+        <p>One component, <code>BzIcon</code>, renders five icon sets: Tabler, Lucide, Phosphor, Remix Icon and Hugeicons. Every member, such as <code>Tabler.Outline.Home</code> or <code>Phosphor.Bold.House</code>, is a typed <code>Icon</code> value that carries its own paint, grid and stroke width. You pass that single value and nothing else, so icons from different sets mix freely. Color follows <code>currentColor</code>, and a CSS class sets the size.</p>
     </header>
 
     <UsageBlock Example="typeof(IconsUsageExample)"
-                Description="Pass a typed Icon - no string, no family flag. Every set is one package away; the CLI installs Tabler, the set the components use." />
+                Description="Pass a typed `Icon` with no string name or family flag. Each set is a separate package, and the CLI installs Tabler, the set the components use." />
 
     <section class="space-y-4">
         <h2 data-toc class="scroll-mt-20">Browse</h2>
-        <p>Every icon of every set, live. Pick the set and the family, filter by name, and click an icon to copy the member you pass to <code>BzIcon</code>.</p>
+        <p>Every icon in every set. Pick a set and a family, filter by name, and click an icon to copy the member you pass to <code>BzIcon</code>.</p>
         <IconBrowser />
     </section>
 
     <section class="space-y-4">
         <h2 data-toc class="scroll-mt-20">Sets and packages</h2>
-        <p><code>Blaizio.Icons</code> carries <code>BzIcon</code> and the <code>Icon</code> type; every set is a package on top of it, so an app only ships the sets it uses. The <code>blaizio</code> CLI installs <code>Blaizio.Icons.Tabler</code> with every project - the styled components draw from it. The set packages are versioned together with <code>Blaizio.Icons</code>, and <code>blaizio update</code> moves the ones your project references in lockstep.</p>
+        <p><code>Blaizio.Icons</code> contains <code>BzIcon</code> and the <code>Icon</code> type, and every set is a separate package on top of it, so an app only ships the sets it uses. The <code>blaizio</code> CLI installs <code>Blaizio.Icons.Tabler</code> with every project, because the styled components draw from it. The set packages are versioned together with <code>Blaizio.Icons</code>, and <code>blaizio update</code> moves the ones your project references in lockstep.</p>
         <div class="overflow-x-auto">
             <table>
                 <thead>
@@ -40,55 +40,57 @@
         <p>Add another set either way:</p>
         <ul>
             <li><b>Package manager</b>: <code>dotnet add package Blaizio.Icons.Lucide</code>. Keep it on the same version as <code>Blaizio.Icons</code>; they release together.</li>
-            <li><b>CLI</b>: <code>--icons &lt;set&gt;</code> on <code>new</code>, <code>add</code> or <code>apply</code>. This is more than a package install: it makes the set the one the <em>components</em> draw with - the package replaces Tabler's and <code>BzGlyphs.cs</code> is retargeted. The Icons knob on <a href="themes">Themes</a> puts the same choice into a preset code (a <code>.N</code> segment). The CLI never removes a set's package. Details and every form on the <a href="docs/cli#icon-sets">CLI page</a>.</li>
+            <li><b>CLI</b>: <code>--icons &lt;set&gt;</code> on <code>new</code>, <code>add</code> or <code>apply</code>. This does more than install a package: it makes the set the one the <em>components</em> draw with, so the package replaces Tabler's and <code>BzGlyphs.cs</code> is retargeted. The Icons control on <a href="themes">Themes</a> stores the same choice in a preset code as a <code>.N</code> segment. The CLI never removes a set's package. The <a href="docs/cli#icon-sets">CLI page</a> covers the details and every form of the option.</li>
         </ul>
         <CodeBlock Code="blaizio apply --icons lucide" Language="bash" />
         <p>Whichever way a set arrived, <code>blaizio update</code> moves every <code>Blaizio.Icons.*</code> package the project references in lockstep with <code>Blaizio.Base</code>.</p>
-        <p>The components themselves never name a set. The glyphs they draw with - the check in a select item, the chevron on a trigger, the grip on a sortable row, the spinner - resolve through <code>BzGlyphs.cs</code>, a file the <code>utils</code> item puts in your components folder: 42 members, each pointing at a Tabler icon by default. <code>blaizio add --icons lucide</code> (or <code>apply --icons lucide</code> later) retargets every member to Lucide's equivalents; retarget one by hand (<code>public static Icon X => Lucide.Outline.X;</code>) to swap a single glyph. <code>blaizio update</code> re-pulls the file against the recorded set, so a CLI-chosen set survives updates; a member you edited by hand is offered back to you like any other local edit.</p>
-        <p>The icon data keeps each set's own license (shipped as <code>THIRD-PARTY-LICENSE.txt</code> in the package); the package code is MIT like the rest of Blaizio. Remix Icon is generated from its v4.8.0 release, the last one published under Apache-2.0: later releases moved to the Remix Icon License, which does not allow the set to ship as a standalone package.</p>
+        <p>The components themselves never name a set. The glyphs they draw, such as the check in a select item, the chevron on a trigger, the grip on a sortable row and the spinner, resolve through <code>BzGlyphs.cs</code>. The <code>utils</code> item puts this file in your components folder with 42 members, each pointing at a Tabler icon by default.</p>
+        <p><code>blaizio add --icons lucide</code>, or <code>apply --icons lucide</code> later, retargets every member to the Lucide equivalent. To swap a single glyph, retarget its member by hand, for example <code>public static Icon X =&gt; Lucide.Outline.X;</code>. <code>blaizio update</code> pulls the file again against the recorded set, so a set chosen through the CLI survives updates, and a member you edited by hand is offered back to you like any other local edit.</p>
+        <p>The icon data keeps each set's own license, shipped as <code>THIRD-PARTY-LICENSE.txt</code> in the package, while the package code is MIT like the rest of Blaizio. Remix Icon is generated from its v4.8.0 release, the last one published under Apache-2.0. Later releases moved to the Remix Icon License, which does not allow the set to ship as a standalone package.</p>
     </section>
 
     <section class="space-y-4">
         <h2 data-toc class="scroll-mt-20">Migrating from 0.1</h2>
-        <p>Before 0.2.0 the Tabler set lived inside <code>Blaizio.Icons</code> as <code>Icons.Outline.*</code> / <code>Icons.Filled.*</code>. It now ships as its own package, <code>Blaizio.Icons.Tabler</code>, under <code>Tabler.Outline.*</code> / <code>Tabler.Filled.*</code>; every icon keeps its name. <code>blaizio update</code> adds the package to a project that predates the split and re-pulls the components, which already use the new members. Your own references are a rename - the compiler lists every leftover as <code>error CS0103: The name 'Icons' does not exist in the current context</code>:</p>
+        <p>Before 0.2.0, the Tabler set lived inside <code>Blaizio.Icons</code> as <code>Icons.Outline.*</code> and <code>Icons.Filled.*</code>. It now ships as its own package, <code>Blaizio.Icons.Tabler</code>, under <code>Tabler.Outline.*</code> and <code>Tabler.Filled.*</code>, and every icon keeps its name. <code>blaizio update</code> adds the package to a project that predates the split and pulls the components again, which already use the new members.</p>
+        <p>Your own references only need a rename. The compiler reports every one that is left as <code>error CS0103: The name 'Icons' does not exist in the current context</code>, and this command renames them all:</p>
         <CodeBlock Code="grep -rlE '\bIcons\.(Outline|Filled)\.' --include=*.razor --include=*.cs . | xargs sed -i -E 's/\bIcons\.(Outline|Filled)\./Tabler.\1./g'" Language="bash" />
-        <p>Two more things move with it. <code>Blaizio.Base</code> 0.2.x depends on <code>Microsoft.AspNetCore.Components</code> 10.0.11, so a csproj pinned at 10.0.10 fails restore with <code>NU1605</code> (package downgrade) until its <code>Microsoft.AspNetCore.Components.*</code> references move to 10.0.11. And a project that consumed the packages from a local feed before they reached nuget.org can drop that <code>NuGet.config</code> source: 0.2.0 and later are on nuget.org.</p>
+        <p>Two more things change with it. <code>Blaizio.Base</code> 0.2.x depends on <code>Microsoft.AspNetCore.Components</code> 10.0.11, so a csproj pinned at 10.0.10 fails restore with <code>NU1605</code>, a package downgrade, until its <code>Microsoft.AspNetCore.Components.*</code> references move to 10.0.11. And a project that used the packages from a local feed before they reached nuget.org can remove that <code>NuGet.config</code> source, because 0.2.0 and later are on nuget.org.</p>
     </section>
 
     <ExamplesHeading />
 
-    <Demo Title="Basic" Description="Pass an Icon from Tabler.Outline or Tabler.Filled - no string, no family flag."
+    <Demo Title="Basic" Description="Pass an `Icon` from `Tabler.Outline` or `Tabler.Filled`. There is no string name and no family flag."
           Example="typeof(IconsBasicExample)" />
 
-    <Demo Title="Outline and filled" Description="Tabler's two families; the Icon carries which it is."
+    <Demo Title="Outline and filled" Description="Tabler comes in two families, and each `Icon` value already carries which one it belongs to."
           Example="typeof(IconsFamiliesExample)" />
 
-    <Demo Title="Five sets, one component" Description="The same house from each set. Every Icon knows its grid and stroke width - Phosphor's 256 grid, Hugeicons' 1.5 stroke - so BzIcon renders all of them at their true weight with no parameter."
+    <Demo Title="Five sets, one component" Description="The same house from each set. Every `Icon` knows its own grid and stroke width, such as the 256 grid of Phosphor or the 1.5 stroke of Hugeicons, so `BzIcon` renders each one at its true weight without any parameter."
           Example="typeof(IconsSetsExample)" />
 
-    <Demo Title="Weights" Description="Phosphor's six weights are six families: the weight is part of the member, not a parameter."
+    <Demo Title="Weights" Description="The six Phosphor weights are six families, so the weight is part of the member rather than a parameter."
           Example="typeof(IconsWeightsExample)" />
 
-    <Demo Title="Sizing" Description="Set the size with a class (e.g. Tailwind size-*); the stroke scales with it."
+    <Demo Title="Sizing" Description="Set the size with a class, such as a Tailwind `size-*` utility, and the stroke scales with it."
           Example="typeof(IconsSizingExample)" />
 
-    <Demo Title="Customization" Description="Color follows currentColor, so tint an icon with any text-* utility - or drop it into a colored chip. Size and color are pure classes."
+    <Demo Title="Customization" Description="Color follows `currentColor`, so any `text-*` utility tints an icon, and so does placing it in a colored chip. Size and color both come from classes alone."
           Example="typeof(IconsCustomExample)" />
 
-    <Demo Title="With tooltip" Description="Wrap an icon in a Tooltip for an accessible hint - the icon (in a span, so it can receive focus and hover) is the trigger via RenderAs."
+    <Demo Title="With tooltip" Description="Wrap an icon in a `Tooltip` for an accessible hint. Through `RenderAs`, the trigger is a span around the icon so it can receive focus and hover."
           Example="typeof(IconsTooltipExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider - the icon row mirrors and flows from the right."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the row of icons mirrors and starts from the right."
           Example="typeof(IconsRtlExample)" />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Bundle size: you only ship what you use</h2>
-        <p>Each package carries a whole set - Tabler about 6,200 icons, Lucide 1,800, Phosphor 9,000 across its weights, Remix 3,200, Hugeicons 6,000 - and a real app references a few dozen. Only those ship.</p>
+        <p>Each package carries a whole set: about 6,200 icons for Tabler, 1,800 for Lucide, 9,000 for Phosphor across its weights, 3,200 for Remix and 6,000 for Hugeicons. A real app references a few dozen, and only those ship.</p>
         <BzAlert>
             <BzIcon Icon="@Tabler.Outline.InfoCircle" />
             <BzAlertTitle>Trimming keeps only the icons you reference</BzAlertTitle>
             <BzAlertDescription>
-                <p>Every icon package is trimmable: each icon is a self-contained property with no whole-set constructor, so a Blazor WebAssembly Release publish with <code>PublishTrimmed</code> (on by default) drops every icon the app never references. On this site that takes <code>Blaizio.Icons.Tabler</code> from about 3.2 MB to about 5 KB over the wire. The browser above loads its icons from JSON on demand for the same reason.</p>
+                <p>Every icon package is trimmable. Each icon is a self-contained property with no constructor that builds the whole set, so a Blazor WebAssembly Release publish with <code>PublishTrimmed</code>, which is on by default, drops every icon the app never references. On this site that takes <code>Blaizio.Icons.Tabler</code> from about 3.2 MB to about 5 KB over the wire. The browser above loads its icons from JSON on demand for the same reason.</p>
                 <p>Two things defeat it: turning <code>PublishTrimmed</code> off, and reaching icons through reflection instead of a direct member such as <code>Tabler.Outline.Home</code>.</p>
                 <p>Measure the real payload in <code>publish/wwwroot/_framework</code> after a Release publish. The copy under <code>bin/</code> that <code>build</code> and <code>dotnet run</code> serve is untrimmed. On Blazor Server the assembly loads on the host and nothing is downloaded.</p>
             </BzAlertDescription>

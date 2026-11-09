@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold tracking-tight">Chart</h1>
             <DocBadges Slug="chart" />
         </div>
-        <p>Pure-SVG bar, line, area, scatter, pie, radar, and radial-bar charts - no JS chart library. Declare series and options as children; colors come from the --chart-1..5 theme tokens, entry animation is CSS-only (reduced-motion aware), and the hover tooltip needs an interactive render mode.</p>
+        <p>Charts drawn as plain SVG by Blazor components, with no JavaScript chart library behind them. You declare series, axes, the tooltip and the legend as child components, and colors come from the <code>--chart-1</code> to <code>--chart-5</code> theme tokens, so every chart follows the active theme. Entry animations are pure CSS and respect reduced motion, while the hover tooltip needs an interactive render mode.</p>
         <div class="flex items-center gap-2 text-sm">
             <a href="charts" class="bg-muted text-foreground hover:bg-muted/70 rounded-md px-2 py-0.5 font-medium no-underline">Charts gallery</a>
         </div>
@@ -17,48 +17,48 @@
     <UsageBlock Example="typeof(ChartUsageExample)" />
 
     <CompositionTree Root="Anatomy"
-                     Description="The cartesian anatomy - mix any number of bar, line, and area series; every option child is optional. BzPieChart, BzRadarChart (with BzRadarSeries), and BzRadialBarChart are sibling roots that share BzChartTooltip and BzChartLegend." />
+                     Description="The parts of a cartesian chart. Mix any number of bar, line and area series, and leave out any of the other children you don't need. `BzPieChart`, `BzRadarChart` with `BzRadarSeries`, and `BzRadialBarChart` are separate roots that share `BzChartTooltip` and `BzChartLegend`." />
 
     <ExamplesHeading />
 
     <Demo Title="Bar"
-          Description="Multiple bar series render grouped side by side."
+          Description="Several bar series render as groups, side by side in each category."
           Example="typeof(ChartBarExample)" />
 
     <Demo Title="Stacked bars"
-          Description="Set Stacked on the chart to stack bar (and area) series instead of grouping them."
+          Description="Set `Stacked` on the chart to stack bar and area series instead of grouping them."
           Example="typeof(ChartBarStackedExample)" />
 
     <Demo Title="Line"
-          Description="Curved draws a monotone curve - smooth, but it never overshoots the data."
+          Description="`Curved` draws a monotone curve, which is smooth but never overshoots the data."
           Example="typeof(ChartLineExample)" />
 
     <Demo Title="Area"
-          Description="Stacked and curved together - each layer's curve follows the layer below, so the layers never gap or overlap."
+          Description="With `Stacked` and `Curved` together, each layer's curve follows the layer below it, so the layers never leave a gap or overlap."
           Example="typeof(ChartAreaExample)" />
 
     <Demo Title="Scatter"
-          Description="XValue switches the x axis from category bands to a linear scale; hover snaps to the nearest point."
+          Description="`XValue` switches the x axis from category bands to a linear scale. Hovering snaps the tooltip to the nearest point."
           Example="typeof(ChartScatterExample)" />
 
     <Demo Title="Composed"
-          Description="Series kinds mix freely on one scale - bars for actuals, a line for the target."
+          Description="Different series kinds share one scale. Here bars show the actual values and a line shows the target."
           Example="typeof(ChartComposedExample)" />
 
     <Demo Title="Pie / Donut"
-          Description="BzPieChart shares the tooltip and legend children; InnerRadius makes the donut and CenterContent fills the hole."
+          Description="`BzPieChart` takes the same tooltip and legend children. Set `InnerRadius` to turn it into a donut, and use `CenterContent` to fill the hole."
           Example="typeof(ChartPieExample)" />
 
     <Demo Title="Radar"
-          Description="One spoke per item, one translucent polygon per BzRadarSeries."
+          Description="Each item gets a spoke, and each `BzRadarSeries` draws one translucent polygon across them."
           Example="typeof(ChartRadarExample)" />
 
     <Demo Title="Radial bar"
-          Description="Concentric arcs over a muted track, drawn in with a CSS stroke animation."
+          Description="Concentric arcs over a muted track. A CSS stroke animation draws them in on first render."
           Example="typeof(ChartRadialBarExample)" />
 
     <Demo Title="RTL"
-          Description="Wrapped in a DirectionProvider with Arabic or Hebrew labels - categories flow right-to-left and the value axis moves to the right edge."
+          Description="Inside a right-to-left `DirectionProvider`, the categories run from right to left and the value axis moves to the right edge."
           Example="typeof(ChartRtlExample)" />
 </div>
 

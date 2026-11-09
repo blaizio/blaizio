@@ -8,7 +8,7 @@
             <BzBadge Variant="BadgeVariant.Secondary">distribution</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">static JSON</BzBadge>
         </div>
-        <p class="max-w-3xl">A registry is how Blaizio distributes source. It is a set of JSON files on any static host: no server code, no database, no accounts. The official components are published through one, and you can operate your own to distribute components, enhanced variants of the built-ins, themes or fonts. Consumers install from it with the same <code>blaizio add</code> they already use.</p>
+        <p class="max-w-3xl">A registry is how Blaizio distributes source code. It is a set of JSON files on any static host, with no server code, no database and no accounts. The official components are published through one, and you can run your own to distribute components, enhanced variants of the built-ins, themes or fonts, which consumers install with the same <code>blaizio add</code> they already use.</p>
     </header>
 
     <section>
@@ -36,8 +36,8 @@
         <h2 data-toc class="scroll-mt-20">Who runs one</h2>
         <ul>
             <li><b>A team with house components.</b> One registry serves every application, and each application still owns the source it received.</li>
-            <li><b>A library author.</b> Distribute components as source rather than as a package, so consumers can read and modify them.</li>
-            <li><b>A theme author.</b> A theme item carries token values only, no files, and installs by patching the consumer's tokens file.</li>
+            <li><b>A library author.</b> Components ship as source rather than as a package, so consumers can read and modify them.</li>
+            <li><b>A theme author.</b> A theme item carries only token values, no files, and installs by patching the consumer's tokens file.</li>
             <li><b>A monorepo.</b> A registry can be a local folder path rather than a URL, so a shared component tree works without publishing anything.</li>
         </ul>
     </section>
@@ -58,13 +58,13 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Versioning</h2>
-        <p>A registry may stamp its items with a <code>version</code>, in a scheme of its own choosing: the CLI never orders versions, it only matches them. That enables pinning end to end:</p>
+        <p>A registry may stamp its items with a <code>version</code>, in a scheme of its own choosing. The CLI never orders versions, it only matches them, and that is enough to support pinning end to end:</p>
         <ul>
-            <li><b><code>blaizio add button@1.2.0</code></b> installs exactly that version and records the pin in <code>blaizio.json</code>. <code>update</code> and <code>add --diff</code> re-request a pinned item at its pin; a later plain <code>add button</code> removes the pin.</li>
-            <li><b>Dependencies respect pins.</b> Installing an item whose dependency is pinned pulls the pinned version, never silently past it.</li>
+            <li><b><code>blaizio add button@1.2.0</code></b> installs exactly that version and records the pin in <code>blaizio.json</code>. <code>update</code> and <code>add --diff</code> request a pinned item at its pinned version, and a later plain <code>add button</code> removes the pin.</li>
+            <li><b>Dependencies respect pins.</b> Installing an item whose dependency is pinned installs the pinned version, never a newer one.</li>
             <li><b><code>nugetDependencies</code> pin with <code>Id@1.2.0</code>.</b> A bare id still resolves to the latest version.</li>
-            <li><b>Honest refusal.</b> A registry backed by a server serves a pinned request from its history (the <code>?version=</code> query); a static one can only serve the current version, so a mismatch fails the add cleanly instead of installing the wrong thing.</li>
+            <li><b>Mismatches fail cleanly.</b> A registry backed by a server serves a pinned request from its history (the <code>?version=</code> query). A static one can only serve the current version, so a mismatch fails the add instead of installing the wrong version.</li>
         </ul>
-        <p>Agent access: <code>blaizio mcp</code> runs an MCP server so an assistant can search a registry and install from it. Details on <a href="docs/cli">the CLI page</a>.</p>
+        <p>For AI assistants, <code>blaizio mcp</code> runs an MCP server that lets an assistant search a registry and install from it. The <a href="docs/cli">CLI page</a> has the details.</p>
     </section>
 </div>

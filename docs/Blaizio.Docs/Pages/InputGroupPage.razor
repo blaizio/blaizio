@@ -8,67 +8,67 @@
             <h1 class="text-2xl font-bold tracking-tight">Input Group</h1>
             <DocBadges Slug="input-group" />
         </div>
-        <p>Wrap an input or textarea with addons - icons, text, or buttons - inside one bordered, focusable box. Addons sit inline (before or after) or in a full-width block above or below the control. It is the shell the Combobox input is built on.</p>
+        <p>One bordered, focusable box around an input or textarea and its addons, which can hold icons, text or buttons. Addons sit inline before or after the control, or span the full width above or below it. The group supplies the shared border, focus ring and invalid state, and the Combobox input is built on it.</p>
     </header>
 
     <UsageBlock Example="typeof(InputGroupUsageExample)"
-                Description="Import Blaizio.Ui once, then wrap a control with addons. An inline-start addon renders before the control regardless of DOM order." />
+                Description="Import `Blaizio.Ui` once, then wrap a control with addons. An addon with `Align` set to `InlineStart` renders before the control wherever it sits in the markup." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. The group wraps one control plus any number of addons; each addon clusters icons, text, or buttons against one edge." />
+                     Description="The group wraps one control and any number of addons. Each addon clusters icons, text or buttons against one edge." />
 
     <ExamplesHeading />
 
-    <Demo Title="Icon" Description="A leading icon in an inline-start addon."
+    <Demo Title="Icon" Description="An inline-start addon puts an icon in front of the field."
           Example="typeof(InputGroupIconExample)" />
 
-    <Demo Title="Debounced search" Description="InputGroupInput forwards DebounceDelay to the inner field - ValueChanged fires after the typing pause, one change per burst. A trailing spinner shows while the (simulated) search runs; the second field also waits for at least 3 characters before it searches."
+    <Demo Title="Debounced search" Description="`BzInputGroupInput` forwards `DebounceDelay` to the field it wraps, so `ValueChanged` fires once per burst of typing. A trailing spinner shows while the simulated search runs, and the second field waits for at least 3 characters before it searches."
           Example="typeof(InputGroupDebounceExample)" />
 
-    <Demo Title="Text affixes" Description="InputGroupText for a prefix or suffix - a protocol, unit, or domain. The whole box focuses when you click anywhere in it."
+    <Demo Title="Text affixes" Description="Use `BzInputGroupText` for a prefix or suffix such as a protocol, unit or domain. Clicking anywhere in the box focuses the control."
           Example="typeof(InputGroupTextExample)" />
 
-    <Demo Title="Button" Description="An InputGroupButton in a trailing addon - sized to sit flush inside the group."
+    <Demo Title="Button" Description="A `BzInputGroupButton` in a trailing addon is sized to sit flush inside the group."
           Example="typeof(InputGroupButtonExample)" />
 
-    <Demo Title="Keyboard shortcut" Description="A Kbd in a trailing addon hints at the shortcut that focuses the field."
+    <Demo Title="Keyboard shortcut" Description="A `BzKbd` in a trailing addon hints at the shortcut that focuses the field."
           Example="typeof(InputGroupKbdExample)" />
 
-    <Demo Title="Dropdown" Description="An InputGroupButton in an addon opens a DropdownMenu - here a country-code picker beside a phone number."
+    <Demo Title="Dropdown" Description="A `BzInputGroupButton` in an addon can open a `BzDropdownMenu`. Here it is a country-code picker beside a phone number."
           Example="typeof(InputGroupDropdownExample)" />
 
-    <Demo Title="Split button" Description="No control at all - the group shell borders a primary action plus a dropdown of alternatives, split by a vertical Separator."
+    <Demo Title="Split button" Description="The group also works without a control. Here it borders a primary action and a dropdown of alternatives, divided by a vertical `BzSeparator`."
           Example="typeof(InputGroupSplitButtonExample)" />
 
-    <Demo Title="Spinner" Description="A Spinner in an addon marks a busy field - for example while a value is validated."
+    <Demo Title="Spinner" Description="A `BzSpinner` in an addon marks the field as busy, for example while a value is being validated."
           Example="typeof(InputGroupSpinnerExample)" />
 
-    <Demo Title="Custom control" Description="Any control works, not just InputGroupInput - give it the input-group-control data-slot and the group lends it the shared border, focus ring, and invalid state. Here, a native select."
+    <Demo Title="Custom control" Description="Any control can join the group, not only `BzInputGroupInput`. Give it `data-slot=&quot;input-group-control&quot;` and it picks up the shared border, focus ring and invalid state. Here the control is a native select."
           Example="typeof(InputGroupCustomControlExample)" />
 
-    <Demo Title="Textarea with a toolbar" Description="Rows turns InputGroupInput multi-line, same as on InputText. A block-end addon spans the full width and stacks below the control - here a formatting toolbar of icon buttons with the submit pushed to the end."
+    <Demo Title="Textarea with a toolbar" Description="`Rows` makes `BzInputGroupInput` multi-line, as it does on `BzInputText`. A block-end addon spans the full width below the control, here holding a formatting toolbar with the submit button pushed to the end."
           Example="typeof(InputGroupTextareaExample)" />
 
-    <Demo Title="Chat composer" Description="An AI-chat send box against a MessageScroller transcript: Rows=1 starts one line tall and the control grows with its content - bottom of a fixed column, so it expands upward. PreventKeys=&quot;enter&quot; suppresses the newline JS-side so a bare Enter sends cleanly from OnKeyDown, Shift+Enter adds a line, and past ten lines a max-h cap and scrollbar-thin take over."
+    <Demo Title="Chat composer" Description="A chat composer below a `BzMessageScroller` transcript. With `Rows` set to 1 it starts one line tall and grows upward with its content, then scrolls once it passes ten lines. `PreventKeys=&quot;enter&quot;` stops the newline in the browser so a bare Enter sends from `OnKeyDown`, while Shift+Enter still adds a line."
           Example="typeof(InputGroupChatExample)" />
 
-    <Demo Title="Invalid" Description="aria-invalid on the control turns the whole group destructive - here forced; a Field normally sets it."
+    <Demo Title="Invalid" Description="Setting `aria-invalid` on the control turns the whole group destructive. It is forced here; inside a `BzField` it is set for you."
           Example="typeof(InputGroupInvalidExample)" />
 
-    <Demo Title="Invalid in a form" Description="Inside an EditForm, FieldControl wires aria-invalid from validation. Submit with an empty or malformed email to see the group turn destructive and the error appear."
+    <Demo Title="Invalid in a form" Description="Inside an `EditForm`, `BzFieldControl` sets `aria-invalid` from validation. Submit with an empty or malformed email to see the group turn destructive and the error appear."
           Example="typeof(InputGroupFormInvalidExample)" />
 
-    <Demo Title="Programmatic focus" Description="Hold a reference to the control and call FocusAsync to move the keyboard yourself - sending clears the draft and returns the caret to the composer, so you keep typing without reaching for the mouse. InputGroupInput forwards the call to the field it wraps."
+    <Demo Title="Programmatic focus" Description="Keep a reference to the control and call `FocusAsync` to move focus from code. Here sending clears the draft and returns the caret to the composer, so you can keep typing. `BzInputGroupInput` forwards the call to the field it wraps."
           Example="typeof(InputGroupFocusMethodExample)" />
 
-    <Demo Title="Disabled" Description="Disable the control; it grays out and stops accepting input."
+    <Demo Title="Disabled" Description="A disabled control grays out and stops accepting input."
           Example="typeof(InputGroupDisabledExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle the box via Class on the group - here a pill shell with an emerald focus ring and a tinted leading icon."
+          Description="`Class` on the group restyles the whole box. This example makes a pill with an emerald focus ring and a tinted leading icon."
           Example="typeof(InputGroupCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider - the addons flip to the opposite side."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, inline-start and inline-end addons swap sides."
           Example="typeof(InputGroupRtlExample)" />
 
 </div>

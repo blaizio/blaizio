@@ -8,13 +8,13 @@
             <BzBadge Variant="BadgeVariant.Secondary">Registry</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">nothing to host</BzBadge>
         </div>
-        <p class="max-w-3xl">A public repository can be a registry as it stands: commit a <code>registry.json</code> next to your components and consumers install from <code>owner/repo/item</code>. No build step, no host, no namespace to record.</p>
+        <p class="max-w-3xl">A public repository can work as a registry as it stands. Commit a <code>registry.json</code> next to your components and consumers install from <code>owner/repo/item</code>, with no build step, no hosting and no namespace to record.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Installing</h2>
         <CodeBlock Snippet="Registry/Repository" />
-        <p>The first two segments are the repository; the third is an item <em>name</em> from its manifest, never a file path. Everything after <code>#</code> is a git ref: a branch, a tag, or a full commit. Without one, the repository's default branch is read, so what you install can change between runs; pin a tag or a commit for anything you depend on.</p>
+        <p>The first two segments are the repository, and the third is an item <em>name</em> from its manifest, never a file path. Everything after <code>#</code> is a git ref: a branch, a tag, or a full commit. Without a ref the CLI reads the repository's default branch, so what you install can change between runs. Pin a tag or a commit for anything you depend on.</p>
     </section>
 
     <section>
@@ -28,7 +28,7 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Publishing this way</h2>
-        <p>Commit the manifest at the root, keep <CmdChip Command="blaizio registry validate" /> in CI, and tag your releases. That is the whole pipeline: consumers install from tags, and the repository is the distribution.</p>
+        <p>Commit <code>registry.json</code> at the repository root, keep <CmdChip Command="blaizio registry validate" /> in CI, and tag your releases. Nothing more is needed, because consumers install from your tags and the repository itself is the distribution.</p>
         <p>Build and host the output instead when you want per-style variants, a catalog that costs one request, or a private registry. Those are the <a href="docs/registry/getting-started">hosted</a> and <a href="docs/registry/authentication">authenticated</a> paths, and a registry can be published both ways from one repository.</p>
     </section>
 
@@ -36,14 +36,14 @@
         <h2 data-toc class="scroll-mt-20">Limits</h2>
         <ul>
             <li><b>Public repositories only.</b> A private repository answers the same way a missing one does, and there is no token to send. A repository behind credentials belongs behind a <a href="docs/registry/authentication">namespace with headers</a>.</li>
-            <li><b>GitHub.</b> Other hosts are not addressed this way yet; they can still serve a built registry over a URL.</li>
+            <li><b>GitHub.</b> Other hosts cannot be addressed this way yet, but they can still serve a built registry over a URL.</li>
             <li><b>One request per file.</b> A repository has no catalog to read in one go, so a large install is chattier than a hosted registry.</li>
         </ul>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Trust</h2>
-        <p>A repository address is a stranger's source code, so it goes through the same gate a direct URL does: the CLI warns and asks before the first install from a repository it has not seen approved, and records the approval per repository (<code>https://github.com/owner/repo</code>), not per host. Approving one project on GitHub approves exactly that project.</p>
+        <p>A repository address points at a stranger's source code, so it goes through the same gate a direct URL does. The CLI warns and asks before the first install from a repository it has not seen approved, and records the approval per repository (<code>https://github.com/owner/repo</code>), not per host. Approving one project on GitHub approves exactly that project.</p>
         <p>Read before you accept: <CmdChip Command="blaizio view" /> prints every file the item carries without writing anything, and <code>--dry-run</code> shows the files, targets, packages and sibling items an install would bring. Pinning a full commit makes what you reviewed the thing you install. More on the <a href="docs/registry/trust">trust page</a>.</p>
     </section>
 </div>

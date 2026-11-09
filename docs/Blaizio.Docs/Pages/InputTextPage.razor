@@ -8,64 +8,64 @@
             <h1 class="text-2xl font-bold tracking-tight">Input Text</h1>
             <DocBadges Slug="input-text" />
         </div>
-        <p>One text field for both single- and multi-line input: it is a single-line <code class="font-mono text-sm">&lt;input&gt;</code> by default, and becomes a multi-line <code class="font-mono text-sm">&lt;textarea&gt;</code> the moment you set <code class="font-mono text-sm">Rows</code>. <code class="font-mono text-sm">@@bind-Value</code> updates live as you type.</p>
+        <p>One text field for both single and multi-line input. It renders an <code class="font-mono text-sm">&lt;input&gt;</code> by default and becomes a <code class="font-mono text-sm">&lt;textarea&gt;</code> that grows with its content once you set <code class="font-mono text-sm">Rows</code>. <code class="font-mono text-sm">@@bind-Value</code> updates on every keystroke, or after a typing pause when you set <code class="font-mono text-sm">DebounceDelay</code>.</p>
     </header>
 
-    <UsageBlock Example="typeof(InputTextUsageExample)" Description="One control for both single- and multi-line text; the value updates live as you type." />
+    <UsageBlock Example="typeof(InputTextUsageExample)" Description="The same control covers single and multi-line text, and the bound value updates as you type." />
 
     <ExamplesHeading />
 
     <Demo Title="Default" Example="typeof(InputTextDefaultExample)" />
 
-    <Demo Title="Multiline" Description="Set Rows for a textarea that starts that many lines tall and grows with its content."
+    <Demo Title="Multiline" Description="Set `Rows` for a textarea that starts that many lines tall and grows with its content."
           Example="typeof(InputTextMultilineExample)" />
 
-    <Demo Title="With Field" Description="Field wires the label, description, and ids; the field stays validation-agnostic."
+    <Demo Title="With Field" Description="`BzField` wires up the label, description and ids. The input itself does not depend on any validation system."
           Example="typeof(InputTextFieldExample)" />
 
-    <Demo Title="Multiline with Field" Description="The same Field wiring works for the multi-line mode."
+    <Demo Title="Multiline with Field" Description="The same `BzField` wiring works when `Rows` is set."
           Example="typeof(InputTextMultilineFieldExample)" />
 
-    <Demo Title="Invalid" Description="aria-invalid drives the destructive ring - here forced, normally set by FieldControl."
+    <Demo Title="Invalid" Description="`aria-invalid` drives the destructive ring. It is forced here; normally `BzFieldControl` sets it."
           Example="typeof(InputTextInvalidExample)" />
 
     <Demo Title="Disabled" Example="typeof(InputTextDisabledExample)" />
 
     <Demo Title="States"
-          Description="ReadOnly keeps the value selectable but not editable; Required feeds native form validation; MaxLength caps the input."
+          Description="`ReadOnly` keeps the value selectable but not editable, `Required` takes part in native form validation, and `MaxLength` caps the length."
           Example="typeof(InputTextStatesExample)" />
 
     <Demo Title="Focus and key events"
-          Description="OnKeyDown for submit-on-Enter, OnBlur for validate-on-leave, OnFocus for the mirror case."
+          Description="Use `OnKeyDown` to submit on Enter, `OnBlur` to validate when the field loses focus, and `OnFocus` for work that should happen when it gains focus."
           Example="typeof(InputTextEventsExample)" />
 
     <Demo Title="Programmatic focus"
-          Description="Hold a reference to the component and call FocusAsync from an event handler. Pass Select to highlight the value too. Every input component has the method, and it retries until the field can take focus, so it works even on a field that is still animating in."
+          Description="Keep a reference to the component and call `FocusAsync` from an event handler, passing `Select` to highlight the value as well. The call retries until the field can take focus, so it works even on a field that is still animating in."
           Example="typeof(InputTextFocusMethodExample)" />
 
     <Demo Title="Auto focus and select"
-          Description="AutoSelect selects the whole value whenever the field gains focus - the replace-on-type pattern. AutoFocus focuses the field when it appears, and unlike the native autofocus attribute it works for fields that mount later: open the dialog and its field arrives focused and selected, even though it rendered mid-animation."
+          Description="`AutoSelect` selects the whole value whenever the field gains focus, so typing replaces it. `AutoFocus` focuses the field when it appears and, unlike the native `autofocus` attribute, works for fields that render later. Open the dialog to see its field arrive focused and selected even though it rendered mid-animation."
           Example="typeof(InputTextAutoFocusExample)" />
 
     <Demo Title="Prevent keys"
-          Description="PreventKeys suppresses the browser default for the listed key combos (comma-separated, exact modifier match) before the event reaches OnKeyDown - here a bare Enter sends instead of inserting a newline, while Shift+Enter still breaks the line. A C# handler runs too late to cancel a default, so this happens JS-side."
+          Description="`PreventKeys` cancels the browser default for the listed key combinations (comma-separated, exact modifier match) before the event reaches `OnKeyDown`. Here a bare Enter sends instead of inserting a newline, while Shift+Enter still breaks the line. A C# handler runs too late to cancel a default, so this happens in the browser."
           Example="typeof(InputTextPreventKeysExample)" />
 
-    <Demo Title="File" Description="Set Type to file for a styled file picker. Type applies to the single-line field only (a textarea has no type), so it is ignored once Rows is set."
+    <Demo Title="File" Description="Set `Type` to `file` for a styled file picker. A textarea has no type, so `Type` is ignored once `Rows` is set."
           Example="typeof(InputTextFileExample)" />
 
     <Demo Title="Live binding" Description="The label mirrors the value on every keystroke."
           Example="typeof(InputTextBindingExample)" />
 
     <Demo Title="Debounced search"
-          Description="Set DebounceDelay (milliseconds) and ValueChanged waits for a typing pause instead of firing per keystroke - a burst of typing lands as one change. The second field also waits for at least 3 characters before it searches."
+          Description="Set `DebounceDelay` in milliseconds and `ValueChanged` waits for a typing pause, so a burst of typing arrives as one change. The second field also waits for at least 3 characters before it searches."
           Example="typeof(InputTextDebounceExample)" />
 
     <Demo Title="Customization"
-          Description="Brand the field with border, radius and focus ring utilities in Class - they merge over the default styling."
+          Description="Border, radius and focus ring utilities passed through `Class` merge over the default styling, which is enough to brand the field."
           Example="typeof(InputTextCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the labels, placeholders, and descriptions all flip to the opposite side."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, labels, placeholders and descriptions all move to the right-hand side."
           Example="typeof(InputTextRtlExample)" />
 </div>
 

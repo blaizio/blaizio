@@ -9,54 +9,52 @@
             <DocBadges Slug="pagination" />
         </div>
         <p>
-            Steps through pages of content. Compose the parts - <code>PaginationContent</code>,
-            <code>PaginationItem</code>, <code>PaginationLink</code>,
-            <code>PaginationFirst</code>/<code>Last</code>,
-            <code>PaginationPrevious</code>/<code>Next</code> and
-            <code>PaginationEllipsis</code> - and drive the page state yourself. Use
-            <code>Href</code> for URL paging or <code>OnClick</code> for in-place paging.
-            <code>BzDataTable&lt;TItem&gt;</code> wires this up for you via <code>PageSize</code>.
+            A set of composable parts for page navigation, where your page owns the current page
+            and decides which links to show. Each link takes <code>Href</code> for URL paging or
+            <code>OnClick</code> for paging in place. If you are paging a
+            <code>BzDataTable&lt;TItem&gt;</code>, set its <code>PageSize</code> and the table
+            wires up pagination for you.
         </p>
     </header>
 
     <UsageBlock Example="typeof(PaginationUsageExample)"
-                Description="Import Blaizio.Ui once, then compose the content with items. Mark the current page with Active and fill gaps with an ellipsis." />
+                Description="After importing `Blaizio.Ui`, compose the content from items. Mark the current page with `Active` and fill gaps with an ellipsis." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Each control sits in its own item; PaginationPrevious/Next are PaginationLinks with a chevron and label, and the ellipsis fills a gap." />
+                     Description="Every part of the pager. Each control sits in its own item. `PaginationPrevious` and `PaginationNext` are links with a chevron and a label, and the ellipsis fills a gap." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="The active page is marked with Active (aria-current=page) and gaps collapse to an ellipsis. Drive it in place with OnClick - or swap to Href for URL paging (e.g. products?page=2)."
+    <Demo Title="Default" Description="`Active` marks the current page and sets `aria-current=&quot;page&quot;` on it. This example pages in place with `OnClick`; swap in `Href` for URL paging such as `products?page=2`."
           Example="typeof(PaginationDefaultExample)" />
 
     <Demo Title="Routed links (RenderAs)"
-          Description="Render each link onto a Blazor NavLink via RenderAs, so the router owns navigation and the active styling."
+          Description="Use `RenderAs` to render each link as a Blazor `NavLink`, so the router handles navigation and the active styling."
           Example="typeof(PaginationRenderAsExample)" />
 
-    <Demo Title="Simple" Description="A bare previous/next pager - no page-number links, only the two controls flanking a page indicator. Good for feeds and open-ended lists where the exact page count doesn't matter."
+    <Demo Title="Simple" Description="A previous and next pager around a page indicator, with no page-number links. It suits feeds and open-ended lists where the exact page count doesn't matter."
           Example="typeof(PaginationSimpleExample)" />
 
-    <Demo Title="Icons only" Description="Drop the Previous/Next labels and let the chevrons stand alone - each is a PaginationLink with only an icon, so it renders as a square button. Keep an AriaLabel so the control is still announced."
+    <Demo Title="Icons only" Description="Without their labels, the previous and next links render as square buttons holding only a chevron. Keep an `AriaLabel` on each so screen readers can still announce them."
           Example="typeof(PaginationIconsOnlyExample)" />
 
-    <Demo Title="Controlled" Description="Drive the current page with state and OnClick (no navigation). Previous/Next disable at the ends; the window around the current page slides, with ellipses standing in for the gaps."
+    <Demo Title="Controlled" Description="The current page lives in a field and changes through `OnClick`, with no navigation. Previous and next disable at the ends, and the window of page numbers slides along with ellipses standing in for the gaps."
           Example="typeof(PaginationControlledExample)" />
 
-    <Demo Title="First and last" Description="Add First and Last controls to jump straight to either end. Both carry a double-chevron that mirrors under RTL; First and Previous disable on the first page, Next and Last on the last."
+    <Demo Title="First and last" Description="Add `PaginationFirst` and `PaginationLast` to jump straight to either end. First and previous disable on the first page, next and last on the final one."
           Example="typeof(PaginationFirstLastExample)" />
 
-    <Demo Title="Rows per page" Description="A data-grid footer - a rows-per-page Select drives the page size and a previous/next pager steps through. The listbox uses item-aligned positioning, so it overlays the trigger like a native select. Changing the size returns to the first page."
+    <Demo Title="Rows per page" Description="A data grid footer where a rows-per-page select sets the page size and a previous and next pager steps through the rows. Changing the size returns to the first page."
           Example="typeof(PaginationRowsPerPageExample)" />
 
-    <Demo Title="Custom labels" Description="Every bit of copy is a parameter - rename the rows-per-page label and pass Label (and AriaLabel) to Previous/Next. Use this to localize the pager or word it for your domain."
+    <Demo Title="Custom labels" Description="All of the pager's text comes from parameters, so you can localize it or word it for your domain. Here the rows-per-page label is renamed and previous and next receive their own `Label` and `AriaLabel`."
           Example="typeof(PaginationCustomLabelsExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class - here the links become rounded-full pills with a wider gap, and a data-active utility gives the current page an indigo fill."
+          Description="Every part accepts `Class`. This example turns the links into pills with a wider gap and gives the current page an indigo fill through a `data-active` utility."
           Example="typeof(PaginationCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the bar lays out right-to-left and the previous/next chevrons flip to point the other way. Arabic uses the same 1 2 3 digits as English."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the pages run from right to left and the previous and next chevrons flip to point the other way."
           Example="typeof(PaginationRtlExample)" />
 
 </div>

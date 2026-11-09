@@ -8,41 +8,41 @@
             <h1 class="text-2xl font-bold tracking-tight">Sheet</h1>
             <DocBadges Slug="sheet" />
         </div>
-        <p>A panel that slides in from an edge of the screen. Built on the Dialog machinery: focus is trapped inside, page scroll locks, and Escape or a backdrop click dismisses it.</p>
+        <p>A modal panel that slides in from any edge of the screen. It shares the dialog's behavior, so focus is trapped inside, the page stops scrolling, and Escape or a backdrop click dismisses it. When the rest of the page should stay interactive, use the <a href="docs/components/panel">Panel</a> instead.</p>
     </header>
 
     <UsageBlock Example="typeof(SheetUsageExample)"
-                Description="Import Blaizio.Ui once, then compose a trigger and a content panel. Any element can be the trigger via RenderAs." />
+                Description="After importing `Blaizio.Ui`, a trigger and a content panel are all you need. With `RenderAs`, any element can be the trigger." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Wrap the header and footer around the body; BzSheetClose dismisses the panel from inside." />
+                     Description="Every part of a sheet. The header and footer frame the body, and `BzSheetClose` dismisses the sheet from inside." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Slides in from the right by default." Example="typeof(SheetDefaultExample)" />
+    <Demo Title="Default" Description="The sheet slides in from the inline end, which is the right edge in left-to-right layouts." Example="typeof(SheetDefaultExample)" />
 
     <Demo Title="Custom trigger element (RenderAs)"
-          Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and spread the behavior onto your element."
+          Description="If the trigger should be a link, a card or one of your own components, use `RenderAs` and apply the attributes it provides to that element."
           Example="typeof(SheetRenderAsTriggerExample)" />
 
-    <Demo Title="Sides" Description="Anchor the sheet to any edge with Side." Example="typeof(SheetSidesExample)" />
+    <Demo Title="Sides" Description="`Side` anchors the sheet to any edge of the screen." Example="typeof(SheetSidesExample)" />
 
-    <Demo Title="Controlled" Description="Bind the open state two-way." Example="typeof(SheetControlledExample)" />
+    <Demo Title="Controlled" Description="Bind the open state to a field when other code needs to open or close the sheet." Example="typeof(SheetControlledExample)" />
 
-    <Demo Title="Scrollable content" Description="A sheet taller than the viewport scrolls its body while the header and footer stay put." Example="typeof(SheetScrollableExample)" />
+    <Demo Title="Scrollable content" Description="When the content is taller than the viewport, the body scrolls while the header and footer stay in place." Example="typeof(SheetScrollableExample)" />
 
-    <Demo Title="Non-dismissible" Description="DismissOnOutsideClick=false pins the sheet: Escape and the backdrop do nothing and the corner close button is hidden. Only an explicit SheetClose (or your code) closes it - useful when the user must finish or cancel a task." Example="typeof(SheetLockedExample)" />
+    <Demo Title="Non-dismissible" Description="Set `DismissOnOutsideClick` to `false` when the user must finish or cancel a task. Escape and backdrop clicks are ignored and the corner close button is hidden, so only a `BzSheetClose` or your own code can close it." Example="typeof(SheetLockedExample)" />
 
-    <Demo Title="Async content" Description="No service is needed to load content on open - render a loading state from your own flag. Handle OpenChanged, start the fetch, show skeletons, then swap in the content." Example="typeof(SheetAsyncExample)" />
+    <Demo Title="Async content" Description="To load content when the sheet opens, handle `OpenChanged`, start the fetch and show skeletons from your own loading flag until the data arrives. No service is needed." Example="typeof(SheetAsyncExample)" />
 
     <Demo Title="Via the dialog service"
-          Description="ShowSheetAsync dresses a service dialog in the sheet presentation: pass a component or a template, pick the edge, await the result - the same instance contract the Dialog Service page documents. Handy when a sheet is triggered from C# (a grid row, a command) with no markup on the page."
+          Description="When a sheet opens from C#, such as from a grid row or a command, `ShowSheetAsync` shows a service dialog as a sheet with no markup on the page. Pass a component or a template, pick the edge and await the result, just like any other dialog service call."
           Example="typeof(SheetServiceExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class, and the backdrop via OverlayClass. Here: a brand-indigo trigger, a tinted content surface with an accented inline-start border, and an indigo-blurred backdrop." Example="typeof(SheetCustomExample)" />
+          Description="Every part accepts `Class`, and the backdrop takes `OverlayClass`. This example uses an indigo trigger, a tinted surface with an accent border on its inline-start edge, and a blurred indigo backdrop." Example="typeof(SheetCustomExample)" />
 
-    <Demo Title="RTL" Description="Side is logical (inline start/end), so it mirrors under a DirectionProvider. This default (Right = inline-end) sheet therefore opens on the left in RTL, and the content flows right-to-left." Example="typeof(SheetRtlExample)" />
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, `Side` mirrors because it is logical. The default `End` sheet opens from the left edge, and its content flows from right to left." Example="typeof(SheetRtlExample)" />
 </div>
 
 @code {

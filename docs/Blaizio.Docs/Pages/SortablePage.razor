@@ -8,40 +8,40 @@
             <h1 class="text-2xl font-bold tracking-tight">Sortable</h1>
             <DocBadges Slug="sortable" />
         </div>
-        <p>Drag to reorder a list - or swap two items - with a pointer or the keyboard. Items shift out of the way as you drag (or trade places in swap mode), and every committed move is reported as a <span class="font-mono text-sm">SortableChange</span> you apply to your own data. Works as a vertical column, a horizontal row, or a wrapping grid, and lists that share a group can hand items to one another.</p>
+        <p>Reorder or swap items with a pointer or entirely from the keyboard, in a vertical column, a horizontal row or a wrapping grid. Every committed move is reported as a <span class="font-mono text-sm">SortableChange</span> that you apply to your own data. Lists that share a group can also pass items to one another.</p>
     </header>
 
     <UsageBlock Example="typeof(SortableUsageExample)"
-                Description="Bind a list to BzSortableList and give it an item template, or compose BzSortableItem children under BzSortable. Handle OnReorder (or bind Items) to persist the new order." />
+                Description="Bind a list to `BzSortableList` and give it an item template, or compose `BzSortableItem` children under `BzSortable`. Handle `OnReorder`, or bind `Items`, to keep the new order." />
 
     <CompositionTree Root="Anatomy"
-                     Description="A sortable list of items; an optional handle inside an item restricts dragging to a grip." />
+                     Description="A sortable holds its items, and an optional handle inside an item limits dragging to that grip." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="A vertical list. Drag an item to reorder - or focus one (Tab) and press Space to pick it up, arrow keys to move, Space to drop." Example="typeof(SortableDefaultExample)" />
+    <Demo Title="Default" Description="Drag an item to a new place in the list. From the keyboard, Tab to an item, press Space to pick it up, move it with the arrow keys and press Space again to drop it." Example="typeof(SortableDefaultExample)" />
 
-    <Demo Title="Drag handle" Description="Put a BzSortableHandle inside an item and only the grip starts a drag - the rest of the item stays clickable, and only the grip shows the grab cursor." Example="typeof(SortableHandleExample)" />
+    <Demo Title="Drag handle" Description="With a `BzSortableHandle` inside an item, only the grip starts a drag and shows the grab cursor. The rest of the item stays clickable." Example="typeof(SortableHandleExample)" />
 
-    <Demo Title="Data-driven" Description="BzSortableList renders one keyed item per element and applies the move for you - bind a list and go." Example="typeof(SortableDataExample)" />
+    <Demo Title="Data-driven" Description="`BzSortableList` renders one keyed item per element of the bound list and applies each move to it for you." Example="typeof(SortableDataExample)" />
 
-    <Demo Title="Horizontal" Description="Set Orientation=Horizontal to lay items out in a row. Chips of different widths reflow exactly - each item stacks by its own size. LockAxis keeps the drag on the row's axis. Arrow Left/Right reorder when grabbed." Example="typeof(SortableHorizontalExample)" />
+    <Demo Title="Horizontal" Description="Set `Orientation` to `Horizontal` to lay items out in a row, where chips of different widths make room by their own size. `LockAxis` keeps the drag on the row, and a picked-up item moves with the Left and Right arrow keys." Example="typeof(SortableHorizontalExample)" />
 
-    <Demo Title="Grid" Description="Orientation=Grid hit-tests in two dimensions; pass Columns so Up/Down keyboard moves jump a whole row." Example="typeof(SortableGridExample)" />
+    <Demo Title="Grid" Description="`Orientation.Grid` tracks the drop target in two dimensions. Pass `Columns` so the Up and Down arrow keys move an item a whole row." Example="typeof(SortableGridExample)" />
 
-    <Demo Title="Swap" Description="Strategy=Swap trades the dragged item with the one you drop it on. SwapMode picks the preview: Swap (default) trades live as you hover; Drop holds everything still until release - pair it with ShowPlaceholder so the target stays visible." Example="typeof(SortableSwapExample)" />
+    <Demo Title="Swap" Description="Set `Strategy` to `Swap` to trade the dragged item with the one you drop it on. `SwapMode` picks the preview: `Swap`, the default, trades places live as you hover, while `Drop` holds everything still until release, so pair it with `ShowPlaceholder` to keep the target visible." Example="typeof(SortableSwapExample)" />
 
-    <Demo Title="Mixed-size grid" Description="Cards can span columns and rows. As you drag, every card previews its true landing position - the candidate order is laid out for real (in a hidden measurement pass), so spanning cards reflow exactly, and the placeholder marks the dragged card's landing rect." Example="typeof(SortableMixedGridExample)" />
+    <Demo Title="Mixed-size grid" Description="Cards can span columns and rows. While you drag, every card moves to the exact place it will land, because the candidate order is laid out in a hidden measurement pass first, and the placeholder marks where the dragged card goes." Example="typeof(SortableMixedGridExample)" />
 
-    <Demo Title="Animations" Description="Animation picks the motion: Dynamic (a quick glide, the default), Spring (a bouncy overshoot) or None (instant). Whatever you choose, users whose OS asks for reduced motion get instant snaps." Example="typeof(SortableAnimationsExample)" />
+    <Demo Title="Animations" Description="`Animation` picks the motion: `Dynamic` for a quick glide (the default), `Spring` for a bouncy overshoot, or `None` for instant moves. When the operating system asks for reduced motion, items snap instantly whatever you choose." Example="typeof(SortableAnimationsExample)" />
 
-    <Demo Title="Cross-list groups" Description="Give two lists the same Group and drag items between them. Each list carries an Id so the handler knows which side is source and which is target." Example="typeof(SortableCrossExample)" />
+    <Demo Title="Cross-list groups" Description="Give two lists the same `Group` to drag items between them. Each list also has an `Id`, so the handler can tell the source from the target." Example="typeof(SortableCrossExample)" />
 
-    <Demo Title="Transfer control" Description="AllowTransferOut / AllowTransferIn gate cross-list moves per side, and AllowSorting=false stops reordering within a list. Here the palette only gives (nothing can be dropped back or reordered), and the canvas receives via its own OnReceive handler." Example="typeof(SortableTransferExample)" />
+    <Demo Title="Transfer control" Description="`AllowTransferOut` and `AllowTransferIn` control cross-list moves for each list, and setting `AllowSorting` to `false` stops reordering within one. Here the palette only gives items away, and the canvas takes them in through its own `OnReceive` handler." Example="typeof(SortableTransferExample)" />
 
-    <Demo Title="Custom cursors" Description="Cursor and GrabbingCursor take any CSS cursor value; BzCursor.From turns a Blaizio icon into one - here the Tabler open and closed hands. Set them once on the list and every item (and handle) follows. The grabbing hand shows from the moment you press, before any movement." Example="typeof(SortableCursorsExample)" />
+    <Demo Title="Custom cursors" Description="`Cursor` and `GrabbingCursor` take any CSS cursor value, and `BzCursor.From` turns a Blaizio icon into one, here an open and a closed hand. Set them once on the list and every item and handle uses them." Example="typeof(SortableCursorsExample)" />
 
-    <Demo Title="Keyboard & accessibility" Description="Every sortable is keyboard-operable: Tab to an item, Space to pick it up (it highlights and announces via a live region), arrow keys to move, Space to drop, Escape to cancel. Try it without a mouse." Example="typeof(SortableKeyboardExample)" />
+    <Demo Title="Keyboard & accessibility" Description="Every sortable works from the keyboard. Tab to an item and press Space to pick it up, move it with the arrow keys, then press Space to drop or Escape to cancel. A live region announces the pick-up, the drop and a cancel." Example="typeof(SortableKeyboardExample)" />
 </div>
 
 @code {

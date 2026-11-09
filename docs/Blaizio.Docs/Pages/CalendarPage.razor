@@ -8,62 +8,62 @@
             <h1 class="text-2xl font-bold tracking-tight">Calendar</h1>
             <DocBadges Slug="calendar" />
         </div>
-        <p>A date-grid field for picking a day, several days, or a range. Driven by <code>DateOnly</code> with full keyboard navigation (arrows, Home/End, PageUp/PageDown), month paging, optional month/year dropdowns, bounds, per-day disabling, multiple months, and locale-aware layout - the grid follows the culture's own calendar (Gregorian, Persian, Hijri).</p>
+        <p>A date grid for picking a single day, several days or a range, bound to plain <code>DateOnly</code> values. The whole grid works from the keyboard: arrow keys move between days, Home and End jump within the week, and Page Up and Page Down change the month, or the year with Shift held. Set a <code>Culture</code> and the grid follows that culture's own calendar, whether Gregorian, Persian or Hijri, along with its month names, digits and first day of the week.</p>
     </header>
 
     <UsageBlock Example="typeof(CalendarBasicExample)"
-                Description="Import Blaizio.Ui once, then two-way bind a nullable DateOnly to Value. Bind ValueFormatted to read the chosen day back as a string in the calendar's own culture." />
+                Description="After importing `Blaizio.Ui`, bind a nullable `DateOnly` to `Value`. Bind `ValueFormatted` as well to read the chosen day back as a string in the calendar's own culture." />
 
     <ExamplesHeading />
 
-    <Demo Title="Basic" Description="A single-date picker. Click a day to select it; clicking it again clears it. Tab into the grid and use the arrow keys to move, Enter or Space to pick. The readout reads the bound ValueFormatted - the day in the calendar's own culture - so there's no separate formatting call." Example="typeof(CalendarBasicExample)" />
+    <Demo Title="Basic" Description="Click a day to select it and click it again to clear it. From the keyboard, tab into the grid, move with the arrow keys and pick with Enter or Space. The readout below is the bound `ValueFormatted`, so no separate formatting call is needed." Example="typeof(CalendarBasicExample)" />
 
-    <Demo Title="Multiple" Description="Set Mode to Multiple to toggle any number of independent days on and off, two-way bound to a list via Values. ValueFormatted is single-only, so format each day with BzCalendar.FormatValue." Example="typeof(CalendarMultipleExample)" />
+    <Demo Title="Multiple" Description="Set `Mode` to `Multiple` to toggle any number of days on and off, bound to a list through `Values`. `ValueFormatted` covers single values only, so this example formats each day with `BzCalendar.FormatValue`." Example="typeof(CalendarMultipleExample)" />
 
-    <Demo Title="Range" Description="Mode Range picks a contiguous span in two clicks - the first sets the start, the second the end; a third starts over. The days between fill in as a band. A range carries two dates, so format each edge with BzCalendar.FormatValue." Example="typeof(CalendarRangeExample)" />
+    <Demo Title="Range" Description="With `Mode` set to `Range`, the first click sets the start, the second sets the end and a third starts over. The days in between fill in as a band, and each edge is formatted with `BzCalendar.FormatValue`." Example="typeof(CalendarRangeExample)" />
 
-    <Demo Title="Formatting the value" Description="For a single value, bind ValueFormatted: it gives the day in the calendar's Culture with no extra call. For another culture, or a range edge, call BzCalendar.FormatValue(date, culture). It uses that culture's calendar, month names and digits, like the grid does (fa-IR gives the Persian year 1405, not 2026). Plain DateOnly.ToString stays on the Gregorian calendar and, on WebAssembly, romanizes non-Gregorian month names; it is shown here for contrast." Example="typeof(CalendarFormattingExample)" />
+    <Demo Title="Formatting the value" Description="Call `BzCalendar.FormatValue(date, culture)` to format a date in another culture or a range edge. It uses that culture's calendar, month names and digits just as the grid does, so `fa-IR` gives the Persian year 1405 rather than 2026. Plain `DateOnly.ToString` is shown for contrast: it stays on the Gregorian calendar." Example="typeof(CalendarFormattingExample)" />
 
-    <Demo Title="Month & year dropdowns" Description="CaptionLayout swaps the caption label for dropdowns so you can jump straight to a month or year - handy for far-off dates. Use Dropdown (both), DropdownMonths, or DropdownYears. The year list defaults to roughly a century back through ten years ahead." Example="typeof(CalendarDropdownExample)" />
+    <Demo Title="Month & year dropdowns" Description="`CaptionLayout` replaces the caption label with dropdowns, so you can jump straight to a distant month or year. Choose `Dropdown` for both, `DropdownMonths` or `DropdownYears`. The year list covers roughly a century back through ten years ahead by default." Example="typeof(CalendarDropdownExample)" />
 
-    <Demo Title="Custom year range" Description="Set FromYear and ToYear to bound the year dropdown to your own span - here a date-of-birth picker reaching back to 1925." Example="typeof(CalendarYearRangeExample)" />
+    <Demo Title="Custom year range" Description="Set `FromYear` and `ToYear` to limit the year dropdown to your own span, here a date-of-birth picker that reaches back to 1925." Example="typeof(CalendarYearRangeExample)" />
 
-    <Demo Title="Multiple months" Description="NumberOfMonths renders several months side by side; the nav pages all of them together." Example="typeof(CalendarMonthsExample)" />
+    <Demo Title="Multiple months" Description="`NumberOfMonths` shows several months side by side, and the navigation buttons page through all of them together." Example="typeof(CalendarMonthsExample)" />
 
-    <Demo Title="Bounds" Description="Min and Max clamp the selectable window - earlier and later days gray out and the nav stops at the edge months." Example="typeof(CalendarBoundsExample)" />
+    <Demo Title="Bounds" Description="`Min` and `Max` limit the selectable window. Days outside it are grayed out, and navigation stops at the first and last allowed months." Example="typeof(CalendarBoundsExample)" />
 
-    <Demo Title="Disabled days" Description="Pass DisabledSelector to gray out and block individual days - here every weekend - while leaving the rest selectable." Example="typeof(CalendarDisabledDaysExample)" />
+    <Demo Title="Disabled days" Description="Pass a `DisabledSelector` to gray out and block individual days, here every weekend, while the rest stay selectable." Example="typeof(CalendarDisabledDaysExample)" />
 
-    <Demo Title="Hide outside days" Description="ShowOutsideDays=false drops the grayed leading/trailing days from adjacent months, leaving a ragged grid." Example="typeof(CalendarOutsideExample)" />
+    <Demo Title="Hide outside days" Description="Set `ShowOutsideDays` to `false` to hide the grayed days from the neighboring months, which leaves the first and last weeks ragged." Example="typeof(CalendarOutsideExample)" />
 
-    <Demo Title="Date picker" Description="Drop the calendar inside a Popover to build a date-picker field: the button shows the chosen date and the popup closes on pick." Example="typeof(CalendarPickerExample)" />
+    <Demo Title="Date picker" Description="Place the calendar inside a popover to build a date-picker field. The button shows the chosen date, and the popover closes as soon as a day is picked." Example="typeof(CalendarPickerExample)" />
 
-    <Demo Title="Localization" Description="Pass a Culture and the month names, weekday names and first day of week follow it. Here German (de-DE) - the week starts on Monday. Read the value back by binding ValueFormatted - it follows the calendar's Culture automatically - and write the label in the same language." Example="typeof(CalendarLocalizationExample)" />
+    <Demo Title="Localization" Description="Pass a `Culture` and the month names, weekday names and first day of the week follow it. With German (`de-DE`), the week starts on Monday, and the bound `ValueFormatted` follows the same culture." Example="typeof(CalendarLocalizationExample)" />
 
-    <Demo Title="Arabic (Gregorian)" Description="Not every Arabic locale is Hijri. ar-AE keeps the Gregorian calendar but renders Arabic month and weekday names and Arabic-Indic digits, inside an RTL provider. Binding ValueFormatted renders the value to match the calendar's culture, and the label is Arabic." Example="typeof(CalendarArabicGregExample)" />
+    <Demo Title="Arabic (Gregorian)" Description="Not every Arabic locale uses the Hijri calendar. `ar-AE` keeps the Gregorian calendar while showing Arabic month and weekday names and Arabic-Indic digits, laid out right to left." Example="typeof(CalendarArabicGregExample)" />
 
-    <Demo Title="Arabic (Hijri)" Description="A culture whose calendar is non-Gregorian lays out its own months and years. Arabic (ar-SA) uses the Umm al-Qura (Hijri) calendar; inside an RTL DirectionProvider the whole grid mirrors. Binding ValueFormatted gives the Hijri year (1448), not the Gregorian one." Example="typeof(CalendarArabicExample)" />
+    <Demo Title="Arabic (Hijri)" Description="A culture with a non-Gregorian calendar lays out its own months and years. `ar-SA` uses the Umm al-Qura (Hijri) calendar, the grid mirrors inside a right-to-left `DirectionProvider`, and `ValueFormatted` gives the Hijri year 1448." Example="typeof(CalendarArabicExample)" />
 
-    <Demo Title="Latin digits" Description="Numbers default to the culture's native digits (Arabic ١٢٣, Persian ۱۲۳). Set NativeDigits=false to keep Latin numerals while still using the localized calendar, month and weekday names. Binding ValueFormatted follows the calendar's NativeDigits, so the readout matches." Example="typeof(CalendarLatinDigitsExample)" />
+    <Demo Title="Latin digits" Description="Numbers default to the culture's native digits (Arabic ١٢٣, Persian ۱۲۳). Set `NativeDigits` to `false` to keep Latin numerals while the calendar, month and weekday names stay localized. `ValueFormatted` follows the same setting, so the readout matches." Example="typeof(CalendarLatinDigitsExample)" />
 
-    <Demo Title="Persian / Farsi (Jalali)" Description="Farsi (fa-IR) uses the Persian (Jalali) calendar - different months (Farvardin, Ordibehesht, ...) and a different year (1405, not 2026). The value is still a normal DateOnly; only the display changes. Binding ValueFormatted renders it in the Persian calendar, following the Culture you set." Example="typeof(CalendarPersianExample)" />
+    <Demo Title="Persian / Farsi (Jalali)" Description="Farsi (`fa-IR`) uses the Persian (Jalali) calendar, with its own months such as Farvardin and Ordibehesht and the year 1405 instead of 2026. The bound value is still an ordinary `DateOnly`, so only the display changes." Example="typeof(CalendarPersianExample)" />
 
-    <Demo Title="Week numbers" Description="ShowWeekNumber adds a leading column with the week-of-year for each row, in the culture's week rule." Example="typeof(CalendarWeekNumberExample)" />
+    <Demo Title="Week numbers" Description="`ShowWeekNumber` adds a leading column with each row's week of the year, counted by the culture's week rule." Example="typeof(CalendarWeekNumberExample)" />
 
-    <Demo Title="Custom cell size" Description="Bigger cells make room for content under each day. Override --cell-size and supply DayContent - here a nightly price, higher on weekends - for a booking-style calendar." Example="typeof(CalendarCellSizeExample)" />
+    <Demo Title="Custom cell size" Description="Override `--cell-size` for bigger cells and supply `DayContent` to put something under each day. This booking-style example shows a nightly price that rises on weekends." Example="typeof(CalendarCellSizeExample)" />
 
-    <Demo Title="Booked dates" Description="Mark certain days as taken with DisabledSelector, then style the disabled day slot - here a strike-through - so booked days read clearly." Example="typeof(CalendarBookedExample)" />
+    <Demo Title="Booked dates" Description="Mark taken days with `DisabledSelector`, then style the disabled day through `Class`. Here a strike-through makes booked days easy to spot." Example="typeof(CalendarBookedExample)" />
 
-    <Demo Title="Presets" Description="Pair the calendar with quick-pick buttons inside the popover for a date picker with presets." Example="typeof(CalendarPresetExample)" />
+    <Demo Title="Presets" Description="Quick-pick buttons next to the calendar inside the popover turn it into a date picker with presets." Example="typeof(CalendarPresetExample)" />
 
-    <Demo Title="Date and time" Description="Compose the calendar with the inline BzInputTime for a date-and-time picker - the two bind independently; combine them when you read the value." Example="typeof(CalendarDateTimeExample)" />
+    <Demo Title="Date and time" Description="Pair the calendar with an inline `BzInputTime` for a date-and-time picker. The two bind separately, so combine the date and time when you read the value." Example="typeof(CalendarDateTimeExample)" />
 
-    <Demo Title="Date and time range" Description="Pair the calendar with two time pickers for a start and end time - a booking-style slot. Each binds its own TimeOnly." Example="typeof(CalendarDateTimeRangeExample)" />
+    <Demo Title="Date and time range" Description="Two time pickers alongside the calendar give a start and end time for a booking slot. Each one binds its own `TimeOnly`." Example="typeof(CalendarDateTimeRangeExample)" />
 
-    <Demo Title="Disabled" Description="Disabled grays out the whole calendar and blocks selection and navigation, while still showing the current value." Example="typeof(CalendarDisabledExample)" />
+    <Demo Title="Disabled" Description="`Disabled` grays out the whole calendar and blocks selection and navigation, while the current value stays visible." Example="typeof(CalendarDisabledExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class. Here the selected day swaps the primary fill for a branded indigo by targeting the calendar-day-button slot in its data-selected-single state, and the hover fill gets a matching indigo tint."
+          Description="Every part accepts `Class`. This example targets the `calendar-day-button` slot in its `data-selected-single` state to swap the primary fill for indigo, with a matching indigo tint on hover."
           Example="typeof(CalendarCustomizationExample)" />
 
 </div>

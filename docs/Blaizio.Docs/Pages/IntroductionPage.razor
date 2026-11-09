@@ -9,7 +9,7 @@
             <BzBadge Variant="BadgeVariant.Outline">Tailwind v4</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">.NET 10</BzBadge>
         </div>
-        <p class="max-w-3xl">Blaizio is a component system for Blazor built as <b>two layers with one rule</b>: behavior is a package, styling is your source. Headless primitives handle the hard parts - accessibility, keyboard, focus, state - while the styled components are Tailwind files the CLI copies <em>into your project</em>, where you can open, read and change every line.</p>
+        <p class="max-w-3xl">Blaizio is a component system for Blazor built as <b>two layers with one rule</b>: behavior ships as a package, and styling lives in your source. The headless primitives take care of accessibility, keyboard support, focus and state. The styled components are Tailwind files that the CLI copies <em>into your project</em>, where you can open, read and change every line.</p>
     </header>
 
     <section>
@@ -20,33 +20,34 @@
                     <div class="text-sm font-semibold">Blaizio.Base</div>
                     <BzBadge Variant="BadgeVariant.Secondary">NuGet</BzBadge>
                 </div>
-                <p class="mt-2 text-sm text-muted-foreground">Headless primitives: correct elements, ARIA roles, keyboard and focus behavior, and a <code>data-state</code> attribute contract. Zero CSS - style it with anything, or don't take the styled layer at all. <a class="font-medium text-foreground underline underline-offset-4" href="docs/base">Read the Base guide</a>.</p>
+                <p class="mt-2 text-sm text-muted-foreground">Headless primitives that render the correct elements with ARIA roles, keyboard and focus behavior, and a <code>data-state</code> attribute contract. They ship no CSS, so you can style them with anything or skip the styled layer entirely. <a class="font-medium text-foreground underline underline-offset-4" href="docs/base">Read the Base guide</a>.</p>
             </div>
             <div class="rounded-xl border bg-card p-5 text-card-foreground">
                 <div class="flex items-center gap-2">
                     <div class="text-sm font-semibold">Styled components</div>
                     <BzBadge Variant="BadgeVariant.Secondary">your source</BzBadge>
                 </div>
-                <p class="mt-2 text-sm text-muted-foreground">Tailwind-dressed <code>Bz*</code> components copied in by <a class="font-medium text-foreground underline underline-offset-4" href="docs/cli">the CLI</a> - rewritten to your namespace, tracked for <code>add --diff</code> and <code>update</code>, never hidden inside a package. Eight styles, color presets, dark mode and RTL included.</p>
+                <p class="mt-2 text-sm text-muted-foreground">Tailwind-styled <code>Bz*</code> components that <a class="font-medium text-foreground underline underline-offset-4" href="docs/cli">the CLI</a> copies into your project, rewritten to your namespace and tracked for <code>add --diff</code> and <code>update</code>. Nothing is hidden inside a package. Eight styles, color presets, dark mode and RTL are included.</p>
             </div>
         </div>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Quick start</h2>
-        <p>Install the CLI once - <CmdChip Command="dotnet tool install -g Blaizio.Cli" /> - then from your Blazor project:</p>
+        <p>Install the CLI once with <CmdChip Command="dotnet tool install -g Blaizio.Cli" />, then run this in the folder that holds your Blazor project's <code>.csproj</code>:</p>
         <CodeBlock Snippet="Installation/InitExisting" />
-        <p>That's a working setup: packages installed, tokens file written, Tailwind pipeline wired (a Node-free <b>standalone</b> mode is the default), host page patched, and four components in your source tree. The full walkthrough - new apps, existing apps, Base-only - lives on the <a href="docs/installation">Installation page</a>.</p>
+        <p>That single command gives you a working setup. It installs the packages, writes the tokens file (<code>Styles/app.css</code>), wires the Tailwind pipeline (the default <b>standalone</b> mode needs no Node), patches your host page and copies four components, plus their dependencies, into your source tree. To check it, run <code>dotnet build</code> and confirm that <code>wwwroot/app.css</code> exists and is not empty.</p>
+        <p>The <a href="docs/installation">Installation page</a> walks through new apps, existing apps and Base-only setups in full.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">What you get</h2>
         <ul>
-            <li><b>60+ components</b> - from buttons to combo boxes, data tables, command palettes, charts and a sortable tree. Every page has a copy-paste usage block and a live demo.</li>
-            <li><b>Accessibility as a baseline</b> - roles, keyboard behavior and focus management live in the primitive, so they survive any restyling you do.</li>
-            <li><b>Theming that composes</b> - eight styles (inlined into the components you install), color presets, chart palettes, radius scales, real webfonts and dark mode. Your whole look lives in one tokens file plus your component source, and you can preview it live on <a href="themes">Themes</a>.</li>
-            <li><b>A real CLI</b> - <code>new</code>, <code>add</code> (with <code>--diff</code>), <code>update</code>, <code>apply</code>, <code>remove</code>, <code>uninstall</code>: everything is tracked in <code>blaizio.json</code>, so <code>uninstall</code> removes exactly what was added.</li>
-            <li><b>RTL out of the box</b> - logical properties throughout; flip <code>dir</code> and the components follow. See <a href="docs/direction">Direction</a>.</li>
+            <li><b>60+ components</b>: from buttons to combo boxes, data tables, command palettes, charts and a sortable tree. Every page has a copy-paste usage block and a live demo.</li>
+            <li><b>Accessibility as a baseline</b>: roles, keyboard behavior and focus management live in the primitive, so they survive any restyling you do.</li>
+            <li><b>Theming that composes</b>: eight styles (inlined into the components you install), color presets, chart palettes, radius scales, real webfonts and dark mode. Your whole look lives in one tokens file plus your component source, and you can preview it live on <a href="themes">Themes</a>.</li>
+            <li><b>A real CLI</b>: <code>new</code>, <code>add</code> (with <code>--diff</code>), <code>update</code>, <code>apply</code>, <code>remove</code> and <code>uninstall</code>. Every change is tracked in <code>blaizio.json</code>, so <code>uninstall</code> removes exactly what was added.</li>
+            <li><b>RTL out of the box</b>: the components use logical properties throughout, so they mirror as soon as you set <code>dir="rtl"</code>. See <a href="docs/direction">Direction</a>.</li>
         </ul>
     </section>
 
@@ -59,7 +60,7 @@
             </a>
             <a href="docs/components" class="rounded-xl border bg-card p-5 text-card-foreground transition-colors hover:border-primary/50">
                 <div class="text-sm font-semibold">Components</div>
-                <p class="mt-1 text-sm text-muted-foreground">The gallery - demos, usage and API for every component.</p>
+                <p class="mt-1 text-sm text-muted-foreground">Demos, usage and the API reference for every component.</p>
             </a>
             <a href="themes" class="rounded-xl border bg-card p-5 text-card-foreground transition-colors hover:border-primary/50">
                 <div class="text-sm font-semibold">Themes</div>

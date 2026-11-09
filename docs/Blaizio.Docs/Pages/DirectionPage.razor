@@ -9,23 +9,28 @@
             <BzBadge Variant="BadgeVariant.Secondary">logical CSS</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">keyboard mirroring</BzBadge>
         </div>
-        <p>Blaizio components follow the reading direction. Set it globally with <code>dir</code> on <code>&lt;html&gt;</code>, or scope it to a region with <code>DirectionProvider</code> - the styling mirrors (logical CSS properties) and keyboard navigation swaps left/right in step. The examples below use Arabic or Hebrew copy (each RTL demo has a language picker); try the LTR/RTL switch in the top bar to flip this whole site.</p>
+        <p>Every Blaizio component follows the reading direction. Set it for the whole app with <code>dir</code> on <code>&lt;html&gt;</code>, or for one region with <code>DirectionProvider</code>. The styling mirrors through logical CSS properties, and the left and right arrow keys swap along with it. To see it on this whole site, use the LTR/RTL switch in the top bar.</p>
     </header>
 
     <UsageBlock Example="typeof(DirectionUsageExample)"
-                Description="Wrap any subtree in a DirectionProvider; everything inside follows that reading direction. Spacing, alignment and arrow-key navigation all mirror." />
+                Description="Wrap any part of the tree in a `DirectionProvider` and everything inside follows its direction. Spacing, alignment and arrow-key navigation all mirror." />
 
     <ExamplesHeading />
 
-    <Demo Title="Scoped to a subtree" Description="A DirectionProvider flips just its children - icon side, text alignment, tab order and arrow keys all mirror, while the rest of the page stays as it is."
+    <Demo Title="Scoped to a subtree" Description="A `DirectionProvider` flips only its own children. The icon side, text alignment, tab order and arrow keys mirror inside it, while the rest of the page is unchanged."
           Example="typeof(DirectionScopedExample)" />
 
-    <Demo Title="Per-component override" Description="A dir attribute on any single component overrides the ambient direction for just that component."
+    <Demo Title="Per-component override" Description="Put a `dir` attribute on a single component to override the surrounding direction for that component alone."
           Example="typeof(DirectionPerComponentExample)" />
 
     <section>
         <h2 data-toc class="scroll-mt-20">How it works</h2>
-        <p>Direction is expressed as the standard <code>dir</code> attribute in the DOM. <code>DirectionProvider</code> sets it on a layout-neutral wrapper for its subtree, so two things follow from one place: CSS logical properties (paddings, borders, alignment) mirror, and the JS that drives roving-focus arrow keys reads the live direction and swaps Left/Right. Equivalently you can put a raw <code>dir="rtl"</code> on any component, or - on a headless primitive - pass <code>Dir="Direction.Rtl"</code>.</p>
+        <p>Direction is expressed as the standard <code>dir</code> attribute in the DOM. <code>DirectionProvider</code> sets it on a wrapper that does not affect layout, and two things follow from that one attribute:</p>
+        <ul>
+            <li>CSS logical properties such as padding, borders and alignment mirror.</li>
+            <li>The script that handles arrow-key focus movement reads the current direction and swaps Left and Right.</li>
+        </ul>
+        <p>You can get the same result with a raw <code>dir="rtl"</code> on any component, or, on a headless primitive, by passing <code>Dir="Direction.Rtl"</code>.</p>
     </section>
 </div>
 

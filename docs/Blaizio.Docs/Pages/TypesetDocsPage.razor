@@ -11,19 +11,19 @@
             <BzBadge Variant="BadgeVariant.Outline">zero specificity</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">streaming-safe</BzBadge>
         </div>
-        <p class="max-w-3xl">Typography for the HTML you don't write by hand. One stylesheet, three knobs, wired to your design tokens - from a rendered README to a model streaming markdown into a chat bubble.</p>
+        <p class="max-w-3xl">Typeset styles the HTML you don't write by hand, from a rendered README to a model streaming markdown into a chat bubble. It is one stylesheet driven by three custom properties and wired to your design tokens, so the prose follows your theme without extra configuration.</p>
     </header>
 
     <section>
-        <p>Most text a Blazor app renders never passes through a component. Markdig hands you an HTML string, you drop it in with <code>MarkupString</code>, and out come bare headings, paragraphs, lists and tables - no classes, no design review. The usual fix is a pile of element styles written for the blog, rewritten for the docs, rewritten again for the chat transcript, each copy drifting from the last.</p>
-        <p>The typeset replaces all of those with one file. Content inside a <code>typeset</code> wrapper gets the site's typography automatically; a small preset class tunes it per context; and because the file is installed source (not a package), changing how your prose reads means editing CSS you already own.</p>
+        <p>Most text a Blazor app renders never passes through a component. Markdig hands you an HTML string, you drop it in with <code>MarkupString</code>, and out come bare headings, paragraphs, lists and tables with no classes and no design review. The usual fix is a pile of element styles written for the blog, rewritten for the docs and rewritten again for the chat transcript, with each copy drifting from the last.</p>
+        <p>The typeset replaces all of those copies with one file. Content inside a <code>typeset</code> wrapper gets the site's typography automatically, and a small preset class tunes it per context. Because the file is installed as source rather than a package, changing how your prose reads means editing CSS you already own.</p>
         <CodeBlock Code="@HeaderPreset" Numbered="false" Language="css" />
-        <p>This page is the proof: everything you are reading here is classless markup under one wrapper, and so is every other guide on this site. <a href="typeset">Open the designer</a> to build your own.</p>
+        <p>This page is styled the same way: everything you are reading here is classless markup under one wrapper, and so is every other guide on this site. <a href="typeset">Open the designer</a> to build your own.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Rhythm: three knobs, everything derived</h2>
-        <p>Typography systems usually fail by offering too much: a size per heading level, a margin per element pairing, a line-height per breakpoint. Every one of those numbers is a decision, and every decision is a place for two pages to disagree. The typeset works from the opposite end - you set three values, and the arithmetic does the rest:</p>
+        <p>Typography systems usually fail by offering too much: a size per heading level, a margin per element pairing, a line-height per breakpoint. Every one of those numbers is a decision, and every decision is a place for two pages to disagree. The typeset works from the opposite end. You set three values, and every other size and gap is derived from them:</p>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
             <BzTableHeader>
                 <BzTableRow Class="bg-muted/50 text-start">
@@ -35,83 +35,86 @@
             <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
                 <BzTableRow><BzTableCell><code>--typeset-size</code></BzTableCell><BzTableCell><code>1em</code></BzTableCell><BzTableCell>Body text. Headings, captions, code and table text are em-multiples of it.</BzTableCell></BzTableRow>
                 <BzTableRow><BzTableCell><code>--typeset-leading</code></BzTableCell><BzTableCell><code>1.75</code></BzTableCell><BzTableCell>Line-height of running prose.</BzTableCell></BzTableRow>
-                <BzTableRow><BzTableCell><code>--typeset-flow</code></BzTableCell><BzTableCell><code>1.25em</code></BzTableCell><BzTableCell>The base gap between blocks. A heading takes ~2x of it above and half of it below; list items take a fraction; a rule takes double.</BzTableCell></BzTableRow>
+                <BzTableRow><BzTableCell><code>--typeset-flow</code></BzTableCell><BzTableCell><code>1.25em</code></BzTableCell><BzTableCell>The base gap between blocks. A heading takes about twice the gap above and half of it below, list items take a fraction, and a rule takes double.</BzTableCell></BzTableRow>
             </BzTableBody>
         </BzTable>
-        <p>Change the flow and the headings breathe with it. Shrink the size and the whole hierarchy shrinks in step, because nothing inside is absolute. Fonts follow the same philosophy: <code>--typeset-font-heading</code> and <code>--typeset-font-mono</code> read your existing <code>--font-heading</code> and <code>--font-mono</code> tokens, body inherits the page, and every color comes from the theme - which is why the typeset survives all eight styles, every theme and dark mode without a line of configuration.</p>
+        <p>Change the flow and the heading spacing scales with it. Shrink the size and the whole hierarchy shrinks in step, because nothing inside is absolute.</p>
+        <p>Fonts work the same way. <code>--typeset-font-heading</code> and <code>--typeset-font-mono</code> read your existing <code>--font-heading</code> and <code>--font-mono</code> tokens, body text inherits the page, and every color comes from the theme. That is why the typeset works with all eight styles, every theme and dark mode without a line of configuration.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Installation</h2>
-        <p><CmdChip Command="blaizio add typeset" /> writes <code>Styles/typeset.css</code> next to your tokens file and records the install in <code>blaizio.json</code> - <CmdChip Command="blaizio remove typeset" /> undoes exactly that, by record. Import it after Tailwind:</p>
+        <p><CmdChip Command="blaizio add typeset" /> writes <code>Styles/typeset.css</code> next to your tokens file and records the install in <code>blaizio.json</code>, so <CmdChip Command="blaizio remove typeset" /> can undo exactly that later. Then import the file in <code>Styles/app.css</code>, after Tailwind:</p>
         <CodeBlock Code="@InstallCss" Numbered="false" Language="css" />
-        <p>The plain import is deliberate: the file wraps itself in <code>@("@layer components")</code>, so Tailwind's utilities - a later layer - override its rules no matter how it is imported. Keep it after the Tailwind import, though: imported before, the layer order would pin it below preflight. The layer also explains two behaviors. Any utility on an element beats the typeset. And links are styled only when they have no class: a classed anchor (a button rendered as an anchor, chrome laid into the prose) is yours to dress.</p>
-        <p>Then wrap whatever renders your markdown. <code>typeset</code> switches the styles on; the preset carries your values:</p>
+        <p>A plain import is enough because the file wraps itself in <code>@("@layer components")</code>, and Tailwind's utilities live in a later layer that overrides it. Keep the import after Tailwind, though, because importing it first would order its layer below preflight.</p>
+        <p>The layer also explains two behaviors. Any utility on an element beats the typeset, and links are styled only when they have no class. A classed anchor, such as a button rendered as an anchor or other interface chrome placed in the prose, is yours to style.</p>
+        <p>Finally, wrap whatever renders your markdown. <code>typeset</code> switches the styles on and the preset class carries your values:</p>
         <CodeBlock Code="@WrapSnippet" Numbered="false" Language="html" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Building your typeset</h2>
-        <p>The <a href="typeset">designer</a> is the fast path to a preset: pick the measure, the three faces and the rhythm knobs, and watch them land on three real sample documents - an article, a technical guide, a chat answer. Lock the knobs you have settled and shuffle the rest; undo and redo cover experiments. Get code then hands you every piece a project needs: the stylesheet, the webfont link plus <code>--font-*</code> variables for a Blazor host, the preset class, and the wrapper - as numbered steps, or as a single brief you can paste to a coding agent.</p>
+        <p>The <a href="typeset">designer</a> is the fastest way to build a preset. Pick the measure, the three faces and the rhythm values, and see them applied to three sample documents: an article, a technical guide and a chat answer. Lock the values you have settled and shuffle the rest, with undo and redo for experiments.</p>
+        <p>Get code then gives you every piece a project needs: the stylesheet, the webfont link plus <code>--font-*</code> variables for a Blazor host, the preset class and the wrapper. You can take them as numbered steps, or as a single brief to paste into a coding agent.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Defaults and presets</h2>
-        <p>Bare <code>typeset</code> works with no preset at all - the file ships these values:</p>
+        <p>Bare <code>typeset</code> works with no preset at all, using the values the file ships with:</p>
         <CodeBlock Code="@DefaultsCss" Numbered="false" Language="css" />
         <p>Two defaults matter more than they look:</p>
         <ul>
-            <li><b>Size is <code>1em</code>, not a pixel value.</b> The typeset inherits the type scale of wherever it lands - smaller inside a chat bubble, larger in an article column - and on viewports under 40rem it bumps itself up a touch for arm's-length reading.</li>
+            <li><b>Size is <code>1em</code>, not a pixel value.</b> The typeset inherits the type scale of wherever it lands, smaller inside a chat bubble and larger in an article column. On viewports under 40rem it increases slightly for reading at arm's length.</li>
             <li><b>No max-width.</b> Line length belongs to your layout, so the stylesheet never sets one. The designer's Measure knob puts a <code>max-w-[70ch]</code> on the wrapper markup instead, where you can see it and change it.</li>
         </ul>
-        <p>Presets are how one app serves several reading contexts. This site runs its docs on one; a chat surface would sit beside it with tighter rhythm:</p>
+        <p>Presets let one app serve several reading contexts. This site's docs use one, and a chat surface could sit beside it with tighter spacing:</p>
         <CodeBlock Code="@PresetCss" Numbered="false" Language="css" />
         <CodeBlock Code="@PresetUse" Numbered="false" Language="html" />
-        <p>And for a one-off, skip the preset entirely - the knobs are plain custom properties, so Tailwind's bracket notation sets them inline:</p>
+        <p>For a one-off, skip the preset entirely. The three values are plain custom properties, so Tailwind's bracket notation can set them inline:</p>
         <CodeBlock Code="@InlineOverride" Numbered="false" Language="html" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Presets for different kinds of reading</h2>
-        <p>Because the faces are knobs too, a preset can shift the whole character of the content, not just its density. A serif preset for long reads and a dense reference preset can share one stylesheet:</p>
+        <p>Because the font faces are custom properties too, a preset can change the whole character of the content, not just its density. A serif preset for long reads and a dense reference preset can share one stylesheet:</p>
         <CodeBlock Code="@ThemesCss" Numbered="false" Language="css" />
-        <p>The same trick answers accessibility: publish a roomier preset and let readers pick it in a settings menu.</p>
+        <p>The same approach helps with accessibility: publish a roomier preset and let readers pick it in a settings menu.</p>
         <CodeBlock Code="@LargeCss" Numbered="false" Language="css" />
-        <p>Dark mode needs nothing - the tokens flip and the typeset follows. If prose feels cramped on the dark surface, open up the leading only there:</p>
+        <p>Dark mode needs nothing extra, because the tokens switch and the typeset follows. If prose feels cramped on the dark surface, increase the leading only there:</p>
         <CodeBlock Code="@DarkCss" Numbered="false" Language="css" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Wide tables</h2>
-        <p>Markdown tables render as real tables and wrap their cells to fit the column. When wrapping would mangle one - an API matrix, a long option list - wrap it in <code>typeset-scroll</code> and it scrolls sideways inside its own box while the page stays put:</p>
+        <p>Markdown tables render as real tables and wrap their cells to fit the column. When wrapping would make a table unreadable, as with an API matrix or a long option list, put it inside a <code>typeset-scroll</code> element. The table then scrolls sideways inside its own box while the page stays put:</p>
         <CodeBlock Code="@ScrollSnippet" Numbered="false" Language="html" />
-        <p>Emit the wrapper from wherever your pipeline builds tables (a Markdig extension, your renderer's table template). It contains any over-wide block the same way - not just tables.</p>
+        <p>Emit the wrapper from wherever your pipeline builds tables (a Markdig extension, your renderer's table template). The wrapper contains any over-wide block the same way, not just tables.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Escaping the typeset</h2>
-        <p>Two escape valves, for two situations:</p>
+        <p>There are two ways out, for two different situations:</p>
         <ul>
-            <li><b>Override one element.</b> Every typeset rule is wrapped in <code>:where()</code>, which zeroes its specificity - so any utility on any element wins, no <code>!important</code>, no specificity war. Plain CSS with an ordinary selector wins the same way. This is also why Blaizio components dropped into the prose keep their look: their own classes outrank rules that weigh nothing.</li>
-            <li><b>Exempt a subtree.</b> Mark an element <code>not-typeset</code> (or <code>data-not-typeset</code>) and the typeset skips it and everything inside. The nearest wrapper wins: start a fresh <code>typeset</code> inside an opted-out subtree and styling resumes there - an opted-out card can still hold a typeset chat transcript. This site uses both directions: demo shells and code surfaces opt out, and the chat demos on the Message pages opt back in inside them.</li>
+            <li><b>Override one element.</b> Every typeset rule is wrapped in <code>:where()</code>, which reduces its specificity to zero. Any utility on any element wins without <code>!important</code>, and plain CSS with an ordinary selector wins the same way. Zero specificity is also why Blaizio components placed in the prose keep their look: their own classes outrank rules with no weight.</li>
+            <li><b>Exempt a subtree.</b> Mark an element <code>not-typeset</code> (or <code>data-not-typeset</code>) and the typeset skips it and everything inside. The nearest wrapper wins, so starting a fresh <code>typeset</code> inside an opted-out subtree resumes styling there. An opted-out card can still hold a typeset chat transcript. This site does both: demo shells and code surfaces opt out, and the chat demos on the Message pages opt back in inside them.</li>
         </ul>
         <CodeBlock Code="@EscapeSnippet" Numbered="false" Language="html" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Streaming</h2>
-        <p>A chat transcript appends blocks while the reader watches. Under most prose stylesheets each arrival restyles the block before it - a last-child margin collapses, a separator jumps - and the message visibly twitches as it grows. The typeset's layout rules are written so that cannot happen:</p>
+        <p>A chat transcript appends blocks while the reader watches. Under most prose stylesheets each new block restyles the one before it: a last-child margin collapses or a separator jumps, and the message visibly twitches as it grows. The typeset's layout rules are written so that cannot happen:</p>
         <ul>
-            <li>Nothing looks forward: <code>:last-child</code>, <code>:has()</code> and <code>:empty</code> are banned from layout rules, because what they match changes when content arrives.</li>
-            <li>Space flows one way: every gap is a <code>margin-block-start</code>, gated on a preceding sibling, so a new block brings its own spacing and touches nothing above.</li>
-            <li>Table separators belong to the row that is already there - an appended row never redraws its neighbor.</li>
+            <li><b>No rule depends on what comes next.</b> <code>:last-child</code>, <code>:has()</code> and <code>:empty</code> are never used in layout rules, because what they match changes when content arrives.</li>
+            <li><b>Spacing only looks backward.</b> Every gap is a <code>margin-block-start</code> that applies only when a previous sibling exists, so a new block brings its own spacing and changes nothing above it.</li>
+            <li><b>Table separators belong to existing rows.</b> An appended row never redraws its neighbor.</li>
         </ul>
-        <p>Streaming text still grows and wraps normally; the guarantee is only that finished blocks stay finished. Pair it with <a href="docs/components/message">Message</a> and <a href="docs/components/message-scroller">Message Scroller</a> for the rest of a chat surface. Both pages carry a live typeset demo. On Message, the prose sits in a ghost bubble. On Message Scroller, blocks stream into a wrapper: watch nothing above them move.</p>
+        <p>Streaming text still grows and wraps normally. The guarantee is only that finished blocks stay finished. Pair it with <a href="docs/components/message">Message</a> and <a href="docs/components/message-scroller">Message Scroller</a> for the rest of a chat surface. Both pages carry a live typeset demo. On Message, the prose sits in a ghost bubble. On Message Scroller, blocks stream into a wrapper, and you can watch that nothing above them moves.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Relationship to @("@tailwindcss/typography")</h2>
-        <p>If you have used the <a href="https://github.com/tailwindlabs/tailwindcss-typography" target="_blank" rel="noreferrer"><code>prose</code> plugin</a>, the typeset will feel familiar - it deliberately keeps the plugin's two best ideas, the zero-specificity guard and the escape-hatch class. It departs everywhere the two tools' goals differ: the plugin ships a beautiful fixed scale as a generated npm artifact; the typeset is a container-relative system, fed by your tokens, tuned per context, safe under streaming, delivered as source you edit.</p>
+        <p>If you have used the <a href="https://github.com/tailwindlabs/tailwindcss-typography" target="_blank" rel="noreferrer"><code>prose</code> plugin</a>, the typeset will feel familiar, because it deliberately keeps the plugin's two best ideas: the zero-specificity guard and the opt-out class. It departs wherever the two tools' goals differ. The plugin ships a fixed scale as a generated npm artifact, while the typeset is a container-relative system that reads your tokens, is tuned per context, stays stable while streaming and is delivered as source you edit.</p>
         <div class="typeset-scroll">
             <table>
                 <thead>
@@ -123,7 +126,7 @@
                 </thead>
                 <tbody>
                     <tr><td>Scale</td><td>Fixed rem steps (<code>prose-sm</code> ... <code>prose-2xl</code>)</td><td>Em-relative to wherever it sits</td></tr>
-                    <tr><td>Dark mode</td><td>Second palette via <code>prose-invert</code></td><td>Free - the tokens flip underneath it</td></tr>
+                    <tr><td>Dark mode</td><td>Second palette via <code>prose-invert</code></td><td>Automatic: the tokens switch underneath it</td></tr>
                     <tr><td>Theming</td><td>Its own color variables, scale baked in</td><td>Your tokens, plus face and rhythm knobs</td></tr>
                     <tr><td>Tweaking</td><td>Modifier API (<code>prose-a:</code>, <code>prose-headings:</code>)</td><td>Any utility or plain selector outranks it</td></tr>
                     <tr><td>Streaming</td><td>Not a design goal</td><td>Append-stable by contract</td></tr>

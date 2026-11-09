@@ -8,54 +8,55 @@
             <h1 class="text-2xl font-bold tracking-tight">Table of Contents</h1>
             <DocBadges Slug="toc" />
         </div>
-        <p>An "On This Page" nav that lists a region's headings and highlights the one you're reading. It scans for headings (assigning ids where missing), follows scrolling, and scrolls smoothly to a section on click. The right rail of this very site is one.</p>
+        <p>An "On this page" navigation built from the headings it finds in a region of your page, with the section in view highlighted as you scroll. Headings without an id get one, and a click on a link scrolls smoothly to its section. Beyond a plain list it comes as a rail, a progress line or a minimap of tick marks, and the right rail of this site is one.</p>
     </header>
 
     <UsageBlock Example="typeof(TableOfContentsUsageExample)"
-                Description="Point ContentSelector at the region to scan and RootSelector at its scroll container; the nav lists the headings and tracks the one in view." />
+                Description="Point `ContentSelector` at the region to scan and `RootSelector` at its scroll container. The navigation lists the headings and tracks the one in view." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Peek wave</h2>
-        <p>Set <code>Wave</code> on the Peek variant for a dock-style magnification: the line under the pointer grows the longest, its neighbors a step less, the next pair less still, and the swell follows the cursor smoothly down the column. Tabbing through the links plays the same wave, and each line still peeks its own label. The column packs tighter than plain Peek so the swell has room to read.</p>
-        <p>A tick's length reads its heading level, so sections that all sit at one level (a step list, a timeline, a changelog) draw an even column of equal lines, which is what the swell reads most clearly against. <code>PeekContent</code> carries what the ticks drop. Two parameters retune the geometry: <code>MarkWidth</code> sets the resting length of a section line (every level derives from it, on any minimap variant), and <code>WaveAmplitude</code> sets how far the hovered line grows.</p>
+        <p>Set <code>Wave</code> on the Peek variant for a dock-style magnification. The line under the pointer grows the longest, its neighbors a step less and the next pair less still, and the swell follows the pointer smoothly down the column. Tabbing through the links plays the same wave, and each line still opens its own label. The lines sit closer together than in plain Peek, which leaves room for the swell.</p>
+        <p>A tick's length shows its heading level, so sections that all sit at one level (a step list, a timeline, a changelog) draw an even column of equal lines, and the swell stands out most clearly against that. Since the ticks carry no text, <code>PeekContent</code> supplies what each label shows.</p>
+        <p>Two parameters change the geometry. <code>MarkWidth</code> sets the resting length of a section line on any minimap variant, and every level derives from it. <code>WaveAmplitude</code> sets how far the hovered line grows.</p>
     </section>
 
     <ExamplesHeading />
 
     <Demo Title="Default"
-          Description="Set RootSelector to a scrollable box and the nav tracks that box. Scroll the article - the active heading follows; click a link to jump."
+          Description="Set `RootSelector` to a scrollable box and the navigation tracks that box instead of the page. Scroll the article to see the active heading follow, or click a link to jump."
           Example="typeof(TableOfContentsDefaultExample)" />
 
     <Demo Title="Variants"
-          Description="List is the plain set of links. Rail draws a hairline down the start edge with one indicator that slides between sections. Progress adds a fill that follows how far the region has scrolled. Marks is a minimap of dashes, sized by heading level, that reveals all its labels on hover or keyboard focus - and Peek is that minimap with the panel taken away, opening one label at a time (its own demos are below)."
+          Description="`List` is the plain set of links, and `Rail` adds a hairline down the start edge with one indicator that slides between sections. `Progress` fills the line as the region scrolls. `Marks` is a minimap of dashes that reveals all its labels on hover or keyboard focus, while `Peek`, shown in its own demos below, opens one label at a time."
           Example="typeof(TableOfContentsVariantsExample)" />
 
     <Demo Title="Marks, floating"
-          Description="The minimap on its own, pinned to the start edge and centered. Hover it (or Tab into it) and the labels slide out, staggered down the list. Passing absolute in Class scopes it to this box instead of the viewport."
+          Description="The `Marks` minimap pinned to the start edge and centered. Hover it or Tab into it and the labels slide out one after another. Passing `absolute` in `Class` positions it within this box instead of the viewport."
           Example="typeof(TableOfContentsMarksExample)" />
 
     <Demo Title="Peek, wave"
-          Description="Wave gives Peek's column a dock-style magnification that follows the pointer, or keyboard focus, down the column. These sections all sit at one level, so the column starts even, and each card's PeekContent names the step, says what it does and adds a line of metadata."
+          Description="`Wave` magnifies the lines around the pointer or keyboard focus as it moves down the column. These sections all sit at one level, so the column starts even, and `PeekContent` gives each card a step name, a description and a line of metadata."
           Example="typeof(TableOfContentsWaveExample)" />
 
     <Demo Title="Peek"
-          Description="The minimap with no panel and no title: only ticks, and hovering one (or tabbing to it) opens that heading's card alone. Tick length reads the heading level - long for h2, shorter for what nests under it - so the column sketches the shape of the page. PeekContent replaces the card's body, here a heading plus a line of description. The card opens away from the edge the panel is pinned to."
+          Description="Only the ticks show, with no panel or title, and hovering or tabbing to one opens that heading's card alone. Ticks are long for `h2` and shorter for what nests under it, so the column sketches the shape of the page. `PeekContent` replaces the card's body, here with a heading and a line of description."
           Example="typeof(TableOfContentsPeekExample)" />
 
     <Demo Title="Position"
-          Description="Six anchors: start or end, top, center or bottom. The edges are logical, so a Start panel sits on the left in LTR and on the right in RTL, and each one slides in from the edge it belongs to. Inline (the default) leaves the panel in the layout flow. The panel floats bare - see Customization for the classes that turn it into a card."
+          Description="`Position` floats the panel at one of six anchors: start or end, at the top, center or bottom. The edges are logical, so a start panel sits on the left in a left-to-right page and on the right in a right-to-left one. `Inline`, the default, leaves the panel in the layout flow."
           Example="typeof(TableOfContentsPositionExample)" />
 
     <Demo Title="Top-level only"
-          Description="Narrow HeadingSelector to skip sub-headings, and set your own title."
+          Description="Narrow `HeadingSelector` to skip sub-headings, and set your own title."
           Example="typeof(TableOfContentsFlatExample)" />
 
     <Demo Title="Customization"
-          Description="LinkClass restyles every link (merged over the defaults, so data-active: variants win) - here an accent bar and tint mark the active section. Pair it with a custom icon title, Sticky to pin the panel, and Class to set the width. The panel carries no surface of its own, floating or inline, so the card here is Class too: bg-popover text-popover-foreground rounded-lg border p-3 shadow-md."
+          Description="`LinkClass` is merged over every link's defaults, so `data-active:` utilities style the current section, here with an accent bar and a tint. The panel has no surface of its own, so `Class` turns it into a card and sets its width, while `Sticky` keeps it pinned as you scroll."
           Example="typeof(TableOfContentsCustomExample)" />
 
     <Demo Title="RTL"
-          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the rail, list and active marker flip to the opposite side."
+          Description="Inside a right-to-left `DirectionProvider`, the rail and its active marker move to the right edge and the links align to it."
           Example="typeof(TableOfContentsRtlExample)" />
 </div>
 

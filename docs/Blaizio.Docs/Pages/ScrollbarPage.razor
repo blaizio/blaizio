@@ -9,28 +9,28 @@
             <BzBadge Variant="BadgeVariant.Secondary">Utilities</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">CSS only</BzBadge>
         </div>
-        <p>A slim, theme-aware scrollbar in place of the chunky OS one: a transparent track and a rounded pill thumb that reads as a hairline at rest and firms up on hover. The colors come from the same tokens as everything else, so it tracks light and dark and every preset. Components already mark their scroll areas with <code>scrollbar-thin</code> - but the mark is inert until your project opts in, so an app that never asked keeps its native bars everywhere.</p>
+        <p>A slim scrollbar in place of the OS one: a transparent track and a rounded thumb that reads as a hairline at rest and firms up on hover. Its colors come from the theme tokens, so it follows light and dark mode and every preset. Components already mark their scroll areas with <code>scrollbar-thin</code>, but the class does nothing until your project opts in, so an app that never asked keeps its native scrollbars everywhere.</p>
     </header>
 
     <UsageBlock Example="typeof(ScrollbarUsageExample)"
                 Setup="@null"
-                Description="A class on the overflow container. The hover, activity, none and auto utilities come with the stylesheet Blaizio already imports into your Tailwind entry point; scrollbar-thin additionally needs the project-level opt-in below." />
+                Description="Add the class to the overflow container. `scrollbar-hover`, `scrollbar-activity`, `scrollbar-none` and `scrollbar-auto` ship in the stylesheet Blaizio already imports into your Tailwind entry point, while `scrollbar-thin` also needs the project-level opt-in below." />
 
     <section class="space-y-3">
         <h2 data-toc class="scroll-mt-20">Turning it on</h2>
-        <p>Pass <code>--scrollbar</code> to <code>blaizio new</code>, <code>blaizio add</code> or <code>blaizio apply</code>, and the CLI appends this block to your Tailwind input - or paste it yourself. It redefines the stub that ships in <code>blaizio.css</code>, and every <code>scrollbar-thin</code> mark in the components lights up at once. The block lands in your file, so restyling the bar is an edit and opting back out is a delete.</p>
+        <p>Pass <code>--scrollbar</code> to <code>blaizio new</code>, <code>blaizio add</code> or <code>blaizio apply</code> and the CLI appends this block to your Tailwind input, or you can paste it yourself. It redefines the empty stub that ships in <code>blaizio.css</code>, so every <code>scrollbar-thin</code> class in the components takes effect at once. Because the block lives in your own file, you restyle the scrollbar by editing it and opt back out by deleting it.</p>
         <CodeBlock Code="@OptInCss" Numbered="false" Language="css" />
-        <p>This site opts in the same way - the block sits in the docs' own <code>app.css</code>.</p>
+        <p>This site opts in the same way, with the block in the docs' own <code>app.css</code>.</p>
     </section>
 
     <ExamplesHeading />
 
     <Demo Title="Variants"
-          Description="How present the bar is: always, only under the pointer, or only while the box is moving. The last one hides it entirely, which suits a list that scrolls through controls of its own."
+          Description="Choose how present the scrollbar is: always, only under the pointer, or only while the box is scrolling. The last variant hides it entirely, which suits a list that has its own scroll controls."
           Example="typeof(ScrollbarVariantsExample)" />
 
     <Demo Title="Overriding a component's bar"
-          Description="Components that ship a scrollbar (select and command lists, menu contents, the virtualizer's viewport, a table's container) accept the override through their Class (ContainerClass on a table). Every scrollbar-* utility is one class group, so what you pass replaces the default instead of fighting it - which is also the way in for a scrollbar of your own: pass scrollbar-auto alongside your own class and there is nothing of ours left to beat."
+          Description="Components with a built-in scrollbar, such as select and command lists, menus, the virtualizer and tables, accept an override through `Class`, or `ContainerClass` on a table. All `scrollbar-*` utilities form one class group, so the one you pass replaces the default. To style a scrollbar entirely your own way, pass `scrollbar-auto` alongside your own class."
           Example="typeof(ScrollbarOverrideExample)" />
 
     <section class="space-y-6">
@@ -41,8 +41,8 @@
     <section>
         <h2 data-toc class="scroll-mt-20">Notes</h2>
         <p><code>scrollbar-activity</code> needs one thing from the host: an <code>is-scrolling</code> class on the container while it is being scrolled. A few lines of your own scroll handler can add it, or a delegated listener for a data attribute can cover the whole app, as this site does.</p>
-        <p>Firefox styles the bar through <code>scrollbar-width</code> and <code>scrollbar-color</code>; Chromium and WebKit get the <code>::-webkit-scrollbar</code> pseudo-elements, where the hover step lives. Both look right; the hover refinement is a progressive enhancement.</p>
-        <p><code>scrollbar-auto</code> deliberately declares nothing for <code>::-webkit-scrollbar</code>. A browser paints its own bar only where no author rule has claimed those pseudo-elements, so handing it back means leaving them alone rather than resetting them - a reset renders an invisible bar in a reserved gutter.</p>
+        <p>Firefox styles the bar through <code>scrollbar-width</code> and <code>scrollbar-color</code>, while Chromium and WebKit use the <code>::-webkit-scrollbar</code> pseudo-elements, which is where the hover effect lives. Both look right, and the hover effect is a progressive enhancement.</p>
+        <p><code>scrollbar-auto</code> deliberately declares nothing for <code>::-webkit-scrollbar</code>. A browser paints its own bar only where no author rule has claimed those pseudo-elements, so handing it back means leaving them alone rather than resetting them. A reset renders an invisible bar in a reserved gutter.</p>
     </section>
 </div>
 

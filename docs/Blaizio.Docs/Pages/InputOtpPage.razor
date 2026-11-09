@@ -8,54 +8,54 @@
             <h1 class="text-2xl font-bold tracking-tight">Input OTP</h1>
             <DocBadges Slug="input-otp" />
         </div>
-        <p>A one-time-code field with individual character slots. A single hidden input drives it, so typing, pasting, focus, arrow keys and the OS autofill all work; the active slot is highlighted and shows a blinking caret. Compose the slots in groups with optional separators.</p>
+        <p>A one-time-code field drawn as individual character slots over a single hidden input. Because one real input does the work, typing, pasting, arrow keys and the operating system's code autofill all behave natively. The active slot is highlighted with a blinking caret, and you arrange the slots into groups with optional separators.</p>
     </header>
 
     <UsageBlock Example="typeof(InputOtpUsageExample)"
-                Description="Set MaxLength, then lay out that many BzInputOtpSlot (each with its Index) inside one or more BzInputOtpGroup, separated by BzInputOtpSeparator. Two-way bind the Value to read the code." />
+                Description="Set `MaxLength`, then lay out that many `BzInputOtpSlot` elements, each with its `Index`, inside one or more `BzInputOtpGroup` with a `BzInputOtpSeparator` between groups. Bind `Value` two-way to read the code." />
 
     <CompositionTree Root="Anatomy"
-                     Description="One field, split into groups of slots. Each slot renders the character at its Index; the separator is decorative." />
+                     Description="One field split into groups of slots. Each slot shows the character at its `Index`, and the separator is decorative." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Six digit slots in two groups. Type, or paste a full code at once; backspace and arrow keys move between slots."
+    <Demo Title="Default" Description="Six digit slots in two groups. Type the code or paste it in one go; Backspace and the arrow keys move between slots."
           Example="typeof(InputOtpDefaultExample)" />
 
-    <Demo Title="Patterns" Description="Restrict input with Pattern - a regex the whole value must match on each keystroke. Use the InputOtpPatterns helpers for the common cases."
+    <Demo Title="Patterns" Description="`Pattern` restricts input with a regex the whole value must match on every keystroke. The `InputOtpPatterns` helpers cover the common cases."
           Example="typeof(InputOtpPatternExample)" />
 
-    <Demo Title="Mask" Description="Set Mask to hide the typed characters behind a glyph - useful for a private PIN. The bound value still holds the real digits; pass MaskChar for a different glyph."
+    <Demo Title="Mask" Description="Set `Mask` to hide the typed characters behind a glyph, as you would for a private PIN. The bound value still holds the real digits, and `MaskChar` changes the glyph."
           Example="typeof(InputOtpMaskExample)" />
 
-    <Demo Title="One group" Description="Skip the separator for a single continuous group."
+    <Demo Title="One group" Description="Leave out the separator for a single continuous group."
           Example="typeof(InputOtpSingleExample)" />
 
-    <Demo Title="Programmatic focus" Description="Hold a reference to the component and call FocusAsync to move the keyboard yourself - Resend clears the code and puts the caret back in the first slot. The focus lands on the overlay input behind the slots, so typing fills them."
+    <Demo Title="Programmatic focus" Description="Keep a reference to the component and call `FocusAsync` to move focus from code. Here Resend clears the code and puts the caret back in the first slot. Focus lands on the hidden input behind the slots, so typing fills them."
           Example="typeof(InputOtpFocusMethodExample)" />
 
-    <Demo Title="Auto focus" Description="AutoFocus focuses the field the moment it appears - press Send code and the slots are ready for typing, no click needed. Unlike the native autofocus attribute this works for markup that mounts later, which is exactly when a code prompt shows up."
+    <Demo Title="Auto focus" Description="`AutoFocus` focuses the field as soon as it appears, so after Send code the slots are ready for typing without a click. Unlike the native `autofocus` attribute, it also works for markup that renders later, which is exactly when a code prompt shows up."
           Example="typeof(InputOtpAutoFocusExample)" />
 
     <Demo Title="Controlled" Description="Bind the value two-way to read or set the code from your own state."
           Example="typeof(InputOtpControlledExample)" />
 
-    <Demo Title="On complete" Description="OnComplete fires once when the last slot is filled - the natural place to submit the code."
+    <Demo Title="On complete" Description="`OnComplete` fires once when the last slot is filled, which makes it the natural place to submit the code."
           Example="typeof(InputOtpCompleteExample)" />
 
-    <Demo Title="Disabled" Description="A disabled field is dimmed and inert."
+    <Demo Title="Disabled" Description="A disabled field is dimmed and ignores input."
           Example="typeof(InputOtpDisabledExample)" />
 
-    <Demo Title="Invalid" Description="aria-invalid turns the slots destructive - a red border across the field and a ring on the active slot - here forced, normally set by FieldControl."
+    <Demo Title="Invalid" Description="`aria-invalid` turns the slots destructive, with a red border across the field and a ring on the active slot. It is forced here; normally `BzFieldControl` sets it."
           Example="typeof(InputOtpInvalidExample)" />
 
-    <Demo Title="Validation in an EditForm" Description="A verify-your-login card. The OTP field joins the Field's validation via FieldControl - the wrapper hands it the field's id, aria-describedby and (when invalid) aria-invalid, which turns every slot destructive. DataAnnotations, validated on submit."
+    <Demo Title="Validation in an EditForm" Description="A login verification card validated with DataAnnotations on submit. `BzFieldControl` gives the code field its id, `aria-describedby` and, when validation fails, `aria-invalid`, which turns every slot destructive."
           Example="typeof(InputOtpValidationEditFormExample)" />
 
-    <Demo Title="Customization" Description="Restyle the slots through the input-otp-slot data slot - here a rounded indigo field with a branded active ring."
+    <Demo Title="Customization" Description="Restyle the slots through the `input-otp-slot` data slot. This example draws a rounded indigo field with a branded active ring."
           Example="typeof(InputOtpCustomExample)" />
 
-    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the groups and slot rounding mirror and the arrow keys follow the visual order; the code still reads left-to-right within the value."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the groups and slot rounding mirror and the arrow keys follow the visual order. The bound value still reads left to right."
           Example="typeof(InputOtpRtlExample)" />
 
 </div>

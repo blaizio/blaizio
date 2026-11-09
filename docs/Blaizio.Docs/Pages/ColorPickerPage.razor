@@ -8,7 +8,7 @@
             <h1 class="text-2xl font-bold tracking-tight">Color Picker</h1>
             <DocBadges Slug="color-picker" />
         </div>
-        <p>A composable color picker: saturation/value area, hue and alpha sliders, text input, preset swatches and palettes, image sampling, gradients, and a native eye dropper. Reads and writes ten color formats, or a CSS gradient paint. Dragging needs an interactive render mode.</p>
+        <p>A color picker built from parts you can use on their own or together, from a single hue slider to a full panel with gradients, images, swatches and an eye dropper. It reads and writes ten color formats, and when gradients or images are on, its value is the CSS paint for the active surface. Dragging needs an interactive render mode.</p>
     </header>
 
     <UsageBlock Example="typeof(ColorPickerUsageExample)" />
@@ -16,68 +16,68 @@
     <ExamplesHeading />
 
     <Demo Title="Alpha"
-          Description="ShowAlpha adds the transparency slider and serializes alpha - here in the rgb format."
+          Description="`ShowAlpha` adds a transparency slider and includes alpha in the value, which is written in the rgb format here."
           Example="typeof(ColorPickerAlphaExample)" />
 
     <Demo Title="Formats"
-          Description="Ten formats: HEX, RGB, RGBA, HSL, HSLA, HSB, HWB, CMYK, OKLCH and OKLab. Hex keeps a free-text field that accepts any format (even without the #) and converts it. Every other format renders one field per channel, so you can edit one number without retyping the string. Those fields are also the accessible path to an exact color: the area thumb is a keyboard-steppable 2D slider that announces saturation and brightness percentages (rename the axes with XAxisLabel / YAxisLabel on BzColorArea), but exact values come through the numeric channels."
+          Description="`Format` accepts HEX, RGB, RGBA, HSL, HSLA, HSB, HWB, CMYK, OKLCH and OKLab. Hex shows a free-text field that accepts and converts any format, even without the #, while every other format shows one numeric field per channel. Those channel fields are also how keyboard and screen reader users enter an exact color."
           Example="typeof(ColorPickerFormatsExample)" />
 
     <Demo Title="Format dropdown"
-          Description="ShowFormatPicker adds the dropdown; switching it converts the current value into the chosen format and re-emits it. Bind Format to follow along."
+          Description="`ShowFormatPicker` adds a format dropdown. Switching it converts the current value into the chosen format and raises the change, and you can bind `Format` to follow along."
           Example="typeof(ColorPickerFormatPickerExample)" />
 
     <Demo Title="Saved colors"
-          Description="ShowSaved adds the saved panel: the plus banks the current color, clicking a saved swatch applies it, the corner x removes it. Bind SavedColors to persist the list."
+          Description="`ShowSaved` adds a panel of saved colors. The plus button saves the current color, clicking a swatch applies it and its corner x removes it. Bind `SavedColors` to persist the list."
           Example="typeof(ColorPickerSavedExample)" />
 
-    <Demo Title="Sizes" Description="Three width presets; pass your own width utilities via Class for anything else." Example="typeof(ColorPickerSizesExample)" />
+    <Demo Title="Sizes" Description="`Size` has three width presets. For any other width, pass your own width utilities through `Class`." Example="typeof(ColorPickerSizesExample)" />
 
     <Demo Title="Custom cursors"
-          Description="The draggable surfaces use the OS grab and grabbing hands by default. Cursor and GrabbingCursor replace them with any CSS cursor value - BzCursor.From turns a Blaizio icon into one, the same helper Sortable uses. Set them once on the picker and the area, the sliders and the gradient stop bar all follow."
+          Description="The draggable surfaces use the OS grab and grabbing cursors by default. `Cursor` and `GrabbingCursor` take any CSS cursor value, and `BzCursor.From` turns a Blaizio icon into one. Set them once on the picker and the area, the sliders and the gradient stop bar all use them."
           Example="typeof(ColorPickerCursorsExample)" />
 
     <Demo Title="Swatches"
-          Description="Preset colors as one-click swatches; the one matching the current color marks itself selected."
+          Description="Preset colors as one-click swatches. The swatch that matches the current color shows as selected."
           Example="typeof(ColorPickerSwatchesExample)" />
 
     <Demo Title="Surfaces"
-          Description="Solid, Gradient and Image share one switch. Each has its own toggle (ShowSolid, ShowGradient, ShowImage); the switch appears once more than one is on, and with all three off the picker still picks a solid color. Value is the CSS paint for the active surface: a color string on Solid, a linear, radial, angular or diamond gradient on Gradient, and url(...) on Image. Bind Gradient and Image for the models behind those strings. The image grade is a filter, a separate CSS property, so it is only on the model."
+          Description="Turn on `ShowSolid`, `ShowGradient` and `ShowImage` to offer those surfaces, and a switch appears once more than one is on. `Value` is the CSS paint for the active surface: a color, a gradient, or `url(...)` for an image. Bind `Gradient` and `Image` when you need the structured models behind those strings."
           Example="typeof(ColorPickerSurfacesExample)" />
 
     <Demo Title="Palette"
-          Description="BzColorPalette lays presets out as named ramps - a label per row, shades stretched to line up column by column. Pass Groups, or compose BzColorPaletteGroup children."
+          Description="`BzColorPalette` lays presets out as named ramps, with a label per row and the shades lined up column by column. Pass `Groups`, or compose `BzColorPaletteGroup` children."
           Example="typeof(ColorPickerPaletteExample)" />
 
     <Demo Title="Composed"
-          Description="Drop the parts into ChildContent to build your own layout - anything from a minimal area-plus-hue pair to a full panel."
+          Description="Put the parts in `ChildContent` to build your own layout, from a minimal area and hue pair to a full panel."
           Example="typeof(ColorPickerComposedExample)" />
 
     <Demo Title="Minimal"
-          Description="Two parts and nothing else. The root is the state owner, so any subset of the parts is a working picker."
+          Description="Two parts and nothing else. The root holds the color, so any subset of the parts is a working picker."
           Example="typeof(ColorPickerMinimalExample)" />
 
     <Demo Title="Hue only"
-          Description="Same idea taken further: one slider, driving the whole color."
+          Description="The same idea taken further: a single hue slider drives the whole color."
           Example="typeof(ColorPickerHueOnlyExample)" />
 
     <Demo Title="Opacity only"
-          Description="A fixed color whose transparency is the only thing on offer - the alpha slider paired with its numeric field."
+          Description="A fixed color where only the transparency can change, using the alpha slider and its numeric field."
           Example="typeof(ColorPickerOpacityOnlyExample)" />
 
     <Demo Title="In a popover"
-          Description="The classic picker button: a swatch trigger via RenderAs, the picker inside BzPopoverContent."
+          Description="A swatch button that opens the picker. The trigger is rendered with `RenderAs` and the picker sits inside `BzPopoverContent`."
           Example="typeof(ColorPickerPopoverExample)" />
 
     <Demo Title="Eye dropper"
-          Description="ShowEyeDropper adds the native EyeDropper pipette where the browser supports it."
+          Description="`ShowEyeDropper` adds the browser's native eye dropper, in browsers that support it."
           Example="typeof(ColorPickerEyeDropperExample)" />
 
     <Demo Title="Commit"
-          Description="ValueChanged streams every pointer move; OnValueCommit fires once per settled interaction - persist there."
+          Description="`ValueChanged` fires on every pointer move, while `OnValueCommit` fires once when an interaction settles. Save the color in `OnValueCommit`."
           Example="typeof(ColorPickerCommitExample)" />
 
-    <Demo Title="Live preview" Description="Bind the picked color straight into styles." Example="typeof(ColorPickerLiveExample)" />
+    <Demo Title="Live preview" Description="Bind the picked color straight into an inline style to preview it live." Example="typeof(ColorPickerLiveExample)" />
 
     <Demo Title="Disabled" Example="typeof(ColorPickerDisabledExample)" />
 </div>

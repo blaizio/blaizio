@@ -8,17 +8,17 @@
             <h1 class="text-2xl font-bold tracking-tight">Trace</h1>
             <DocBadges Slug="trace" />
         </div>
-        <p>The steps an agent takes, one line each: calling a tool, reading a file, searching, running a command. A line has an icon, a title, an optional description and a status, and it can expand, link out, or open a dialog or sheet. Use Message for the agent's reply and Marker for notes between turns.</p>
+        <p>Shows the steps an agent takes, one line per step, such as calling a tool, reading a file, searching or running a command. Each line has an icon, a title, an optional description and a status. What you wrap a line in decides what it does, so the same line can expand, link out, or open a dialog or sheet. For the agent's reply, use Message, and for notes between turns, use Marker.</p>
     </header>
 
     <UsageBlock Example="typeof(TraceUsageExample)" />
 
     <CompositionTree Root="Anatomy"
-                     Description="BzTraceLine is always the line. To make a line do something, wrap it: in BzTraceCollapsibleTrigger to expand it, in an anchor to link out, or in a dialog or sheet trigger (through its RenderAs, onto a plain button) to open one. A BzTraceIcon after the title is the indicator, such as an arrow on a link." />
+                     Description="`BzTraceLine` is always the line, and what wraps it decides what it does. Wrap it in `BzTraceCollapsibleTrigger` to expand it, in an anchor to link out, or in a dialog or sheet trigger rendered as a plain button through `RenderAs` to open one. A `BzTraceIcon` placed after the title acts as an indicator, such as the arrow on a link." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Status</h2>
-        <p>Set Status on BzTraceLine for work that is running, has failed or has not started. Status shows as color and motion, so say it in the title too.</p>
+        <p>Set <code>Status</code> on <code>BzTraceLine</code> for work that is running, has failed or has not started. The status shows only as color and motion, so state it in the title as well.</p>
         <table>
             <thead>
                 <tr><th>Status</th><th>Use for</th></tr>
@@ -35,32 +35,32 @@
     <section>
         <h2 data-toc class="scroll-mt-20">Accessibility</h2>
         <ul>
-            <li>BzTrace adds no roles of its own. Each line takes its semantics from the element that wraps it.</li>
-            <li>A BzTraceLine on its own is a <code>span</code>: read as text, never a tab stop. Inside BzTraceCollapsibleTrigger it is part of a button with <code>aria-expanded</code>; inside a link or a dialog trigger it takes that element's keyboard and focus behaviour.</li>
-            <li>Icons are hidden from screen readers, so the title is the accessible name. Write it as a sentence that says what happened, "Edited Program.cs", not just "Program.cs".</li>
+            <li><code>BzTrace</code> adds no roles of its own. Each line takes its semantics from the element that wraps it.</li>
+            <li>A <code>BzTraceLine</code> on its own is a <code>span</code>, so it is read as text and is never a tab stop. Inside <code>BzTraceCollapsibleTrigger</code> it becomes part of a button with <code>aria-expanded</code>. Inside a link or a dialog trigger it takes on that element's keyboard and focus behavior.</li>
+            <li>Icons are hidden from screen readers, so the title is the accessible name. Write it as a sentence that says what happened, such as "Edited Program.cs" rather than just "Program.cs".</li>
             <li>A link that opens a new tab says so in the title with visually hidden text: "(opens in a new tab)".</li>
-            <li>The shimmer on a running title stops for readers who prefer reduced motion. The title still says what is happening.</li>
-            <li>Inside a Message Scroller each line is announced once, when it is added.</li>
-            <li>BzTraceCollapsibleContent mutes its text. Give a block with a muted background <code>text-foreground</code> to keep its contrast; BzCodeBlock sets its own color.</li>
+            <li>The shimmer on a running title stops for readers who prefer reduced motion, and the title still says what is happening.</li>
+            <li>Inside a Message Scroller, each line is announced once, when it is added.</li>
+            <li><code>BzTraceCollapsibleContent</code> mutes its text. Give any block with a muted background <code>text-foreground</code> to keep its contrast. <code>BzCodeBlock</code> sets its own color, so it needs nothing extra.</li>
         </ul>
     </section>
 
     <ExamplesHeading />
 
     <Demo Title="Trace line"
-          Description="A BzTraceLine on its own is a step with no detail to show. It reads as plain text."
+          Description="A `BzTraceLine` on its own is a step with no detail to show, and it reads as plain text."
           Example="typeof(TraceLineExample)" />
 
     <Demo Title="Status"
-          Description="Status sets the look of the line and BzTraceStatusIcon draws it: a check once done, a spinner while running, an alert on error, a dashed circle while pending. It reads the status of the line it sits in."
+          Description="`Status` sets the look of the line, and a `BzTraceStatusIcon` inside it draws the matching icon: a check once done, a spinner while running, an alert on error and a dashed circle while pending."
           Example="typeof(TraceStatusExample)" />
 
     <Demo Title="Description"
-          Description="BzTraceDescription after the title holds a diff stat, a duration or a count. It never truncates; a long title gives way instead."
+          Description="A `BzTraceDescription` after the title holds a diff stat, a duration or a count. It never truncates, so a long title gives up its space instead."
           Example="typeof(TraceDescriptionExample)" />
 
     <Demo Title="Collapsible"
-          Description="Wrap the line in BzTraceCollapsibleTrigger and put the detail in BzTraceCollapsibleContent. The trigger is a button with aria-expanded and a chevron that turns when the row opens."
+          Description="Wrap the line in `BzTraceCollapsibleTrigger` and put the detail in `BzTraceCollapsibleContent`. The trigger is a button with `aria-expanded`, and its chevron turns when the row opens."
           Example="typeof(TraceCollapsibleExample)" />
 
     <Demo Title="Open state"
@@ -68,27 +68,27 @@
           Example="typeof(TraceOpenExample)" />
 
     <Demo Title="Link"
-          Description="Wrap the line in an anchor. A link to a new tab gets an arrow and says so to screen readers."
+          Description="Wrap the line in an anchor to link out. A link that opens a new tab gets an arrow and announces that to screen readers."
           Example="typeof(TraceLinkExample)" />
 
     <Demo Title="Dialog"
-          Description="The dialog trigger renders a styled button by default, so RenderAs puts a plain button around the line instead, and the trace styles that button. The dialog owns its open state, Escape and focus return."
+          Description="The dialog trigger renders a styled button by default, so use `RenderAs` to wrap the line in a plain button instead, which the trace then styles. The dialog still handles its open state, Escape and returning focus."
           Example="typeof(TraceDialogExample)" />
 
     <Demo Title="Sheet"
-          Description="The same shape as the dialog. Drawer and Popover triggers work the same way."
+          Description="A sheet follows the same pattern as the dialog, and so do drawer and popover triggers."
           Example="typeof(TraceSheetExample)" />
 
     <Demo Title="Group"
-          Description="Rows that sit next to each other go in one BzTrace: plain lines, rows that expand and links share one rhythm and one focus ring."
+          Description="Put neighboring rows in one `BzTrace`. Plain lines, expanding rows and links then share the same spacing and focus ring."
           Example="typeof(TraceGroupExample)" />
 
     <Demo Title="Sources"
-          Description="A row whose detail is a BzTrace of link rows."
+          Description="A row whose detail is a `BzTrace` of link rows."
           Example="typeof(TraceSourcesExample)" />
 
     <Demo Title="Chain of thought"
-          Description="A summary row with the steps inside. KeepRendered keeps the steps in the render tree while the summary is closed, so a step you opened stays open, and find-in-page reaches text inside closed rows and opens them."
+          Description="A summary row with the steps inside. `KeepRendered` keeps the steps rendered while the summary is closed, so a step you opened stays open, and find-in-page can reach text inside closed rows and open them."
           Example="typeof(TraceStepsExample)" />
 
     <Demo Title="Commit"
@@ -96,11 +96,11 @@
           Example="typeof(TraceCommitExample)" />
 
     <Demo Title="Whole turn"
-          Description="Three levels: the turn, a summary row, and the steps. Text written between steps sits between two BzTrace lists."
+          Description="Three levels: the turn, a summary row and the steps. Text the agent writes between steps sits between two `BzTrace` lists."
           Example="typeof(TraceTurnExample)" />
 
     <Demo Title="Reasoning"
-          Description="Thinking as it streams: a plain line until the first text arrives, then a row that stays open while the text streams in and closes when it is done."
+          Description="Reasoning as it streams. The step is a plain line until the first text arrives, then becomes a row that stays open while the text streams in and closes when it is done."
           Example="typeof(TraceReasoningExample)" />
 
     <Demo Title="Tool calls"
@@ -108,16 +108,16 @@
           Example="typeof(TraceToolCallsExample)" />
 
     <Demo Title="RTL"
-          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy: icons lead from the right, the rail sits under them, and a closed row's chevron points along the reading direction."
+          Description="Inside a right-to-left `DirectionProvider`, the icons lead from the right with the rail under them, and the chevron on a closed row points along the reading direction."
           Example="typeof(TraceRtlExample)" />
 </div>
 
 @code {
     // A C# string: Razor reads "@bind-Open" inside a component attribute as code.
     private const string OpenStateDescription =
-        "Rows start closed. DefaultOpen starts one open, and @bind-Open controls it. AutoOpen is for " +
-        "streaming work: the row opens while it is true and closes when it turns false, until the " +
-        "reader opens or closes the row themselves - from then on their choice wins.";
+        "Rows start closed. `DefaultOpen` starts one open, and `@bind-Open` controls it from your page. " +
+        "`AutoOpen` is for streaming work: the row opens while it is true and closes when it turns false. " +
+        "Once the reader opens or closes the row themselves, their choice wins from then on.";
 
     private static readonly CompositionNode Anatomy = new("BzTrace",
         new CompositionNode("BzTraceLine",

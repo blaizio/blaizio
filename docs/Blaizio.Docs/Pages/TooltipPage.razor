@@ -8,53 +8,54 @@
             <h1 class="text-2xl font-bold tracking-tight">Tooltip</h1>
             <DocBadges Slug="tooltip" />
         </div>
-        <p>A floating label that explains a control - shown on hover or keyboard focus, positioned against the trigger with <a class="font-medium text-foreground" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a> so it always stays on screen. Wrap a region in a <code>TooltipProvider</code> to share the open delay across triggers.</p>
+        <p>Opens after a short delay on hover and immediately on keyboard focus. It is positioned against its trigger with <a class="font-medium text-foreground" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>, so it flips to the opposite side when it runs out of room and always stays on screen. Inside a <code>BzTooltipProvider</code>, the delay is shared: once one tooltip has opened, moving to a neighboring trigger opens the next one without waiting again.</p>
     </header>
 
     <UsageBlock Example="typeof(TooltipDefaultExample)"
-                Description="Import Blaizio.Ui once, then compose a trigger and content. Any element can be the trigger via RenderAs. Wrap a region in a BzTooltipProvider to share the open delay." />
+                Description="After importing `Blaizio.Ui`, a trigger and a content block are all you need. With `RenderAs`, any element can be the trigger." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Put the trigger and the content under one BzTooltip, drop an optional BzTooltipArrow inside the content, and wrap a region in a BzTooltipProvider to share the delay across triggers." />
+                     Description="Every part of a tooltip. The trigger and content sit under one `BzTooltip`, and an optional `BzTooltipArrow` goes inside the content. A `BzTooltipProvider` around a region shares the open delay across its triggers." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Portaling</h2>
-        <p>While open, the content moves itself to the document body, so no ancestor stacking context or overflow clip (a fixed sidebar, a transformed card, a scroll container) can cover or cut it. Positioning, focus and dismissal are unaffected. Set <code>Inline="true"</code> to render it in place instead: useful under CSS containment, for print, or in tests that assert on nearby markup. Because it is portaled, ancestor CSS selectors cannot reach it; style it through its own Class or slot attributes.</p>
+        <p>While the tooltip is open, its content moves to the document body. That way no stacking context or overflow clip on an ancestor, such as a fixed sidebar, a transformed card or a scroll container, can cover or cut it off. Positioning, focus and dismissal work the same either way.</p>
+        <p>Set <code>Inline="true"</code> to render the content in place instead. This helps under CSS containment, for print, or in tests that check the surrounding markup. Because portaled content sits outside your component's markup, selectors on its ancestors cannot reach it, so style it through its own <code>Class</code> or slot attributes.</p>
     </section>
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Hover or focus the trigger - the tooltip opens after a short delay and points at it. No arrow unless you add one."
+    <Demo Title="Default" Description="Hover the trigger and the tooltip opens after a short delay. Focus it with the keyboard and it opens at once. There is no arrow unless you add one."
           Example="typeof(TooltipDefaultExample)" />
 
-    <Demo Title="Custom trigger (RenderAs)" Description="Render the trigger onto your own element - here an anchor - instead of the default button, by spreading p.Attributes."
+    <Demo Title="Custom trigger (RenderAs)" Description="The trigger renders a button by default. Use `RenderAs` when it should be your own element, such as the anchor here, and apply `p.Attributes` to it."
           Example="typeof(TooltipRenderAsTriggerExample)" />
 
-    <Demo Title="Arrow" Description="Drop an optional TooltipArrow inside the content; it points at the trigger and follows the resolved side, even after a flip."
+    <Demo Title="Arrow" Description="Add a `BzTooltipArrow` inside the content to point at the trigger. It follows the side the tooltip actually opens on, including after a flip."
           Example="typeof(TooltipArrowExample)" />
 
-    <Demo Title="Colors" Description="Variant sets the bubble's surface - the inverted foreground default, brand primary, soft accent, or a status color - and a nested arrow always paints to match."
+    <Demo Title="Colors" Description="`Variant` sets the surface of the bubble: the inverted foreground default, the brand primary, a soft accent or a status color. A nested arrow always matches it."
           Example="typeof(TooltipColorsExample)" />
 
-    <Demo Title="With keyboard shortcut" Description="Tooltip content is plain markup - pair a label with a Kbd chip. Inside the bubble the Kbd restyles itself to read on the surface."
+    <Demo Title="With keyboard shortcut" Description="Tooltip content is ordinary markup, so you can pair a label with a `Kbd`. Inside the bubble, the `Kbd` restyles itself to stay readable on the surface."
           Example="typeof(TooltipKbdExample)" />
 
-    <Demo Title="Sides" Description="Side sets the preferred edge; it flips to the opposite side when there isn't room, and the arrow follows."
+    <Demo Title="Sides" Description="`Side` sets the preferred edge. When there is not enough room, the tooltip flips to the opposite side and the arrow follows."
           Example="typeof(TooltipSidesExample)" />
 
-    <Demo Title="Shared delay across triggers" Description="Inside a TooltipProvider, once one tooltip has opened, moving to an adjacent trigger opens instantly - no waiting through the delay again."
+    <Demo Title="Shared delay across triggers" Description="Inside a `BzTooltipProvider`, once one tooltip has opened, moving to a neighboring trigger opens its tooltip right away instead of waiting through the delay again."
           Example="typeof(TooltipProviderExample)" />
 
-    <Demo Title="No delay" Description="DelayDuration is the hover wait in milliseconds; set it to 0 to open at once. Keyboard focus always opens immediately."
+    <Demo Title="No delay" Description="`DelayDuration` is the hover wait in milliseconds. Set it to 0 to open on hover at once. Keyboard focus always opens the tooltip immediately."
           Example="typeof(TooltipDelayExample)" />
 
-    <Demo Title="Disabled trigger" Description="A disabled button emits no pointer events, so wrap it in a focusable span and put the trigger on that - the tooltip still opens on hover and keyboard focus."
+    <Demo Title="Disabled trigger" Description="A disabled button fires no pointer events, so wrap it in a focusable span and make the span the trigger. The tooltip then still opens on hover and keyboard focus."
           Example="typeof(TooltipDisabledExample)" />
 
-    <Demo Title="Customization" Description="Restyle the bubble via Class - a brand-colored surface with a custom radius. Target the arrow's slot to recolor its triangle to match."
+    <Demo Title="Customization" Description="Every part accepts `Class`. This example gives the bubble a brand-colored surface and a custom radius, and targets the arrow's slot so its triangle matches."
           Example="typeof(TooltipCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the tooltip positions against the trigger and the layout flips to the opposite side."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the tooltip still positions against its trigger, and the layout of its content mirrors."
           Example="typeof(TooltipRtlExample)" />
 </div>
 

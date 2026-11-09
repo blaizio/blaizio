@@ -9,42 +9,42 @@
             <BzBadge Variant="BadgeVariant.Secondary">Utilities</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">CSS only</BzBadge>
         </div>
-        <p>A soft fade at the edges of a scroll area, so content dissolves as it scrolls past the ends instead of cutting off hard. It is a mask, not an overlay, so it works over any background and does not tint what is underneath. It is also scroll-aware without a line of script: the top edge stays crisp until you have scrolled past it, the bottom edge fades only while there is still something below, and a box whose content fits gets no fade at all.</p>
+        <p>A soft fade at the edges of a scroll container, so content dissolves past the ends instead of cutting off hard. It is a mask rather than an overlay, so it works over any background without tinting it. It also reacts to scrolling with no script: each edge fades only while there is more content beyond it, and a box whose content fits gets no fade at all.</p>
     </header>
 
     <UsageBlock Example="typeof(ScrollFadeUsageExample)"
                 Setup="@null"
-                Description="A class on the scroll container. Nothing to install and nothing to register - the utilities come with the stylesheet Blaizio already imports into your Tailwind entry point." />
+                Description="Add the class to the scroll container. There is nothing to install or register, because the utilities ship in the stylesheet Blaizio already imports into your Tailwind entry point." />
 
     <ExamplesHeading />
 
     <Demo Title="Default"
-          Description="Both boxes carry the same class. Scroll the first one: the bottom fade retreats as you reach the end and the top one appears once you leave it. The second has nothing to scroll, so it is left alone."
+          Description="Both boxes carry `scroll-fade`. Scroll the first one and the top fade appears once you leave the start, while the bottom fade retreats as you reach the end. The second box has nothing to scroll, so it keeps crisp edges."
           Example="typeof(ScrollFadeDefaultExample)" />
 
     <Demo Title="Horizontal"
-          Description="scroll-fade-x tracks the inline axis instead. Same behavior, sideways."
+          Description="`scroll-fade-x` tracks the inline axis instead, with the same behavior sideways."
           Example="typeof(ScrollFadeHorizontalExample)" />
 
     <Demo Title="One edge"
-          Description="scroll-fade-t and scroll-fade-b track a single vertical edge; scroll-fade-s and scroll-fade-e are their logical counterparts on the horizontal axis. Useful when a heading or a sticky row already covers one end."
+          Description="`scroll-fade-t` and `scroll-fade-b` fade a single vertical edge, while `scroll-fade-s` and `scroll-fade-e` are their logical counterparts on the horizontal axis. Use them when a heading or a sticky row already covers one end."
           Example="typeof(ScrollFadeEdgesExample)" />
 
     <Demo Title="Depth"
-          Description="How far the dissolve reaches into the box. Plain numbers follow the spacing scale; anything else goes in brackets, including percentages of the container."
+          Description="The depth sets how far the fade reaches into the box. Plain numbers follow the spacing scale, and anything else goes in brackets, including percentages of the container."
           Example="typeof(ScrollFadeDepthExample)" />
 
     <Demo Title="Per-edge depth and reveal"
-          Description="scroll-fade-t-* and scroll-fade-b-* (or -s-* / -e-*) set the two edges apart. scroll-fade-reveal-* is the other knob: how far you scroll before an edge reaches its full depth."
+          Description="`scroll-fade-t-*` and `scroll-fade-b-*`, or `scroll-fade-s-*` and `scroll-fade-e-*`, give each edge its own depth. `scroll-fade-reveal-*` sets how far you scroll before an edge reaches its full depth."
           Example="typeof(ScrollFadePerEdgeExample)" />
 
     <Demo Title="Turning it off"
-          Description="scroll-fade-none removes a fade that a component applies by default. The class merge treats the whole family as one group, so the class you pass replaces the earlier one instead of losing to it in the cascade."
+          Description="`scroll-fade-none` removes a fade that a component applies by default. Class merging treats the whole family as one group, so the class you pass replaces the earlier one instead of losing to it in the cascade."
           Example="typeof(ScrollFadeOverrideExample)" />
 
     @* RTL closes every page's examples, without exception. *@
     <Demo Title="RTL"
-          Description="The logical edges follow the reading direction: scroll-fade-s tracks the edge the content scrolls away from, which is the right-hand one here."
+          Description="Inside a right-to-left `DirectionProvider`, the logical edges follow the reading direction, so `scroll-fade-s` tracks the right-hand edge."
           Example="typeof(ScrollFadeRtlExample)" />
 
     <section class="space-y-6">
@@ -56,9 +56,9 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">How it works</h2>
-        <p>Each edge's depth is a registered custom property animated on a scroll-driven timeline of the element itself, and the mask reads those two properties. That is the whole mechanism: the fade is a function of scroll position, computed by the browser on the same frame as the scroll, with no listener and no measurement pass.</p>
-        <p>It also explains the one behavior you cannot get from a static mask: a scroll timeline is <strong>inactive</strong> when there is nothing to scroll, so the animations do not apply and a container whose content fits keeps its crisp edges. Browsers without scroll-driven animations fall back to a static fade on whichever edges the utility tracks - it stops reacting to scroll position, nothing looks broken.</p>
-        <p>Reduced motion leaves these on. Nothing about them moves on its own: the reader moves the content, the mask follows.</p>
+        <p>Each edge's depth is a registered custom property, animated on the element's own scroll-driven timeline, and the mask reads those two properties. So the fade is a function of scroll position that the browser computes on the same frame as the scroll, with no listener and no measurement pass.</p>
+        <p>It also explains the one behavior you cannot get from a static mask: a scroll timeline is <strong>inactive</strong> when there is nothing to scroll, so the animations do not apply and a container whose content fits keeps its crisp edges. Browsers without scroll-driven animations fall back to a static fade on whichever edges the utility tracks. It no longer reacts to scroll position, but nothing looks broken.</p>
+        <p>The fade stays on under reduced motion, because nothing about it moves on its own. The reader moves the content and the mask follows.</p>
     </section>
 </div>
 

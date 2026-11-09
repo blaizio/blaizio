@@ -9,127 +9,126 @@
             <DocBadges Slug="table" />
         </div>
         <p>
-            A responsive data table. Compose the styled primitives directly, or hand rows to
-            <code>BzDataTable&lt;TItem&gt;</code> for sorting, search, column visibility, selection,
-            editing, column sizing, pinning and moving, pagination and virtualization - inside a
-            fixed-height scroll box (<code>MaxHeight</code>)
-            or, by default, against the page itself with no height restriction. For server-side data, swap
-            <code>Items</code> for an async <code>ItemsProvider</code>.
+            Compose the styled primitives for a plain, responsive table, or hand your rows to
+            <code>BzDataTable&lt;TItem&gt;</code> for sorting, search, selection, spreadsheet-style editing, column sizing, pinning and
+            moving, pagination and virtualization. Rows scroll with the page by default, or inside a fixed-height box when you set
+            <code>MaxHeight</code>, and server-side data plugs in by swapping <code>Items</code> for an
+            async <code>ItemsProvider</code>.
         </p>
     </header>
 
     <UsageBlock Example="typeof(TableUsageExample)"
-                Description="Import Blaizio.Ui once, then compose the styled primitives - or hand rows to BzDataTable&lt;TItem&gt; for sorting, search and more." />
+                Description="Import `Blaizio.Ui` once, then compose the styled primitives yourself, or hand your rows to `BzDataTable&lt;TItem&gt;` for sorting, search and the rest." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The styled-primitive anatomy: a Table wraps an optional Caption, a Header of head cells, a Body of rows, and an optional Footer. BzDataTable composes these for you." />
+                     Description="A `BzTable` wraps an optional caption, a header of head cells, a body of rows and an optional footer. `BzDataTable` builds the same structure for you." />
 
     <ExamplesHeading />
 
-    <Demo Title="Basic" Description="The styled primitives - Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption - composed by hand." Example="typeof(TableBasicExample)" />
+    <Demo Title="Basic" Description="The styled primitives composed by hand: `BzTable`, `BzTableHeader`, `BzTableBody`, `BzTableRow`, `BzTableHead`, `BzTableCell` and `BzTableCaption`." Example="typeof(TableBasicExample)" />
 
     <Demo Title="Data table"
-          Description="BzDataTable wires the columns to sorting (click a header), search, a column-visibility menu and row selection. Define columns as BzPropertyColumn / BzTemplateColumn children - TItem cascades, so you usually only pass the property."
+          Description="`BzDataTable` connects its columns to sorting (click a header), search, a column visibility menu and row selection. Declare columns as `BzPropertyColumn` or `BzTemplateColumn` children, and because `TItem` cascades you usually only pass the property."
           Example="typeof(TableDataTableExample)" />
 
     <Demo Title="Columns as data"
-          Description="The data-driven alternative: pass a Columns list instead of child components. SortBy makes a column sortable; Text adds it to search."
+          Description="Pass a `Columns` list instead of child components when the columns come from data. `SortBy` makes a column sortable and `Text` includes it in search."
           Example="typeof(TableColumnsAsDataExample)" />
 
     <Demo Title="Empty state"
-          Description="When the filter matches nothing, the body collapses to a single EmptyContent row (defaulting to 'No results.')."
+          Description="When the filter matches nothing, the body shows a single row with `EmptyContent`, which defaults to &quot;No results.&quot;"
           Example="typeof(TableEmptyExample)" />
 
     <Demo Title="Virtualized rows (fixed height)"
-          Description="Virtualize mounts only the rows in view. Here 10,000 rows scroll inside a fixed-height box (MaxHeight) with its own scrollbar - reach the top or bottom and the page takes over. Fixed height means every row is exactly ItemSize, so placement is pure index math (fastest; best for uniform rows). Omit MaxHeight to virtualize against the page instead, with no height cap. Past a couple thousand rows, set Virtualize or PageSize rather than rendering everything - the table warns in the browser console when an unpaged, non-virtualized list crosses 2,000 rows."
+          Description="`Virtualize` renders only the rows in view. Here 10,000 rows scroll inside a `MaxHeight` box with its own scrollbar, and the page takes over at the top or bottom. Every row is exactly `ItemSize` tall, so placement is plain index math, the fastest option for uniform rows. Omit `MaxHeight` to virtualize against the page instead. The table warns in the browser console when an unpaged, non-virtualized list passes 2,000 rows, as a hint to set `Virtualize` or `PageSize`."
           Example="typeof(TableVirtualFixedExample)" />
 
     <Demo Title="Virtualized rows (dynamic height)"
-          Description="Add DynamicRowHeight and the virtualizer measures each rendered row instead of assuming ItemSize - so rows of different heights (here, notes that wrap) place correctly. Same fixed-height scroll box, its own scrollbar; ItemSize is only the estimate used until a row is measured."
+          Description="Add `DynamicRowHeight` and the virtualizer measures each rendered row instead of assuming `ItemSize`, so rows of different heights, here notes that wrap, land in the right place. `ItemSize` then only serves as the estimate until a row is measured."
           Example="typeof(TableVirtualDynamicExample)" />
 
     <Demo Title="Row class"
-          Description="RowClass returns a CSS class per row from its data - here suspended members are dimmed and struck through, and admins get a subtle tint. It styles the whole row, independent of the columns."
+          Description="`RowClass` returns a CSS class for each row from its data and styles the whole row, independent of the columns. Here suspended members are dimmed and struck through, and admins get a subtle tint."
           Example="typeof(TableRowClassExample)" />
 
     <Demo Title="Tie-breaker sort"
-          Description="A column's Sort can chain keys. This Role column sorts by Role, then by Name within each role - so equal roles stay grouped and alphabetical inside the group instead of arbitrary order. Click the Role header; the toggle flips the whole chain."
+          Description="A column's `Sort` can chain keys. This Role column sorts by role and then by name, so rows with the same role stay together in alphabetical order. Clicking the header reverses the whole chain."
           Example="typeof(TableTieBreakerExample)" />
 
     <Demo Title="Pagination"
-          Description="Set PageSize to page the rows instead of showing them all - a pager renders below the table, searching resets to the first page, and sorting carries across pages. An alternative to Virtualize for moderate data."
+          Description="Set `PageSize` to split moderate data into pages instead of virtualizing it. A pager appears below the table, a search goes back to the first page, and sorting applies across all pages."
           Example="typeof(TablePaginationExample)" />
 
     <Demo Title="Async data (ItemsProvider)"
-          Description="For server-side data, give an ItemsProvider instead of Items: it receives the page window, sort and filter and returns that page plus the total count, so sorting, search and paging all happen at the source. Here it queries 10,000 rows behind a simulated 300ms latency (skeleton rows hold the page shape while the first load is in flight - LoadingContent swaps in your own); stale requests are canceled as you click."
+          Description="For server-side data, give an `ItemsProvider` instead of `Items`. It receives the page window, sort and filter, and returns that page with the total count, so sorting, search and paging all happen at the source. Here it queries 10,000 rows with a simulated 300ms delay: skeleton rows hold the shape during the first load (`LoadingContent` replaces them), and stale requests are canceled as you click."
           Example="typeof(TableProviderExample)" />
 
     <Demo Title="Editing cells"
-          Description="Mark a BzPropertyColumn Editable and the table becomes a spreadsheet-style grid that edits with the library's own controls, picked from each property's type: a text box for Name, a pick list for the Category enum, number fields for Price and Stock, a date field for Restock, a time field for Cut-off, and a switch for Listed, chosen with Editor. A click selects a cell; a double-click edits it in place with the control ready: the caret where you clicked, the list or calendar open, the time part under the pointer. With EditOnClick (the switch) a single click does that already, and a click on another cell commits and opens that one. The chevron and calendar marks on a hovered cell open the list or calendar too, and a click on the switch flips it at once. On the keyboard, type over a cell to replace it (an arrow then commits and moves), press F2 to edit it in place, or Alt+ArrowDown to open a list or calendar. Enter commits and moves down, Escape puts the old value back (with a list open, one Escape closes it and cancels), Delete clears a cell, and a block copied from a spreadsheet pastes across cells. The cursor's ring shows while you use the keyboard; with the mouse, the cell under the pointer is tinted instead. Values pass the property's DataAnnotations (Stock's Range, Name's Required) and the column's Validate (Price) before they are written into the row. OnEdit hears every change once per action."
+          Description="Mark a `BzPropertyColumn` `Editable` and the table becomes a spreadsheet-style grid that edits with Blaizio's own controls, picked from each property's type: a text box for Name, a pick list for the Category enum, number fields for Price and Stock, a date field for Restock and a time field for Cut-off. `Editor` picks the switch for Listed. A click selects a cell, and a double-click edits it in place with the control ready: the caret where you clicked, the list or calendar open, the time part under the pointer. With `EditOnClick` (the switch in this demo) a single click does that, and a click on another cell commits and opens that one. The chevron and calendar marks on a hovered cell open the list or calendar too, and a click on a switch flips it at once. On the keyboard, type over a cell to replace it (an arrow then commits and moves), press F2 to edit it in place, or press Alt+ArrowDown to open a list or calendar. Enter commits and moves down, Escape puts the old value back (with a list open, one Escape closes it and cancels), Delete clears a cell, and a block copied from a spreadsheet pastes across cells. The cursor's ring shows while you use the keyboard, while with the mouse the cell under the pointer is tinted instead. Values pass the property's DataAnnotations (Stock's `Range`, Name's `Required`) and the column's `Validate` (Price) before they are written into the row, and `OnEdit` hears every change once per action."
           Example="typeof(TableEditCellExample)" />
 
     <Demo Title="Custom cells"
-          Description="A column's cell can be any template while the column keeps its sort, search and editor. ChildContent gets the row: here Status shows a badge and still edits with its pick list. CellContent gets the cell instead: the row (context.Item), the property's value and its formatted text (context.Value, context.Text), whether an edit is open on the row (context.IsEditing), and context.Error and context.Pending, so Progress draws a bar that dims while its save runs. EdgeToEdge drops the cell's padding and stretches the template to the cell's full height, so a background tints the whole cell, as Open issues does from ten up; the template then pads itself. The keyboard cursor stays in the browser, so it is no context value: an editable table's cells carry data-active while they hold it, and group/table-cell, so a template follows it in CSS, here with group-data-active/table-cell on the bar."
+          Description="A cell can render any template while its column keeps sorting, search and its editor. `ChildContent` gets the row, so here Status shows a badge and still edits with its pick list. `CellContent` gets the cell instead: the row (`context.Item`), the value and its formatted text (`context.Value`, `context.Text`), whether the row has an edit open (`context.IsEditing`), and `context.Error` and `context.Pending`, which Progress uses to dim its bar while a save runs. `EdgeToEdge` removes the cell's padding and stretches the template to the full cell height, so a background tints the whole cell, as Open issues does from ten up, and the template pads itself. The keyboard cursor lives in the browser rather than in the context: an editable table's cells carry `data-active` while they hold it, along with `group/table-cell`, so a template can follow it in CSS, here with `group-data-active/table-cell` on the bar."
           Example="typeof(TableCustomCellsExample)" />
 
     <Demo Title="Editing rows"
-          Description="EditMode Row edits the whole row in place: Enter, F2 or a double-click opens an editor in every editable cell (a pick list for Room, date fields for the stay, a checkbox for Paid), focused on the cell you were on and ready the way a cell's editor is: a double-click on Room opens its list, and typing over a cell replaces it. Tab walks the fields, Enter commits the row as one change and Escape cancels it. The row is already written when OnEdit runs, so a rule can span fields: here a check-out before the check-in is refused with Reject, which puts the old values back and keeps the row open with the message under the field."
+          Description="Set `EditMode` to `Row` to edit the whole row in place. Enter, F2 or a double-click opens an editor in every editable cell (a pick list for Room, date fields for the stay, a checkbox for Paid), focused on the cell you were on and ready the way a cell editor is: a double-click on Room opens its list, and typing over a cell replaces it. Tab moves through the fields, Enter commits the row as one change, and Escape cancels it. The row is already written when `OnEdit` runs, so a rule can check several fields at once: here a check-out before the check-in is refused with `Reject`, which puts the old values back and keeps the row open with the message under the field."
           Example="typeof(TableEditRowExample)" />
 
     <Demo Title="Edit actions column"
-          Description="BzEditActionsColumn gives every row an Edit button; while a row edits in place it shows Save and Cancel instead (in Dialog and Drawer modes Edit opens the form). The buttons are icons named by their labels (EditLabel, SaveLabel, CancelLabel) with a tooltip each, and the column works with Pinned, Width and Align like any other; here it stays at the end edge. It is as wide as Save and Cancel from the start, since the columns keep their widths while a row edits. They belong to the row's edit: a press on Cancel cancels without saving first, Tab from the row's last field reaches Save and then Cancel, and Enter or Space presses them. While OnEdit runs, Save spins and both wait. The column only shows while rows edit as a whole: it is hidden in Cell mode. ChildContent replaces the buttons and gets the row's actions as its context: Item, IsEditing, Busy, BeginAsync, SaveAsync and CancelAsync."
+          Description="`BzEditActionsColumn` gives every row an Edit button, which turns into Save and Cancel while the row edits in place (in Dialog and Drawer modes, Edit opens the form). The buttons are icons named by `EditLabel`, `SaveLabel` and `CancelLabel`, each with a tooltip, and the column takes `Pinned`, `Width` and `Align` like any other; here it stays at the end edge. It is as wide as Save and Cancel from the start, because columns keep their widths while a row edits. The buttons belong to the row's edit: a press on Cancel cancels without saving first, Tab from the row's last field reaches Save and then Cancel, and Enter or Space presses them. While `OnEdit` runs, Save shows a spinner and both buttons wait. The column only appears when rows edit as a whole, so it is hidden in Cell mode. `ChildContent` replaces the buttons and receives the row's actions as its context: `Item`, `IsEditing`, `Busy`, `BeginAsync`, `SaveAsync` and `CancelAsync`."
           Example="typeof(TableEditActionsExample)" />
 
     <Demo Title="Your own actions column"
-          Description="Any column can hold your own buttons: the table's BeginEditAsync, CommitEditAsync, CancelEditAsync and IsEditing are public, and a template column renders again when an edit opens or closes. Set EditActions on that BzTemplateColumn so its controls belong to the row's edit, as the built-in ones do: a press on Cancel cancels, and Tab from the row's last field reaches Save and Cancel. The columns keep their widths while a row edits, so give the cell room for its wider set of buttons from the start: here both sets share one grid cell, the one not in use invisible and inert. Edit amount opens the row on its Amount field: BeginEditAsync takes the column's key."
+          Description="Any column can hold your own buttons, because the table's `BeginEditAsync`, `CommitEditAsync`, `CancelEditAsync` and `IsEditing` are public and a template column renders again when an edit opens or closes. Set `EditActions` on that `BzTemplateColumn` so its controls belong to the row's edit as the built-in ones do: a press on Cancel cancels, and Tab from the row's last field reaches Save and Cancel. Columns keep their widths while a row edits, so give the cell room for the wider set of buttons from the start. Here both sets share one grid cell, with the one not in use invisible and inert. Edit amount opens the row on its Amount field, since `BeginEditAsync` takes a column key."
           Example="typeof(TableEditOwnActionsExample)" />
 
     <Demo Title="Editing in a dialog"
-          Description="EditMode Dialog edits the row as a form: Enter on a row, a double-click, or BeginEditAsync from a row action opens it on the field of the column you were on, with a field for every editable column, the hidden Started, Active and Notes columns included. When there are more fields than room, they scroll between the title and the buttons. Close a changed form with Escape, a press outside or Cancel and the footer asks first: Discard or Keep editing. Options turns Team's strings into a pick list, Editor makes Active a switch, and EditorContent swaps in any control, here a multi-line text box for Notes; it binds context.Value and serves the cell, row and form editors alike. The rows are records with no setters, so OnEdit applies the change by replacing the row."
+          Description="Set `EditMode` to `Dialog` to edit the row as a form. Enter on a row, a double-click, or `BeginEditAsync` from a row action opens it on the field of the column you were on, with a field for every editable column, including the hidden Started, Active and Notes columns. When the fields outgrow the dialog, they scroll between the title and the buttons. Closing a changed form with Escape, a press outside or Cancel asks first, with Discard and Keep editing in the footer. `Options` turns Team's strings into a pick list, `Editor` makes Active a switch, and `EditorContent` swaps in any control, here a multi-line text box for Notes; it binds `context.Value` and serves the cell, row and form editors alike. The rows are records with no setters, so `OnEdit` applies the change by replacing the row."
           Example="typeof(TableEditDialogExample)" />
 
     <Demo Title="Editing in your own dialog"
-          Description="EditDialogContent replaces the built-in dialog with one of your own: bind its Open and OpenChanged to the context and save with context.SaveAsync. context.Field renders a column's built-in field (its label, editor and message), so the fields behave as they do in the built-in form while the layout is yours, here two to a row. Closing a changed ticket asks first: while context.ConfirmingDiscard is true the footer shows your own question, with context.DiscardAsync and context.KeepEditing as the answers. For controls of your own, context.GetValue and SetValue reach the drafts, and ErrorFor and Message say why a save was refused."
+          Description="`EditDialogContent` replaces the built-in dialog with your own. Bind its `Open` and `OpenChanged` to the context and save with `context.SaveAsync`. `context.Field` renders a column's built-in field (label, editor and message), so the fields behave as they do in the built-in form while the layout is yours, here two to a row. Closing a changed ticket asks first: while `context.ConfirmingDiscard` is true the footer shows your own question, with `context.DiscardAsync` and `context.KeepEditing` as the answers. For controls of your own, `context.GetValue` and `SetValue` reach the draft values, and `ErrorFor` and `Message` explain why a save was refused."
           Example="typeof(TableEditCustomDialogExample)" />
 
     <Demo Title="Editing in a drawer"
-          Description="EditMode Drawer puts the same form in a sheet at the inline-end edge, full width on a phone: its title and buttons stay put while the fields scroll, and it opens on the field of the column you were on. Previous and Next in its header save the row (a refused value keeps you on it) and open the row before or after it in the table's current order, so sort or search first to walk a subset; they are off at the ends. A changed form asks before it closes, as the dialog does. While the drawer is open its row is marked in the table, and when it closes the focus returns to the row it showed last."
+          Description="Set `EditMode` to `Drawer` to put the same form in a sheet at the inline-end edge, full width on a phone. Its title and buttons stay put while the fields scroll, and it opens on the field of the column you were on. Previous and Next in the header save the row (a refused value keeps you on it) and open the row before or after it in the table's current order, so sort or search first to step through a subset; they are disabled at the ends. A changed form asks before it closes, as the dialog does. While the drawer is open its row is marked in the table, and when it closes, focus returns to the row it showed last."
           Example="typeof(TableEditDrawerExample)" />
 
     <Demo Title="Editing in your own drawer"
-          Description="EditDrawerContent replaces the built-in drawer with one of your own and gets the same context as EditDialogContent. Here a sheet carries the order's number in its header, the fields in two sections and Previous and Next buttons of its own (context.HasPrevious, context.PreviousAsync and context.NextAsync), while context.Actions renders the built-in footer buttons, the Discard or Keep editing question included."
+          Description="`EditDrawerContent` replaces the built-in drawer with your own and gets the same context as `EditDialogContent`. Here the sheet shows the order number in its header, the fields in two sections and its own Previous and Next buttons (`context.HasPrevious`, `context.PreviousAsync` and `context.NextAsync`), while `context.Actions` renders the built-in footer buttons, including the Discard or Keep editing question."
           Example="typeof(TableEditCustomDrawerExample)" />
 
     <Demo Title="Editing large tables"
-          Description="Editing works with Virtualize: here 10,000 rows in a scroll box, with only the visible band rendered. Moving the cursor never calls .NET, and PageDown, Ctrl+End or an arrow past the edge scrolls the box to bring the row in. There is one editor at a time, and starting or committing an edit re-renders only the rows in view. Total follows Quantity and Unit price as you commit."
+          Description="Editing works with `Virtualize`: here 10,000 rows sit in a scroll box with only the visible rows rendered. Moving the cursor never calls .NET, and PageDown, Ctrl+End or an arrow past the edge scrolls the box to bring the row in. Only one editor is open at a time, and starting or committing an edit renders only the rows in view again. Total follows Quantity and Unit price as you commit."
           Example="typeof(TableEditVirtualExample)" />
 
     <Demo Title="Column sizing"
-          Description="Width, MinWidth and MaxWidth size a column in pixels, and Fill gives one the room the others leave, here Customer. With ResizableColumns, drag the edge between two headers to resize a column, double-click it to fit the content, or focus a header and press Alt+Shift+Left or Right (Alt+Shift+Enter fits). The columns before the one you resize keep their widths; a filling column after it gives or takes the difference. Bind ColumnWidths to keep what users choose: it holds the widths they set, by column key, and setting it to null goes back to the columns' own widths."
+          Description="`Width`, `MinWidth` and `MaxWidth` size a column in pixels, and `Fill` gives one column the room the others leave, here Customer. With `ResizableColumns`, drag the edge between two headers to resize, double-click it to fit the content, or focus a header and press Alt+Shift+Left or Right (Alt+Shift+Enter fits). Columns before the one you resize keep their widths, while a filling column after it absorbs the difference. Bind `ColumnWidths` to keep what users choose: it holds the widths they set by column key, and setting it to `null` restores the columns' own widths."
           Example="typeof(TableColumnSizingExample)" />
 
     <Demo Title="Pinned columns"
-          Description="Pinned keeps a column in place while the rows scroll sideways: Start columns sit at the start edge (the selection column joins them) and End columns at the end edge, each group in its own order, with a divider on its inner edge. Pinned cells take each row's hover and selection tint, and they work with StickyHeader, a MaxHeight scroll box, resizing (the offsets follow the widths), Virtualize and editing."
+          Description="`Pinned` keeps a column in place while the rows scroll sideways. `Start` columns sit at the start edge, joined by the selection column, and `End` columns at the end edge, each group in its own order with a divider on its inner edge. Pinned cells take the row's hover and selection tint, and they work with `StickyHeader`, a `MaxHeight` scroll box, resizing (the offsets follow the widths), `Virtualize` and editing."
           Example="typeof(TableColumnPinningExample)" />
 
     <Demo Title="Moving columns"
-          Description="With ReorderableColumns, drag a header to move its column, or focus one and press Ctrl+Shift+Left or Right (the focus moves with it). A header that can move shows the grab cursor. While you drag, a label follows the pointer and a line marks where the column will land; with LiveReorder (the switch) the column itself follows the pointer and the others slide out of its way. Either way the order is reported once, on release, and Escape puts everything back. A column moves within its pinned group, and one whose Reorderable is off stays put and keeps the others from crossing it, here the # column. A plain click still sorts. Bind ColumnOrder to keep the order: it lists every column key, hidden ones included, and a column missing from a saved order keeps its declared place."
+          Description="With `ReorderableColumns`, drag a header to move its column, or focus one and press Ctrl+Shift+Left or Right, and focus moves with it. A header that can move shows the grab cursor. While you drag, a label follows the pointer and a line marks where the column will land. With `LiveReorder` (the switch) the column itself follows the pointer and the others slide out of its way. Either way the order is reported once, on release, and Escape puts everything back. A column moves only within its pinned group, and one with `Reorderable` off stays put and blocks the others from crossing it, here the # column. A plain click still sorts. Bind `ColumnOrder` to keep the order: it lists every column key, hidden ones included, and a column missing from a saved order keeps its declared place."
           Example="typeof(TableColumnReorderExample)" />
 
     <Demo Title="Columns in a large editable table"
-          Description="Every column feature at once on 10,000 virtualized, editable rows: # and Item pinned to the start, Total to the end, the columns between resizable and movable. They move live (LiveReorder), and rows the virtualizer adds mid-drag shift with the rest. The widths live in a colgroup, so the rows the virtualizer adds as you scroll take them with no work of their own, and an editor never changes a column's width. Moving the cursor still never calls .NET, and the cursor scrolls a cell out from under the pinned columns."
+          Description="Every column feature at once on 10,000 virtualized, editable rows: # and Item pinned to the start, Total to the end, and the columns between them resizable and movable with `LiveReorder`. Rows the virtualizer adds mid-drag shift with the rest. Widths live in a `colgroup`, so rows added as you scroll pick them up automatically and an editor never changes a column's width. Moving the cursor still never calls .NET, and it scrolls a cell out from under the pinned columns."
           Example="typeof(TableColumnsVirtualExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle the primitives via Class - here the header row gets an indigo tint and white text, and the caption an indigo accent."
+          Description="Every primitive accepts `Class`. Here the header row gets an indigo background and white text, and the caption an indigo accent."
           Example="typeof(TableCustomExample)" />
 
     <Demo Title="RTL"
-          Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - alignment, the select column and the sort affordance all flip to the opposite side."
+          Description="Inside a right-to-left `DirectionProvider`, text alignment, the selection column and the sort indicator all move to the opposite side."
           Example="typeof(TableRtlExample)" />
 
     <Demo Title="Columns, right to left"
-          Description="Pinning, resizing and moving follow the direction: the start edge is on the right, so the pinned Name column (and the selection column) stay there, each resize handle sits on its header's left edge, and Alt+Shift+Left widens a column. Ctrl+Shift+Left still moves a column to the left on screen."
+          Description="Pinning, resizing and moving follow the direction. The start edge is on the right, so the pinned Name column and the selection column stay there, each resize handle sits on its header's left edge, and Alt+Shift+Left widens a column. Ctrl+Shift+Left still moves a column to the left on screen."
           Example="typeof(TableColumnsRtlExample)" />
 
     <section class="space-y-3">

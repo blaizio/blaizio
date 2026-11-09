@@ -9,21 +9,21 @@
             <BzBadge Variant="BadgeVariant.Outline">light / dark / system</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">8 styles</BzBadge>
         </div>
-        <p>Blaizio is themed with CSS variables. Every color is a semantic token like <code>--primary</code>, mapped to Tailwind utilities (<code>bg-primary</code>, <code>text-primary-foreground</code>, ...) that the components use - change the variable and every component follows, in both light and dark mode. For the ready-made light/dark/system pickers, see the <a href="docs/components/theme-switcher">Theme Switcher</a> component; to compose a whole look visually, use <a href="themes">Themes</a>.</p>
+        <p>Every color in Blaizio is a semantic CSS variable such as <code>--primary</code>, mapped to the Tailwind utilities the components use (<code>bg-primary</code>, <code>text-primary-foreground</code>, ...). Change a variable and every component follows, in both light and dark mode. For ready-made light, dark and system pickers, see the <a href="docs/components/theme-switcher">Theme Switcher</a> component, and to compose a whole look visually, use <a href="themes">Themes</a>.</p>
     </header>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Convention</h2>
-        <p>Tokens come in <code>background</code> / <code>foreground</code> pairs: the base token (<code>--primary</code>) is a surface color and its <code>-foreground</code> partner (<code>--primary-foreground</code>) is the text/icon color used on that surface. The <em>background</em> suffix is omitted - a component paints <code>bg-primary text-primary-foreground</code> and both flip together when the mode changes.</p>
+        <p>Tokens come in <code>background</code> / <code>foreground</code> pairs. The base token (<code>--primary</code>) is a surface color, and its <code>-foreground</code> partner (<code>--primary-foreground</code>) is the text and icon color used on that surface. The <em>background</em> suffix is left off, so a component paints <code>bg-primary text-primary-foreground</code> and both values flip together when the mode changes.</p>
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Theme tokens</h2>
-        <p>Where the tokens live in your app:</p>
+        <p>Theme-wide values live in one file, while each component keeps its own structural look:</p>
         <ul>
-            <li><b>One file: the tokens file</b> - when <code>blaizio add</code> wires your project, it creates <code>Styles/app.css</code>. That file holds the Tailwind input, the <code>:root</code>/<code>.dark</code> values and the map from tokens to utilities. It's yours: edit the values directly. The CLI only keeps the imports in sync and patches values on <code>apply</code>.</li>
-            <li><b>Each component carries its own look</b> - <code>add</code> copies components with their structural styling inlined in their classes (per the style you picked). Edit a component's look in its own file, and theme-wide values in the tokens file.</li>
-            <li><b>This docs site is the exception</b> - it loads all eight styles as stylesheets so you can switch them at runtime; a real project installs one style's components and swaps via <code>blaizio apply</code>.</li>
+            <li><b>The tokens file.</b> When <code>blaizio add</code> wires your project, it creates <code>Styles/app.css</code>, which holds the Tailwind input, the <code>:root</code>/<code>.dark</code> values and the map from tokens to utilities. The file is yours, so edit the values directly. The CLI only keeps the imports in sync and patches values when you run <code>apply</code>.</li>
+            <li><b>Each component carries its own look.</b> <code>add</code> copies components with the structural styling of the style you picked inlined in their classes. Change a component's look in its own file, and theme-wide values in the tokens file.</li>
+            <li><b>This docs site is the exception.</b> It loads all eight styles as stylesheets so you can switch between them at runtime. A real project installs one style's components and switches style with <code>blaizio apply</code>.</li>
         </ul>
         <BzTable ContainerClass="rounded-lg border" Class="text-sm">
                 <BzTableHeader>
@@ -34,25 +34,25 @@
                 </BzTableHeader>
                 <BzTableBody Class="text-muted-foreground [&_code]:text-foreground">
                     <BzTableRow><BzTableCell><code>background</code> / <code>foreground</code></BzTableCell><BzTableCell>The page itself and its default text.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell><code>card</code> / <code>card-foreground</code></BzTableCell><BzTableCell>Elevated surfaces - cards, attachments.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell><code>popover</code> / <code>popover-foreground</code></BzTableCell><BzTableCell>Floating surfaces - menus, popovers, dialogs, tooltips.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell><code>card</code> / <code>card-foreground</code></BzTableCell><BzTableCell>Elevated surfaces such as cards and attachments.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell><code>popover</code> / <code>popover-foreground</code></BzTableCell><BzTableCell>Floating surfaces such as menus, popovers, dialogs and tooltips.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>primary</code> / <code>primary-foreground</code></BzTableCell><BzTableCell>High-emphasis actions and the brand accent.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>secondary</code> / <code>secondary-foreground</code></BzTableCell><BzTableCell>Lower-emphasis filled actions.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>muted</code> / <code>muted-foreground</code></BzTableCell><BzTableCell>Subtle surfaces and subdued text.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>accent</code> / <code>accent-foreground</code></BzTableCell><BzTableCell>Hover / focus / active tints.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>destructive</code> / <code>destructive-foreground</code></BzTableCell><BzTableCell>Errors and dangerous actions.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell><code>success</code>, <code>warning</code>, <code>info</code> (+ <code>-foreground</code>)</BzTableCell><BzTableCell>The status set - drives the success/warning/info variants and the <code>StatusColor</code> parameter on form controls.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell><code>success</code>, <code>warning</code>, <code>info</code> (+ <code>-foreground</code>)</BzTableCell><BzTableCell>The status set. It drives the success, warning and info variants and the <code>StatusColor</code> parameter on form controls.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>border</code></BzTableCell><BzTableCell>Separators and component borders.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>input</code></BzTableCell><BzTableCell>Form control borders and fills.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>ring</code></BzTableCell><BzTableCell>Focus rings.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell><code>chart-1</code> ... <code>chart-5</code></BzTableCell><BzTableCell>Chart series paints - the default per-series colors of the Chart component.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell><code>chart-1</code> ... <code>chart-5</code></BzTableCell><BzTableCell>The default per-series colors of the Chart component.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>sidebar</code> / <code>sidebar-foreground</code></BzTableCell><BzTableCell>The sidebar's base surface and text.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>sidebar-primary</code> / <code>sidebar-primary-foreground</code></BzTableCell><BzTableCell>Active sidebar items.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>sidebar-accent</code> / <code>sidebar-accent-foreground</code></BzTableCell><BzTableCell>Sidebar hover states.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>sidebar-border</code></BzTableCell><BzTableCell>Sidebar-specific dividers.</BzTableCell></BzTableRow>
                     <BzTableRow><BzTableCell><code>sidebar-ring</code></BzTableCell><BzTableCell>Sidebar focus rings.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell><code>radius</code></BzTableCell><BzTableCell>The base corner radius - the whole scale derives from it.</BzTableCell></BzTableRow>
-                    <BzTableRow><BzTableCell><code>font-heading</code></BzTableCell><BzTableCell>The heading face (CardTitle etc.) - override to pair a display font.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell><code>radius</code></BzTableCell><BzTableCell>The base corner radius, from which the whole scale derives.</BzTableCell></BzTableRow>
+                    <BzTableRow><BzTableCell><code>font-heading</code></BzTableCell><BzTableCell>The heading typeface used by <code>CardTitle</code> and similar parts. Override it to pair a display font.</BzTableCell></BzTableRow>
                 </BzTableBody>
             </BzTable>
         <CodeBlock Snippet="Theming/Tokens" />
@@ -60,10 +60,10 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Radius scale</h2>
-        <p>Corner rounding is <b>one token, not many</b> - you only ever edit <code>--radius</code>:</p>
+        <p>Corner rounding is <b>one token, not many</b>, so <code>--radius</code> in the tokens file is the only value you edit:</p>
         <ul>
-            <li>The sizes Tailwind's <code>rounded-*</code> utilities use are <em>derived multiples</em>: <code>--radius-lg</code> is the base, smaller steps shrink it (0.6×, 0.8×), larger steps grow it (1.4× to 2.6×).</li>
-            <li>Components pick their step - a badge uses <code>rounded-sm</code>, a card <code>rounded-lg</code>, a dialog <code>rounded-xl</code> - so the proportions between them stay fixed.</li>
+            <li>The sizes behind Tailwind's <code>rounded-*</code> utilities are <em>derived multiples</em> of it. <code>--radius-lg</code> is the base, smaller steps shrink it (0.6×, 0.8×) and larger steps grow it (1.4× to 2.6×).</li>
+            <li>Each component picks a step (a badge uses <code>rounded-sm</code>, a card <code>rounded-lg</code>, a dialog <code>rounded-xl</code>), so the proportions between them stay fixed.</li>
             <li>Changing the base re-rounds the whole UI consistently: <code>0</code> reads square, <code>0.5rem</code> subtle, <code>1rem</code> soft.</li>
         </ul>
         <CodeBlock Snippet="Theming/Radius" />
@@ -71,32 +71,32 @@
 
     <section>
         <h2 data-toc class="scroll-mt-20">Dark mode &amp; the system preference</h2>
-        <p>Toggling one class on <code>&lt;html&gt;</code> is the entire mechanism:</p>
+        <p>Dark mode works by toggling a single class on <code>&lt;html&gt;</code>:</p>
         <ul>
-            <li><b><code>.dark</code> overrides the same tokens</b> - no second component set, no duplicated styles.</li>
-            <li><b>The theme module drives it</b> - <code>_content/blaizio.base/dist/theme.js</code> toggles the class, persists the preference (light, dark, or follow-the-OS <em>system</em>) in <code>localStorage</code>, and follows <code>prefers-color-scheme</code> live while in system mode.</li>
-            <li><b>No wrong-mode flash</b> - the tiny classic script below re-applies the persisted choice in <code>&lt;head&gt;</code>, before Blazor boots.</li>
+            <li><b><code>.dark</code> overrides the same tokens</b>, so there is no second component set and no duplicated styles.</li>
+            <li><b>The theme module drives it.</b> <code>_content/blaizio.base/dist/theme.js</code> toggles the class, persists the preference (light, dark, or <em>system</em> to follow the OS) in <code>localStorage</code>, and tracks <code>prefers-color-scheme</code> live while in system mode.</li>
+            <li><b>No flash of the wrong mode.</b> The small classic script below sits in your host page's <code>&lt;head&gt;</code> and re-applies the persisted choice before Blazor starts.</li>
         </ul>
         <CodeBlock Snippet="Theming/Boot" />
     </section>
 
     <section>
-        <h2 data-toc class="scroll-mt-20">Programmatic control - IThemeService</h2>
-        <p>You don't need the <a href="docs/components/theme-switcher">Theme Switcher</a> component to change the mode. Inject <code>IThemeService</code> (registered by <code>AddBlaizio()</code>) and drive the same persisted knobs from C#: the mode (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction.</p>
-        <p><code>SetStyleAsync</code> toggles a <code>style-*</code> class. That only matters in multi-style setups like this docs site: an installed project ships one style, inlined in the components, and swaps it with <code>blaizio apply</code>.</p>
-        <p>Changes made here and changes made through a switcher stay in sync, because both go through the same module and both raise <code>ThemeChanged</code>. The service is backed by JS interop, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
+        <h2 data-toc class="scroll-mt-20">Programmatic control with IThemeService</h2>
+        <p>You don't need the <a href="docs/components/theme-switcher">Theme Switcher</a> component to change the mode. Inject <code>IThemeService</code>, which <code>AddBlaizio()</code> registers, and set the same persisted options from C#: the mode (<code>light</code> / <code>dark</code> / <code>system</code>) and the reading direction.</p>
+        <p><code>SetStyleAsync</code> toggles a <code>style-*</code> class. That only matters in setups that load several styles, like this docs site. An installed project ships one style inlined in its components and switches it with <code>blaizio apply</code>.</p>
+        <p>Changes made through the service and through a switcher stay in sync, because both go through the same module and both raise <code>ThemeChanged</code>. The service is backed by JS interop, so call it from <code>OnAfterRenderAsync</code> or event handlers, never during prerendering.</p>
         <CodeBlock Snippet="Theming/ThemeService" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Customizing tokens</h2>
-        <p>Edit the values right in the tokens file - they're plain declarations in <code>:root</code>/<code>.dark</code>, and components pick the new value up everywhere, in both modes. For one-off tweaks, every component also takes a <code>Class</code> that wins over its own classes. After a re-theme, <code>blaizio contrast</code> audits the palette against WCAG AA.</p>
+        <p>Edit the values directly in the tokens file, <code>Styles/app.css</code>. They are plain declarations in <code>:root</code>/<code>.dark</code>, so components pick up the new values everywhere, in both modes. For a one-off tweak, every component also takes a <code>Class</code> that wins over its own classes. After you change the palette, run <code>blaizio contrast</code> to check it against WCAG AA.</p>
         <CodeBlock Snippet="Theming/Override" />
     </section>
 
     <section>
         <h2 data-toc class="scroll-mt-20">Adding your own tokens</h2>
-        <p>New tokens follow the same three steps: light value in <code>:root</code>, dark value in <code>.dark</code>, and a <code>@@theme inline</code> mapping so Tailwind generates the utilities.</p>
+        <p>A new token takes the same three additions to the tokens file: a light value in <code>:root</code>, a dark value in <code>.dark</code>, and a <code>@@theme inline</code> mapping so Tailwind generates its utilities.</p>
         <CodeBlock Snippet="Theming/NewToken" />
     </section>
 </div>

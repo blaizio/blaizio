@@ -8,48 +8,48 @@
             <h1 class="text-2xl font-bold tracking-tight">Input Tags</h1>
             <DocBadges Slug="input-tags" />
         </div>
-        <p>A free-text tags field: type and press Enter (or a delimiter - comma by default) to commit each value as a removable chip in one bordered box. Pasted "a, b, c" splits into three; Backspace on empty text removes the newest chip. No suggestion list - when the values should come from a list, use a Combobox with SelectionMode.Multiple instead.</p>
+        <p>A free-text tags field. Enter or a delimiter (comma by default) commits what you typed as a removable chip, pasting "a, b, c" adds three tags at once, and Backspace on empty text removes the newest one. There is no suggestion list, so when the values should come from a fixed set, use a Combobox with <code>SelectionMode.Multiple</code> instead.</p>
     </header>
 
     <UsageBlock Example="typeof(InputTagsUsageExample)"
-                Description="Drop in a BzInputTags and two-way bind Values to read the committed tags. Everything else - the chips, their remove buttons, and the inline input - renders itself." />
+                Description="Add a `BzInputTags` and bind `Values` two-way to read the committed tags. The chips, their remove buttons and the inline input all render on their own." />
 
     <CompositionTree Root="Anatomy"
-                     Description="One field: the box maps each committed tag to a chip (label and remove X), followed by the free-typing input that fills the remaining width." />
+                     Description="Each committed tag becomes a chip with a label and a remove button, followed by the text input that fills the remaining width." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Type a value and press Enter or comma to commit it; click a chip's X - or press Backspace on empty text - to remove."
+    <Demo Title="Default" Description="Press Enter or comma to commit a value. Click a chip's remove button, or press Backspace on empty text, to remove one."
           Example="typeof(InputTagsDefaultExample)" />
 
-    <Demo Title="Delimiters" Description="Delimiters sets which keys commit besides Enter (and what pasted text splits on). Pass an empty list for Enter-only, so commas survive inside a tag."
+    <Demo Title="Delimiters" Description="`Delimiters` sets which keys commit besides Enter, and what pasted text is split on. Pass an empty list to commit on Enter only, so commas can appear inside a tag."
           Example="typeof(InputTagsDelimitersExample)" />
 
-    <Demo Title="Limits" Description="MaxTags caps the count - further commits are ignored and the typed text stays put. Duplicates are dropped quietly by default; AllowDuplicates lets them through."
+    <Demo Title="Limits" Description="`MaxTags` caps the count: further commits are ignored and the typed text stays in the input. Duplicates are dropped silently unless you set `AllowDuplicates`."
           Example="typeof(InputTagsLimitsExample)" />
 
-    <Demo Title="Programmatic focus" Description="Hold a reference to the component and call FocusAsync to move the keyboard yourself - clearing the tags hands it straight back to the text entry, ready for the replacement list. The focus targets the typing area, never a chip or its remove button."
+    <Demo Title="Programmatic focus" Description="Keep a reference to the component and call `FocusAsync` to move focus from code. Here clearing the tags returns focus to the text entry, ready for a new list. Focus always goes to the typing area, never to a chip or its remove button."
           Example="typeof(InputTagsFocusMethodExample)" />
 
-    <Demo Title="Auto focus" Description="AutoFocus focuses the text entry the moment the field appears - reveal it with an action and it is ready to type into, no extra click."
+    <Demo Title="Auto focus" Description="`AutoFocus` focuses the text entry as soon as the field appears, so a field revealed by an action is ready for typing without another click."
           Example="typeof(InputTagsAutoFocusExample)" />
 
-    <Demo Title="Controlled" Description="Bind Values two-way to read or replace the tags from your own state."
+    <Demo Title="Controlled" Description="Bind `Values` two-way to read or replace the tags from your own state."
           Example="typeof(InputTagsControlledExample)" />
 
-    <Demo Title="Chip content" Description="ChipContent customizes each chip's label, given the tag's text - here with a leading icon."
+    <Demo Title="Chip content" Description="`ChipContent` receives each tag's text and renders the chip label. Here it adds a leading icon."
           Example="typeof(InputTagsChipContentExample)" />
 
-    <Demo Title="Disabled and read-only" Description="Disabled dims the whole field and makes it inert; ReadOnly keeps the chips visible and crisp but blocks adding and removing."
+    <Demo Title="Disabled and read-only" Description="`Disabled` dims the whole field and makes it inert. `ReadOnly` keeps the chips fully visible but blocks adding and removing."
           Example="typeof(InputTagsDisabledExample)" />
 
-    <Demo Title="Invalid" Description="aria-invalid turns the box destructive - here forced, normally set by FieldControl. Forwarded attributes land on the inner input, so Field pairing works like any other input."
+    <Demo Title="Invalid" Description="`aria-invalid` turns the box destructive. It is forced here; normally `BzFieldControl` sets it. Extra attributes land on the inner input, so pairing with a `BzField` works as it does for any other input."
           Example="typeof(InputTagsInvalidExample)" />
 
-    <Demo Title="Customization" Description="Restyle the box through Class and the chips through the input-tags-chip data slot - here a pill field with indigo chips."
+    <Demo Title="Customization" Description="Style the box through `Class` and the chips through the `input-tags-chip` data slot. This example makes a pill field with indigo chips."
           Example="typeof(InputTagsCustomExample)" />
 
-    <Demo Title="RTL" Description="Under a right-to-left DirectionProvider the chips flow right-to-left and the chip paddings mirror; Backspace still removes the newest tag."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, chips flow from right to left and their padding mirrors. Backspace still removes the newest tag."
           Example="typeof(InputTagsRtlExample)" />
 
 </div>

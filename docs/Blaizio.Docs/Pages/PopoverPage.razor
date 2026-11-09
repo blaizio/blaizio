@@ -8,49 +8,50 @@
             <h1 class="text-2xl font-bold tracking-tight">Popover</h1>
             <DocBadges Slug="popover" />
         </div>
-        <p>A floating panel anchored to a trigger, positioned with <a class="font-medium text-foreground" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Click the trigger to toggle it; Escape or a click outside dismisses it. It is <strong>non-modal</strong> - the rest of the page stays interactive while it is open, and an outside click both closes the popover and acts on what you clicked.</p>
+        <p>A floating panel anchored to a trigger and positioned with <a class="font-medium text-foreground" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>, so it flips to stay in view. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open, and an outside click both closes the popover and acts on whatever you clicked. Escape dismisses it too.</p>
     </header>
 
     <UsageBlock Example="typeof(PopoverDefaultExample)"
-                Description="Import Blaizio.Ui once, then compose a trigger and a content panel. Any element can be the trigger via RenderAs." />
+                Description="After importing `Blaizio.Ui`, a trigger and a content panel are all you need. With `RenderAs`, any element can be the trigger." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Wrap the title and description in a header; drop in an optional BzPopoverArrow and use BzPopoverClose to dismiss from inside." />
+                     Description="Every part of a popover. The title and description go in a header, `BzPopoverArrow` is optional, and `BzPopoverClose` dismisses the popover from inside." />
 
     <section>
         <h2 data-toc class="scroll-mt-20">Portaling</h2>
-        <p>While open, the panel moves itself to the document body, so no ancestor stacking context or overflow clip (a fixed sidebar, a transformed card, a scroll container) can cover or cut it. Positioning, focus and dismissal are unaffected. Set <code>Inline="true"</code> to render it in place instead: useful under CSS containment, for print, or in tests that assert on nearby markup. Because it is portaled, ancestor CSS selectors cannot reach it; style it through its own Class or slot attributes.</p>
+        <p>While open, the panel moves itself to the document body, so no ancestor stacking context or overflow clip can cover or cut it, whether that is a fixed sidebar, a transformed card or a scroll container. Positioning, focus and dismissal work the same either way.</p>
+        <p>Set <code>Inline="true"</code> to render it in place instead, which helps under CSS containment, for print, or in tests that assert on nearby markup. Because the portaled panel leaves its ancestors behind, their CSS selectors cannot reach it, so style it through its own <code>Class</code> or slot attributes.</p>
     </section>
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="Click to open. Focus moves into the panel; click outside or press Escape to close, and focus returns to the trigger."
+    <Demo Title="Default" Description="Click the trigger to open the panel and move focus into it. Clicking outside or pressing Escape closes it and returns focus to the trigger."
           Example="typeof(PopoverDefaultExample)" />
 
     <Demo Title="Custom trigger element (RenderAs)"
-          Description="When you need the trigger to be something other than a button - a link, a card, your own component - use RenderAs and spread the behavior onto your element."
+          Description="If the trigger should be a link, a card or one of your own components, use `RenderAs` and apply the attributes it provides to that element."
           Example="typeof(PopoverRenderAsTriggerExample)" />
 
-    <Demo Title="Arrow" Description="Drop an optional PopoverArrow inside the content to point back at the trigger. It is filled with the panel surface and shares the card's hairline ring and shadow, so it reads as the panel's tail rather than a flat sticker - and it rotates to whichever side the panel resolves to."
+    <Demo Title="Arrow" Description="Add a `BzPopoverArrow` inside the content to point back at the trigger. It shares the panel's fill, ring and shadow so it reads as part of the panel, and it turns to face the trigger from whichever side the panel opens on."
           Example="typeof(PopoverArrowExample)" />
 
-    <Demo Title="With a form" Description="The panel is interactive - put inputs, buttons, anything inside. Widen it with a Class on PopoverContent."
+    <Demo Title="With a form" Description="The panel can hold inputs, buttons and any other interactive content. Widen it with a `Class` on `BzPopoverContent`."
           Example="typeof(PopoverFormExample)" />
 
-    <Demo Title="Align" Description="Align sets where the panel sits along the trigger's edge - start, center, or end."
+    <Demo Title="Align" Description="`Align` sets where the panel sits along the trigger's edge: start, center or end."
           Example="typeof(PopoverAlignExample)" />
 
-    <Demo Title="Sides" Description="Side sets the preferred edge the panel opens from - left, top, bottom, or right - flipping to the opposite side to stay in view."
+    <Demo Title="Sides" Description="`Side` sets the preferred edge the panel opens from. If there is not enough room, it flips to the opposite side to stay in view."
           Example="typeof(PopoverSidesExample)" />
 
-    <Demo Title="Controlled" Description="Drive the open state from the page with a two-way Open binding; PopoverClose closes it from inside the panel."
+    <Demo Title="Controlled" Description="Bind `Open` to a field when your page needs to open or close the popover itself. `BzPopoverClose` still closes it from inside the panel."
           Example="typeof(PopoverControlledExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class - a brand-colored trigger and a content panel with a tinted surface, accented border, and a wider radius."
+          Description="Every part accepts `Class`. This example gives the trigger a brand color and the panel a tinted surface, an accent border and a wider radius."
           Example="typeof(PopoverCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the panel anchors and aligns from the opposite side."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the panel anchors and aligns from the opposite side."
           Example="typeof(PopoverRtlExample)" />
 
 </div>

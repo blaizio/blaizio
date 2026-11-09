@@ -8,59 +8,59 @@
             <h1 class="text-2xl font-bold tracking-tight">Dropdown Menu</h1>
             <DocBadges Slug="dropdown-menu" />
         </div>
-        <p>A menu of actions or options triggered by a button, positioned with <a class="font-medium text-foreground" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Full keyboard support - arrow keys, Home/End, type-ahead, Enter/Space to activate, Escape to close - plus checkbox and radio items, labels, separators, and nested submenus. It is <strong>non-modal</strong>: the rest of the page stays interactive while it is open.</p>
+        <p>A menu of actions or options opened from a trigger and positioned with <a class="font-medium text-foreground" href="https://floating-ui.com" target="_blank" rel="noopener">Floating UI</a>. Keyboard support covers arrow keys, Home and End, type-ahead, Enter or Space to activate and Escape to close, and checkbox items, radio groups and nested submenus are built in. The menu is <strong>non-modal</strong>, which means the rest of the page stays interactive while it is open.</p>
     </header>
 
     <UsageBlock Example="typeof(DropdownMenuUsageExample)"
-                Description="Import Blaizio.Ui once, then compose a trigger and content. Any element can be the trigger via RenderAs." />
+                Description="After importing `Blaizio.Ui`, add a trigger and the content. With `RenderAs`, any element can act as the trigger." />
 
     <CompositionTree Root="Anatomy"
-                     Description="The full anatomy. Group items under labels, separate sections with a separator, and nest a BzDropdownMenuSub for submenus." />
+                     Description="Every part of a dropdown menu. Group items under labels, divide sections with a separator, and nest a `BzDropdownMenuSub` for each submenu." />
 
     <ExamplesHeading />
 
-    <Demo Title="Default" Description="An account menu: items with leading icons and trailing shortcuts, grouped under labels, a nested submenu, a disabled item, and a destructive action. Open it and navigate with the arrow keys or by typing."
+    <Demo Title="Default" Description="An account menu with icons, shortcuts, labeled groups, a submenu, a disabled item and a destructive action. Open it and move through it with the arrow keys or by typing the start of an item's name."
           Example="typeof(DropdownMenuDefaultExample)" />
 
-    <Demo Title="Item as a link (RenderAs)" Description="Render a menu item onto your own element - here an anchor - so it navigates like a real link."
+    <Demo Title="Item as a link (RenderAs)" Description="Use `RenderAs` to render a menu item as your own element. Here it is an anchor, so the item navigates like a real link."
           Example="typeof(DropdownMenuItemAsLinkExample)" />
 
-    <Demo Title="Account switcher" Description="Any element can be the trigger via RenderAs - here an avatar button opens an account menu, the way an app's user menu usually works."
+    <Demo Title="Account switcher" Description="Through `RenderAs`, an avatar button becomes the trigger, which is the usual shape of an app's user menu."
           Example="typeof(DropdownMenuAvatarExample)" />
 
-    <Demo Title="Nested submenus" Description="Submenus nest as deep as you need - a submenu can hold its own submenu. The inline-end arrow opens each level and the inline-start arrow closes it; with the pointer, a short grace delay lets you cross the gap without the panel snapping shut."
+    <Demo Title="Nested submenus" Description="Submenus can nest as deep as you need. The inline-end arrow key opens each level and the inline-start arrow key closes it, while a short grace delay lets the pointer cross the gap without the panel closing."
           Example="typeof(DropdownMenuNestedExample)" />
 
-    <Demo Title="Long menu" Description="A menu taller than the room below its trigger caps its height to what's on screen and scrolls (a thin scrollbar) rather than running off the viewport. Arrow keys, Home/End, and type-ahead still reach every item, scrolling it into view."
+    <Demo Title="Long menu" Description="When a menu is taller than the space below its trigger, it caps its height to the viewport and scrolls. Arrow keys, Home, End and type-ahead still reach every item and scroll it into view."
           Example="typeof(DropdownMenuLongExample)" />
 
-    <Demo Title="Checkbox items" Description="Toggle several options without the menu closing - each item's OnSelect calls PreventDefault to keep it open. The checked state is two-way bound."
+    <Demo Title="Checkbox items" Description="To keep the menu open while toggling several options, call `PreventDefault` in each item's `OnSelect`. The checked state is two-way bound."
           Example="typeof(DropdownMenuCheckboxExample)" />
 
-    <Demo Title="Checkbox items with icons" Description="Each item leads with an icon on the inline-start; the check sits at the inline-end. Toggling keeps the menu open (PreventDefault)."
+    <Demo Title="Checkbox items with icons" Description="An icon can lead each checkbox item at the inline start, and the check then moves to the inline end. These items also call `PreventDefault` to stay open on toggle."
           Example="typeof(DropdownMenuCheckboxIconsExample)" />
 
-    <Demo Title="Radio group" Description="A single-select set of options. Picking one updates the bound value and closes the menu; reopen it to see the check on the current choice."
+    <Demo Title="Radio group" Description="A radio group picks one option from a set. Choosing an option updates the bound value and closes the menu, and the check marks the current choice when you reopen it."
           Example="typeof(DropdownMenuRadioExample)" />
 
-    <Demo Title="Radio items with icons" Description="A single-select set where each option leads with an icon; the check marks the current choice at the inline-end."
+    <Demo Title="Radio items with icons" Description="Radio items can lead with an icon too. The check marking the current choice then sits at the inline end."
           Example="typeof(DropdownMenuRadioIconsExample)" />
 
-    <Demo Title="Controlled" Description="Drive the open state yourself with two-way binding. A separate button opens the menu (it disables while the menu is open), and the live state stays in sync however you dismiss it - pick an item, press Escape, or click outside."
+    <Demo Title="Controlled" Description="Bind the open state when other code needs to open the menu, like the separate button here, which is disabled while the menu is open. The bound value stays in sync however the menu closes: by choosing an item, pressing Escape or clicking outside."
           Example="typeof(DropdownMenuControlledExample)" />
 
     <Demo Title="Focus on dismissal"
-          Description="Closing the menu returns focus to the trigger. After an outside click it does so only when the click left focus on the body: a click into an input keeps focus there, and pointer users never see the restore (programmatic focus draws no ring). If the trigger sits inside a host that reacts to focus landing in it, such as an editor that activates on focus-in, set RestoreFocusOnPointerDismiss to false on the content. A click-away then leaves focus where the click put it, while Escape and item selection still return focus to the trigger for keyboard users."
+          Description="Closing the menu returns focus to the trigger, but after an outside click only when nothing else took focus. If the trigger sits inside something that reacts to focus arriving, such as an editor that activates on focus, set `RestoreFocusOnPointerDismiss` to `false` on the content. Escape and item selection still return focus to the trigger for keyboard users."
           Example="typeof(DropdownMenuDismissFocusExample)" />
 
-    <Demo Title="Looping" Description="Inside an open menu the arrow keys wrap from the last item back to the first by default. Set Loop to false on the content to stop at the ends instead - ArrowDown then rests on the last item and ArrowUp on the first. Open it and hold an arrow key to compare with the menus above."
+    <Demo Title="Looping" Description="By default the arrow keys wrap from the last item back to the first. Set `Loop` to `false` on the content to stop at the ends instead, then hold an arrow key to compare it with the menus above."
           Example="typeof(DropdownMenuLoopExample)" />
 
     <Demo Title="Customization"
-          Description="Restyle any part via Class - a brand-colored trigger and a content panel with a custom width, radius, and tint."
+          Description="Every part accepts `Class`. This example gives the trigger a brand color and the content panel a custom width, radius and tint."
           Example="typeof(DropdownMenuCustomExample)" />
 
-    <Demo Title="RTL" Description="Wrapped in a DirectionProvider with Arabic or Hebrew copy - the menu anchors and aligns mirrored, shortcuts sit on the left, and the submenu opens to the left with its chevron flipped."
+    <Demo Title="RTL" Description="Inside a right-to-left `DirectionProvider`, the menu aligns to the mirrored edge of its trigger, shortcuts sit on the left, and submenus open to the left with a flipped chevron."
           Example="typeof(DropdownMenuRtlExample)" />
 
 </div>
