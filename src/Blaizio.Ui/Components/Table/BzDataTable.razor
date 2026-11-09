@@ -26,6 +26,11 @@
     (LiveReorder moves the dragged column itself). The script (ts/dataTable.ts) lays the widths out
     and runs every drag and key without calling .NET; it reports a finished resize or move once, and
     .NET keeps the result in ColumnWidths / ColumnOrder.
+
+    Text: everything the table says on its own has a parameter, so a right-to-left or non-English
+    app words it all: plain labels (SelectAllAriaLabel, the Pagination* and EditForm* sets, ...),
+    SelectionSummaryContent for the counts, and the EditParseErrorMessage and ColumnAnnouncement
+    builders for messages that carry a column's name or a number.
 *@
 
 @* Columns register through this cascade; the fragment itself renders nothing visible. *@
@@ -96,7 +101,8 @@
     @* An editable table is a keyboard grid: its cells are the tab stop (ts/dataTable.ts roves it), so
        the scroll container stops being one. *@
     <BzTable ContainerClass="@ResolveContainerClass()" ContainerId="@(Scrollable ? _scrollId : null)" ContainerStyle="@ResolveContainerStyle()"
-             ContainerFocusable="@((Scrollable || Virtualize) && !editing)" Attributes="@(editing ? GridAttributes() : null)">
+             ContainerFocusable="@((Scrollable || Virtualize) && !editing)" ContainerAriaLabel="@ContainerAriaLabel"
+             Attributes="@(editing ? GridAttributes() : null)">
         @if (Caption is not null)
         {
             <BzTableCaption>@Caption</BzTableCaption>
@@ -112,7 +118,7 @@
                 @if (Selectable)
                 {
                     <BzTableHead Class="bz-table-select-cell" @attributes="SelectHeadAttributes(editing, frame)">
-                        <BzCheckbox Checked="@SelectAllState" CheckedChanged="@(_ => ToggleAll())" aria-label="Select all rows" />
+                        <BzCheckbox Checked="@SelectAllState" CheckedChanged="@(_ => ToggleAll())" aria-label="@SelectAllAriaLabel" />
                     </BzTableHead>
                 }
                 @for (var c = 0; c < columns.Count; c++)
@@ -198,8 +204,16 @@
 
     @if (Selectable && ShowSelectionSummary)
     {
+        var selection = new DataTableSelection(SelectedInViewCount, _rendered.Count);
         <div class="bz-data-table-status" aria-live="polite">
-            @SelectedInViewCount of @_rendered.Count row(s) selected.
+            @if (SelectionSummaryContent is not null)
+            {
+                @SelectionSummaryContent(selection)
+            }
+            else
+            {
+                @:@selection.Selected of @selection.Total row(s) selected.
+            }
         </div>
     }
 
@@ -325,6 +339,16 @@
     /// <summary>Raised when a user moves a column, with every column key in the new order (hidden columns included). Enables <c>@bind-ColumnOrder</c>.</summary>
     [Parameter] public EventCallback<IReadOnlyList<string>?> ColumnOrderChanged { get; set; }
 
+    /// <summary>
+    /// Words what screen readers hear after a key resizes or moves a column: a new width, a new
+    /// place, or no room to move. The context names the change (<c>Kind</c>), the column
+    /// (<c>Column</c>, its title), its new <c>Width</c> in pixels or its <c>Position</c> among
+    /// <c>Count</c> columns, and the English announcement (<c>Message</c>), used while this is
+    /// unset. While it is set, the column script asks .NET for each announcement's words: only
+    /// after a key press, one call at a time.
+    /// </summary>
+    [Parameter] public Func<DataTableColumnAnnouncement, string>? ColumnAnnouncement { get; set; }
+
     /// <summary>Add a leading checkbox column for row selection. Clicking a row (outside an interactive cell control) also toggles it.</summary>
     [Parameter] public bool Selectable { get; set; }
 
@@ -337,8 +361,25 @@
     /// <summary>Identity key for a row, used to match selection across data reloads. Defaults to reference/Equals.</summary>
     [Parameter] public Func<TItem, object>? RowKey { get; set; }
 
-    /// <summary>Show the "N of M row(s) selected" status line under the table. Defaults to <see langword="true"/> when <see cref="Selectable"/>.</summary>
+    /// <summary>
+    /// Show the selection status line under the table: "N of M row(s) selected.", or your
+    /// <see cref="SelectionSummaryContent"/>. Defaults to <see langword="true"/> when <see cref="Selectable"/>.
+    /// </summary>
     [Parameter] public bool ShowSelectionSummary { get; set; } = true;
+
+    /// <summary>
+    /// Your own selection status line, in place of "N of M row(s) selected.". The context carries how
+    /// many of the rows in view are selected (<c>context.Selected</c>) and how many rows are in view
+    /// (<c>context.Total</c>), so the words, the plural forms and any markup are yours. It renders
+    /// inside the polite live region under the table.
+    /// </summary>
+    [Parameter] public RenderFragment<DataTableSelection>? SelectionSummaryContent { get; set; }
+
+    /// <summary>The name of the header checkbox that selects every row in view, for screen readers. Defaults to "Select all rows".</summary>
+    [Parameter] public string SelectAllAriaLabel { get; set; } = "Select all rows";
+
+    /// <summary>The name of each row's selection checkbox, for screen readers. Defaults to "Select row".</summary>
+    [Parameter] public string SelectRowAriaLabel { get; set; } = "Select row";
 
     /// <summary>Mount only the rows in view, with NO height restriction (the page scrolls). See <see cref="ItemSize"/> / <see cref="DynamicRowHeight"/>.</summary>
     [Parameter] public bool Virtualize { get; set; }
@@ -362,6 +403,13 @@
     /// </summary>
     [Parameter] public string? MaxHeight { get; set; }
 
+    /// <summary>
+    /// The name of the table's scroll box, for screen readers. With <see cref="MaxHeight"/> or
+    /// <see cref="Virtualize"/> (and no editable column) the box is a keyboard stop of its own, a
+    /// named region. Defaults to "Table".
+    /// </summary>
+    [Parameter] public string ContainerAriaLabel { get; set; } = "Table";
+
     /// <summary>Rows per page. Set above <c>0</c> to paginate (renders a pager below the table); <c>0</c> (the default) shows every row. An alternative to <see cref="Virtualize"/>, not combined with it.</summary>
     [Parameter] public int PageSize { get; set; }
 
@@ -373,6 +421,33 @@
 
     /// <summary>Raised with the new page. Enables <c>@bind-Page</c>.</summary>
     [Parameter] public EventCallback<int> PageChanged { get; set; }
+
+    /// <summary>The pager's name for screen readers (its navigation landmark). Defaults to "pagination".</summary>
+    [Parameter] public string PaginationAriaLabel { get; set; } = "pagination";
+
+    /// <summary>The text of the pager's previous-page button. Defaults to "Previous".</summary>
+    [Parameter] public string PaginationPreviousLabel { get; set; } = "Previous";
+
+    /// <summary>
+    /// The previous-page button's name for screen readers. Keep the button's text in it, as the
+    /// default keeps "Previous", so speech users can say what they see. Defaults to "Go to previous page".
+    /// </summary>
+    [Parameter] public string PaginationPreviousAriaLabel { get; set; } = "Go to previous page";
+
+    /// <summary>The text of the pager's next-page button. Defaults to "Next".</summary>
+    [Parameter] public string PaginationNextLabel { get; set; } = "Next";
+
+    /// <summary>
+    /// The next-page button's name for screen readers. Keep the button's text in it, as the default
+    /// keeps "Next". Defaults to "Go to next page".
+    /// </summary>
+    [Parameter] public string PaginationNextAriaLabel { get; set; } = "Go to next page";
+
+    /// <summary>What screen readers hear for the pager's ellipsis, which stands in for the pages it skips. Defaults to "More pages".</summary>
+    [Parameter] public string PaginationEllipsisAriaLabel { get; set; } = "More pages";
+
+    /// <summary>The name of each page number's link for screen readers, given its page (from 1). Defaults to "Go to page N".</summary>
+    [Parameter] public Func<int, string>? PaginationPageAriaLabel { get; set; }
 
     /// <summary>Extra toolbar content, placed beside the search box / column menu.</summary>
     [Parameter] public RenderFragment? Toolbar { get; set; }
@@ -451,6 +526,31 @@
 
     /// <summary>The drawer's button that saves and opens the row after (Drawer mode). Defaults to "Next row".</summary>
     [Parameter] public string EditFormNextLabel { get; set; } = "Next row";
+
+    /// <summary>The name of the form editor's close button, in the dialog's corner or the drawer's header, for screen readers. Defaults to "Close".</summary>
+    [Parameter] public string EditFormCloseLabel { get; set; } = "Close";
+
+    /// <summary>
+    /// The message for a save refused without one of its own: <c>Reject()</c> called with no
+    /// message, or an <c>OnEdit</c> that threw. Defaults to "The change was not saved.".
+    /// </summary>
+    [Parameter] public string EditRejectedMessage { get; set; } = "The change was not saved.";
+
+    /// <summary>
+    /// What screen readers hear after a refused value's message when the focus leaves the table
+    /// and the edit is dropped. Defaults to "The edit was discarded.".
+    /// </summary>
+    [Parameter] public string EditDiscardedMessage { get; set; } = "The edit was discarded.";
+
+    /// <summary>
+    /// Words the message for a value the table refuses before saving it: text that is not a number,
+    /// a date, a time, true or false, or one of a pick list's options, and a required value left
+    /// empty. The context names the problem (<c>Kind</c>), the column (<c>Field</c>, its title), a
+    /// pick list's options (<c>Options</c>) and the English message (<c>Message</c>), used while
+    /// this is unset. The property's DataAnnotations word their own messages (localize them
+    /// through the attributes), and a column's <c>Validate</c> returns its own.
+    /// </summary>
+    [Parameter] public Func<CellParseError, string>? EditParseErrorMessage { get; set; }
 
     /// <summary>
     /// Your own editor for Dialog mode, in place of the built-in dialog, laid out as you like. The
@@ -836,12 +936,14 @@
         return pages;
     }
 
-    private static string PageAriaLabel(int page) => $"Go to page {page}";
+    private string PageAriaLabel(int page) =>
+        PaginationPageAriaLabel?.Invoke(page) is { Length: > 0 } label ? label : $"Go to page {page}";
 
-    private RenderFragment RenderPagination => @<BzPagination Class="mx-0 w-auto">
+    private RenderFragment RenderPagination => @<BzPagination Class="mx-0 w-auto" AriaLabel="@PaginationAriaLabel">
         <BzPaginationContent>
             <BzPaginationItem>
-                <BzPaginationPrevious Disabled="@(CurrentPage == 1)" OnClick="@(() => GoToPage(CurrentPage - 1))" />
+                <BzPaginationPrevious Disabled="@(CurrentPage == 1)" OnClick="@(() => GoToPage(CurrentPage - 1))"
+                                      Label="@PaginationPreviousLabel" AriaLabel="@PaginationPreviousAriaLabel" />
             </BzPaginationItem>
             @foreach (var token in PageTokens())
             {
@@ -849,7 +951,7 @@
                 <BzPaginationItem>
                     @if (n == 0)
                     {
-                        <BzPaginationEllipsis />
+                        <BzPaginationEllipsis AriaLabel="@PaginationEllipsisAriaLabel" />
                     }
                     else
                     {
@@ -859,7 +961,8 @@
                 </BzPaginationItem>
             }
             <BzPaginationItem>
-                <BzPaginationNext Disabled="@(CurrentPage == PageCount)" OnClick="@(() => GoToPage(CurrentPage + 1))" />
+                <BzPaginationNext Disabled="@(CurrentPage == PageCount)" OnClick="@(() => GoToPage(CurrentPage + 1))"
+                                  Label="@PaginationNextLabel" AriaLabel="@PaginationNextAriaLabel" />
             </BzPaginationItem>
         </BzPaginationContent>
     </BzPagination>;
@@ -1165,8 +1268,10 @@
         var frame = _frame;
         var hasRows = NavRows.Count > 0;
         var list = new object[columns.Count];
+        var announce = ColumnAnnouncement is not null;
         var key = new System.Text.StringBuilder()
-            .Append(frame?.Sized == true).Append('|').Append(Selectable).Append('|').Append(hasRows).Append('|').Append(LiveReorder);
+            .Append(frame?.Sized == true).Append('|').Append(Selectable).Append('|').Append(hasRows).Append('|').Append(LiveReorder)
+            .Append('|').Append(announce);
         for (var i = 0; i < columns.Count; i++)
         {
             var col = columns[i];
@@ -1181,7 +1286,26 @@
                 .Append(pin).Append(':').Append(resizable).Append(':').Append(reorderable);
         }
         signature = key.ToString();
-        return new { sized = frame?.Sized == true, selectable = Selectable, hasRows, live = LiveReorder, columns = list };
+        return new { sized = frame?.Sized == true, selectable = Selectable, hasRows, live = LiveReorder, announce, columns = list };
+    }
+
+    /// <summary>
+    /// Called by the column script, while <see cref="ColumnAnnouncement"/> is set, for what screen
+    /// readers hear after a key press: <paramref name="change"/> is <c>resized</c> (with the new
+    /// width in <paramref name="value"/>), <c>moved</c> (the new place from 1 in
+    /// <paramref name="value"/>, of <paramref name="count"/>) or <c>blocked</c>.
+    /// </summary>
+    [JSInvokable]
+    public string ColumnAnnouncementText(string change, string key, int value, int count)
+    {
+        var title = _effectiveColumns.Find(c => c.Key == key) is { } column && !string.IsNullOrEmpty(column.Title) ? column.Title : key;
+        var announcement = change switch
+        {
+            "moved" => new DataTableColumnAnnouncement(DataTableColumnAnnouncementKind.Moved, title, 0, value, count),
+            "blocked" => new DataTableColumnAnnouncement(DataTableColumnAnnouncementKind.CannotMove, title, 0, 0, 0),
+            _ => new DataTableColumnAnnouncement(DataTableColumnAnnouncementKind.Resized, title, value, 0, 0),
+        };
+        return ColumnAnnouncement?.Invoke(announcement) is { Length: > 0 } text ? text : announcement.Message;
     }
 
     // ---- selection ----
@@ -1298,7 +1422,7 @@
                 IsSelected(item) ? CheckedState.Checked : CheckedState.Unchecked);
             builder.AddComponentParameter(16, nameof(BzCheckbox.CheckedChanged),
                 EventCallback.Factory.Create<CheckedState>(this, _ => ToggleRow(item)));
-            builder.AddAttribute(17, "aria-label", "Select row");
+            builder.AddAttribute(17, "aria-label", SelectRowAriaLabel);
             builder.CloseComponent();
             builder.CloseElement();
         }
@@ -1385,8 +1509,6 @@
     private int _lastItemsCount = -1;
     private readonly Dictionary<(object? Row, string Column), CellMark> _cellMarks = [];
     private BzVirtualizer<TItem>? _virtualizer;
-
-    private const string DefaultRejection = "The change was not saved.";
 
     private readonly record struct CellMark(int Pending, string? Error);
 
@@ -1501,7 +1623,7 @@
         if (outcome.Ok) return EditAccepted;
         if (discardOnError && ReferenceEquals(_edit, session) && !session.Busy)
         {
-            _liveMessage = $"{outcome.Message} The edit was discarded.";
+            _liveMessage = $"{outcome.Message} {EditDiscardedMessage}";
             _edit = null;
             StateHasChanged();
             return EditAccepted;
@@ -1554,7 +1676,7 @@
             {
                 var column = columns[first + c];
                 if (column.Editor is not { } editor) continue;
-                if (editor.TryParse(block[r][c], column.Title ?? column.Key, out var value, out var error))
+                if (editor.TryParse(block[r][c], column.Title ?? column.Key, EditParseErrorMessage, out var value, out var error))
                     writes.Add(new CellWrite(item, column, value));
                 else
                     firstError ??= error;
@@ -1631,26 +1753,27 @@
             string? error = null;
             if (values is not null && values.TryGetValue(key, out var text) && text is not null)
             {
-                if (!editor.TryParse(text, title, out next, out error)) { session.Errors[key] = error; continue; }
+                if (!editor.TryParse(text, title, EditParseErrorMessage, out next, out error)) { session.Errors[key] = error; continue; }
             }
             else if (session.Drafts.TryGetValue(key, out var draft))
             {
                 // A date or time field left half typed holds no value: a column that needs one refuses it.
                 if (draft is null && !editor.AllowsNull)
                 {
-                    session.Errors[key] = editor.Kind switch
+                    var kind = editor.Kind switch
                     {
-                        DataTableEditor.Date => $"The {title} field must be a date.",
-                        DataTableEditor.Time => $"The {title} field must be a time.",
-                        _ => $"The {title} field is required.",
+                        DataTableEditor.Date => CellParseErrorKind.Date,
+                        DataTableEditor.Time => CellParseErrorKind.Time,
+                        _ => CellParseErrorKind.Required,
                     };
+                    session.Errors[key] = new CellParseError(kind, title, []).Describe(EditParseErrorMessage);
                     continue;
                 }
                 next = draft;
             }
             else if (session.Texts.TryGetValue(key, out var draftText))
             {
-                if (!editor.TryParse(draftText, title, out next, out error)) { session.Errors[key] = error; continue; }
+                if (!editor.TryParse(draftText, title, EditParseErrorMessage, out next, out error)) { session.Errors[key] = error; continue; }
             }
             else
                 continue; // untouched
@@ -1717,7 +1840,7 @@
             {
                 if (args.MessageFor(change) is { } pinned) session.Errors[change.ColumnKey] = pinned;
             }
-            session.Message = args.Message ?? DefaultRejection;
+            session.Message = args.Message ?? EditRejectedMessage;
             _liveMessage = session.Message;
             StateHasChanged();
             return new(false, session.Errors.Keys.FirstOrDefault(), session.Message);
@@ -1807,7 +1930,7 @@
             if (failure is not null || args.Rejected)
             {
                 Rollback(writes);
-                var message = failure is null ? args.Message ?? DefaultRejection : DefaultRejection;
+                var message = failure is null ? args.Message ?? EditRejectedMessage : EditRejectedMessage;
                 for (var i = 0; i < writes.Count; i++)
                     SetMarkError(writes[i].Item, writes[i].Key, args.MessageFor(args.Changes[i]) ?? message);
                 _liveMessage = message;
@@ -2195,7 +2318,7 @@
         if (session.Texts.TryGetValue(columnKey, out var text))
         {
             if (text is TValue same) return same;
-            if (editor.TryParse(text, columnKey, out var parsed, out _) && parsed is TValue fromText) return fromText;
+            if (editor.TryParse(text, columnKey, null, out var parsed, out _) && parsed is TValue fromText) return fromText;
         }
         return editor.Read(session.Item) is TValue current ? current : default!;
     }
@@ -2232,7 +2355,7 @@
             else if (session.Texts.TryGetValue(key, out var text))
             {
                 // Text that does not parse is still something the user typed.
-                if (!editor.TryParse(text, key, out next, out _)) return true;
+                if (!editor.TryParse(text, key, null, out next, out _)) return true;
             }
             else continue;
             if (!editor.ValuesEqual(editor.Read(session.Item), next)) return true;
@@ -2358,7 +2481,7 @@
         else
         {
             <BzDialog Open="@FormOpen" OpenChanged="@OnFormOpenChanged">
-                <BzDialogContent Class="bz-data-table-edit-dialog" OnExitComplete="@OnFormExited">
+                <BzDialogContent Class="bz-data-table-edit-dialog" OnExitComplete="@OnFormExited" CloseLabel="@EditFormCloseLabel">
                     <BzDialogHeader>
                         <BzDialogTitle>@EditFormTitle</BzDialogTitle>
                         @if (!string.IsNullOrEmpty(EditFormDescription))
@@ -2422,7 +2545,7 @@
                                     <RenderAs Context="p">
                                         <BzButton Variant="ButtonVariant.Ghost" Size="ButtonSize.IconSm" @attributes="p.Attributes">
                                             <BzIcon Icon="@BzGlyphs.X" />
-                                            <span class="sr-only">Close</span>
+                                            <span class="sr-only">@EditFormCloseLabel</span>
                                         </BzButton>
                                     </RenderAs>
                                 </BzSheetClose>

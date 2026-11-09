@@ -31,6 +31,12 @@
     /// <summary>The name and tooltip of the button that cancels a row being edited (Row mode). Defaults to "Cancel".</summary>
     [Parameter] public string CancelLabel { get; set; } = "Cancel";
 
+    /// <summary>
+    /// The header's text for screen readers, shown to no one else, when the column has no
+    /// <c>Title</c> or <c>HeaderContent</c>. Defaults to "Actions".
+    /// </summary>
+    [Parameter] public string HeaderLabel { get; set; } = "Actions";
+
     protected override RenderFragment RenderCell(TItem item) =>
         Grid is null ? EmptyCell : RenderActions(new DataTableEditActions<TItem>(Grid, item));
 
@@ -43,7 +49,7 @@
 
     // Without a Title or HeaderContent, the header names the column for screen readers only.
     internal override RenderFragment? HeaderFragment =>
-        HeaderContent ?? (string.IsNullOrEmpty(Title) ? HiddenHeader : null);
+        HeaderContent ?? (string.IsNullOrEmpty(Title) ? (_hiddenHeader ??= RenderHiddenHeader) : null);
 
     internal override string? FallbackKey => "actions";
 
@@ -117,11 +123,14 @@
 
     private static readonly RenderFragment EmptyCell = _ => { };
 
-    private static readonly RenderFragment HiddenHeader = builder =>
+    // Made once and kept: it reads HeaderLabel as it renders.
+    private RenderFragment? _hiddenHeader;
+
+    private RenderFragment RenderHiddenHeader => builder =>
     {
         builder.OpenElement(0, "span");
         builder.AddAttribute(1, "class", "sr-only");
-        builder.AddContent(2, "Actions");
+        builder.AddContent(2, HeaderLabel);
         builder.CloseElement();
     };
 }

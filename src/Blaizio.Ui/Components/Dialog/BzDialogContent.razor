@@ -28,7 +28,7 @@
                         Class="bz-dialog-close"
                         @attributes="p.Attributes">
                     <BzIcon Icon="@BzGlyphs.X" />
-                    <span class="sr-only">Close</span>
+                    <span class="sr-only">@CloseLabel</span>
                 </BzButton>
             </RenderAs>
         </BaseDialogClose>
@@ -38,6 +38,9 @@
 @code {
     /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the dialog is locked (the root's DismissOnOutsideClick=false).</summary>
     [Parameter] public bool ShowCloseButton { get; set; } = true;
+
+    /// <summary>The corner close button's name for screen readers. Defaults to "Close".</summary>
+    [Parameter] public string CloseLabel { get; set; } = "Close";
 
     [CascadingParameter] private DialogContext? Dialog { get; set; }
 

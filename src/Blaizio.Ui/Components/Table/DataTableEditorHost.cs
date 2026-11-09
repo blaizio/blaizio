@@ -88,6 +88,9 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     /// <summary>The <c>inputmode</c> hint for the text box.</summary>
     [Parameter] public string? InputMode { get; set; }
 
+    /// <summary>The label of a pick list's blank option (the column's <c>NoneLabel</c>).</summary>
+    [Parameter] public string NoneLabel { get; set; } = "None";
+
     private object? _session;
     private int _version;
     private TValue _value = default!;
@@ -307,7 +310,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
                     list.SetKey(option.Key);
                     list.AddComponentParameter(1, nameof(BzSelectItem.Value), option.Key);
                     list.AddComponentParameter(2, nameof(BzSelectItem.ChildContent), (RenderFragment)(item =>
-                        item.AddContent(0, option.Label.Length == 0 ? "None" : option.Label)));
+                        item.AddContent(0, option.Label.Length == 0 ? NoneLabel : option.Label)));
                     list.CloseComponent();
                 }
             }));

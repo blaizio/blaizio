@@ -131,6 +131,33 @@ lockstep under one version.
   the virtualizer adds mid-drag slide too, and on release it slides into place. Either way the
   order is reported once, on release, and Escape puts everything back. Needs Blaizio.Base 0.3.6
   (the column script).
+- **Data Table in any language** (`blaizio update table`): everything `BzDataTable` says on its
+  own now has a parameter, so a right-to-left or non-English app words all of it. The selection
+  line takes `SelectionSummaryContent`, a template of your own given `context.Selected` and
+  `context.Total`, in place of "N of M row(s) selected." (which also read scrambled in a
+  right-to-left page); `SelectAllAriaLabel` and `SelectRowAriaLabel` name the selection
+  checkboxes, and `ContainerAriaLabel` the scroll box that `MaxHeight` or `Virtualize` makes a
+  keyboard stop. The pager takes `PaginationAriaLabel`, `PaginationPreviousLabel`,
+  `PaginationPreviousAriaLabel`, `PaginationNextLabel`, `PaginationNextAriaLabel`,
+  `PaginationEllipsisAriaLabel` and `PaginationPageAriaLabel`, a function of the page number. For
+  editing, `EditFormCloseLabel` names the form's close button in the dialog and the drawer,
+  `EditRejectedMessage` words a save refused without a message of its own, `EditDiscardedMessage`
+  what follows a refused value when the focus leaves the table, and `EditParseErrorMessage` words a
+  value the table refuses before saving it ("The Hours field must be a number.", "... is
+  required.", "... must be one of: ...") from a `CellParseError` that gives the problem (`Kind`),
+  the column's title (`Field`), a pick list's options (`Options`) and the English `Message`.
+  `ColumnAnnouncement` words what screen readers hear after a key resizes or moves a column, from
+  a `DataTableColumnAnnouncement` (`Kind`, `Column`, `Width`, `Position`, `Count`, `Message`);
+  while it is set, the column script asks .NET for each announcement's words, one call at a time.
+  On the columns, `HeaderLabel` on `BzEditActionsColumn` names its header for screen readers
+  ("Actions"), and `NoneLabel` on `BzPropertyColumn` labels a nullable enum's blank option
+  ("None"). Left unset, every one of them keeps the English the table said before. Needs
+  Blaizio.Base 0.3.6 (`CellParseError` and the column script).
+- **Dialog**: `CloseLabel` on `BzDialogContent` names the corner close button for screen readers.
+  Defaults to "Close".
+- **`Blaizio.Base`**: `CellBinding.TryParse` takes a `messages` builder that words a refused text
+  in the reader's language from a `CellParseError`, the English `Message` without one. A
+  DataAnnotations rule that returns no message of its own is worded by the rule itself.
 - **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
   optional description and a status (done, running with a shimmering title, error, pending). A
   line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's
