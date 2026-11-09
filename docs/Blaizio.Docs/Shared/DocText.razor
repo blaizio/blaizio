@@ -1,0 +1,30 @@
+@*
+    Inline prose for plain-string descriptions (Demo, UsageBlock, CompositionTree): a `backticked`
+    span renders as <code>, so parameter and type names read as API, not as ordinary words.
+    Everything else is emitted as text (HTML-encoded), never as markup.
+*@
+@for (var i = 0; i < _parts.Length; i++)
+{
+    if (i % 2 == 1)
+    {
+        <code class="rounded-[calc(var(--radius)*0.5)] bg-muted px-[0.375em] py-[0.125em] text-[0.875em] text-foreground">@_parts[i]</code>
+    }
+    else
+    {
+        @_parts[i]
+    }
+}
+
+@code {
+    /// <summary>The prose to render; backticked spans become inline code.</summary>
+    [Parameter, EditorRequired] public string Text { get; set; } = "";
+
+    private string[] _parts = [];
+
+    protected override void OnParametersSet()
+    {
+        var parts = Text.Split('`');
+        // An unpaired backtick would turn the rest of the sentence into code; show it literally instead.
+        _parts = parts.Length % 2 == 1 ? parts : [Text];
+    }
+}
