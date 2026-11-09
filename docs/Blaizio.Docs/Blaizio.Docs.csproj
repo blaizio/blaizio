@@ -626,6 +626,7 @@
          version-named output would never exist and the target would fire on every build. -->
     <_BlaizioRevisionFile>$(MSBuildProjectDirectory)/../../artifacts/pack-revision.txt</_BlaizioRevisionFile>
     <_BlaizioPackStamp>$(BaseIntermediateOutputPath)blaizio-pack.stamp</_BlaizioPackStamp>
+    <_BlaizioPackLock>$(MSBuildProjectDirectory)/../../artifacts/blaizio-pack.lock</_BlaizioPackLock>
     <_BlaizioCliDll>$(_BlaizioSrc)/Blaizio.Cli/bin/Release/net10.0/blaizio.dll</_BlaizioCliDll>
     <_BlaizioCliStamp>$(BaseIntermediateOutputPath)blaizio-cli.stamp</_BlaizioCliStamp>
     <_BlaizioAddStamp>$(BaseIntermediateOutputPath)blaizio-add.stamp</_BlaizioAddStamp>
@@ -665,13 +666,81 @@
     <RemoveDir Directories="$(_BlaizioRegistryDir)" Condition="'$(BlaizioRefresh)' == 'true'" />
   </Target>
 
+  <!-- The feed and the revision counter belong to the checkout, not to one build: a second dotnet
+       process (a watcher reacting to the same edit, a build started beside this one) runs
+       BlaizioPackPackages too, and each run's stale-revision delete then removes the other's
+       packages, leaving NU1102 at the base version. The lock is an exclusive open of a file, so
+       the OS drops it if a process dies holding it. It is registered with the engine for the
+       length of the build, so a failed pack that never reaches the release still lets go. -->
+  <UsingTask TaskName="BlaizioPackLock" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <LockFile ParameterType="System.String" Required="true" />
+      <Release ParameterType="System.Boolean" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.Diagnostics" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Threading" />
+      <Using Namespace="Microsoft.Build.Framework" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var path = Path.GetFullPath(LockFile);
+        var key = "BlaizioPackLock:" + path;
+        if (Release)
+        {
+            (BuildEngine4.UnregisterTaskObject(key, RegisteredTaskObjectLifetime.Build) as IDisposable)?.Dispose();
+        }
+        else
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            var waited = Stopwatch.StartNew();
+            var announced = false;
+            FileStream held = null;
+            while (held == null && !Log.HasLoggedErrors)
+            {
+                try
+                {
+                    held = new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                    BuildEngine4.RegisterTaskObject(key, held, RegisteredTaskObjectLifetime.Build, allowEarlyCollection: false);
+                }
+                // A held file surfaces as a sharing violation, or as access denied while it is
+                // still being opened on Windows.
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    if (!announced)
+                    {
+                        Log.LogMessage(MessageImportance.High, "Blaizio: another build is packing into this feed, waiting for it to finish.");
+                        announced = true;
+                    }
+                    if (waited.Elapsed > TimeSpan.FromMinutes(15))
+                    {
+                        Log.LogError("Blaizio: timed out after 15 minutes waiting for " + path + ". Is another build stuck?");
+                    }
+                    Thread.Sleep(250);
+                }
+            }
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="BlaizioAcquirePackLock">
+    <BlaizioPackLock LockFile="$(_BlaizioPackLock)" />
+  </Target>
+
+  <Target Name="BlaizioReleasePackLock" AfterTargets="BlaizioPackPackages">
+    <BlaizioPackLock LockFile="$(_BlaizioPackLock)" Release="true" />
+  </Target>
+
   <!-- CollectPackageReferences is the hook that also fires during a SOLUTION restore: `dotnet build
        Blaizio.slnx` restores the whole graph up front by asking each project for its package
        references, and never runs a project-level Restore target. Without it a fresh clone fails
        with NU1101 (empty local feed) before this target ever gets a chance to fill the feed. -->
+  <!-- The lock comes first in DependsOnTargets because dependencies run before the Inputs/Outputs
+       check: a run that waited out another pack then finds the stamp fresh and skips. -->
   <Target Name="BlaizioPackPackages"
           BeforeTargets="CollectPackageReferences;Restore;BeforeBuild"
-          DependsOnTargets="CollectBlaizioSources;BlaizioForce"
+          DependsOnTargets="BlaizioAcquirePackLock;CollectBlaizioSources;BlaizioForce"
           Inputs="@(BlaizioBaseSources);@(BlaizioIconsSources);@(BlaizioSyntaxSources)"
           Outputs="$(_BlaizioPackStamp)">
     <!-- Advance the revision BEFORE packing and hand the SAME one to both packages: they restore
