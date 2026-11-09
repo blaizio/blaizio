@@ -9,11 +9,18 @@
             <BzBadge Variant="BadgeVariant.Secondary">logical CSS</BzBadge>
             <BzBadge Variant="BadgeVariant.Outline">keyboard mirroring</BzBadge>
         </div>
-        <p>Every Blaizio component follows the reading direction. Set it for the whole app with <code>dir</code> on <code>&lt;html&gt;</code>, or for one region with <code>DirectionProvider</code>. The styling mirrors through logical CSS properties, and the left and right arrow keys swap along with it. To see it on this whole site, use the LTR/RTL switch in the top bar.</p>
+        <p>Every Blaizio component follows the reading direction. Set it for the whole app by wrapping your layout in <code>DirectionProvider</code>, or for one region by wrapping just that part. The styling mirrors through logical CSS properties, and the left and right arrow keys swap along with it. To see it on this whole site, use the LTR/RTL switch in the top bar.</p>
     </header>
 
     <UsageBlock Example="typeof(DirectionUsageExample)"
                 Description="Wrap any part of the tree in a `DirectionProvider` and everything inside follows its direction. Spacing, alignment and arrow-key navigation all mirror." />
+
+    <section>
+        <h2 data-toc class="scroll-mt-20">The whole app</h2>
+        <p>To make the whole app right-to-left, wrap the layout in <code>MainLayout.razor</code> in one <code>DirectionProvider</code>. Put <code>BzDialogProvider</code> and <code>BzToastProvider</code> inside it too, so dialogs and toasts opened from code follow the same direction as the pages.</p>
+        <CodeBlock Snippet="Direction/Layout" />
+        <p>Bind <code>Dir</code> to a field when people can switch direction at runtime. Every component under the layout re-renders with the new value.</p>
+    </section>
 
     <ExamplesHeading />
 

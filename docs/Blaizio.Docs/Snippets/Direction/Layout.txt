@@ -1,0 +1,16 @@
+@* MainLayout.razor - wrap the whole layout once. Every page under @Body, and the dialogs
+   and toasts the providers host, follow the same direction. *@
+@inherits LayoutComponentBase
+
+<BzDirectionProvider Dir="_dir">
+    <header>...</header>
+    <main>@Body</main>
+
+    <BzDialogProvider />
+    <BzToastProvider />
+</BzDirectionProvider>
+
+@code {
+    // Fixed RTL app: Direction.Rtl. Switchable: change this field from a toggle.
+    private Direction _dir = Direction.Rtl;
+}
