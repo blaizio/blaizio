@@ -1,0 +1,83 @@
+@* Test host: every text a BzDataTable says on its own, worded by the test when Localized (a stand-in
+   for a right-to-left app's translations, "he:" marking each), or left to the English defaults.
+   ActionWords and NoneWords word the actions column and the Priority column apart from the table,
+   so a test can switch one column alone. Cell indexes without selection: Title 0, Hours 1, Due 2,
+   Priority 3 (a nullable enum), Status 4 (Options), then the actions column in the row-edit modes.
+   OwnForm swaps in an EditDialogContent that hands its context out. *@
+<BzDataTable @ref="Table" TItem="Ticket" Items="Items" RowKey="@(t => t.Id)" Selectable="Selectable" PageSize="PageSize"
+             MaxHeight="@MaxHeight" EditMode="Mode" ResizableColumns="Resizable" ReorderableColumns="Resizable"
+             EditDialogContent="@(OwnForm ? Form : null)"
+             OnEdit="@(EventCallback.Factory.Create<DataTableEditEventArgs<Ticket>>(this, OnEditAsync))"
+             @attributes="TableTexts">
+    <BzPropertyColumn Property="@(t => t.Title)" Editable="Editable" Sortable />
+    <BzPropertyColumn Property="@(t => t.Hours)" Editable="Editable" />
+    <BzPropertyColumn Property="@(t => t.Due)" Editable="Editable" />
+    <BzPropertyColumn Property="@(t => t.Priority)" Editable="Editable" @attributes="PriorityTexts" />
+    <BzPropertyColumn Property="@(t => t.Status)" Editable="Editable" Options="@Statuses" />
+    @if (Actions)
+    {
+        <BzEditActionsColumn @attributes="ActionTexts" />
+    }
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Ticket> Items { get; set; } = [];
+    [Parameter] public bool Localized { get; set; }
+    [Parameter] public bool? ActionWords { get; set; }
+    [Parameter] public bool? NoneWords { get; set; }
+    [Parameter] public bool Selectable { get; set; }
+    [Parameter] public int PageSize { get; set; }
+    [Parameter] public string? MaxHeight { get; set; }
+    [Parameter] public bool Editable { get; set; }
+    [Parameter] public DataTableEditMode Mode { get; set; }
+    [Parameter] public bool Resizable { get; set; }
+    [Parameter] public bool Actions { get; set; }
+    [Parameter] public bool OwnForm { get; set; }
+    [Parameter] public Func<DataTableEditEventArgs<Ticket>, Task>? Handler { get; set; }
+
+    public BzDataTable<Ticket>? Table;
+
+    public DataTableEditForm<Ticket>? LastForm;
+
+    private static readonly string[] Statuses = ["Open", "Closed"];
+
+    private static readonly Dictionary<string, object> None = [];
+
+    private IReadOnlyDictionary<string, object> TableTexts => Localized ? Hebrew : None;
+
+    private IReadOnlyDictionary<string, object> PriorityTexts =>
+        NoneWords ?? Localized ? new Dictionary<string, object> { ["NoneLabel"] = "he:none" } : None;
+
+    private IReadOnlyDictionary<string, object> ActionTexts =>
+        ActionWords ?? Localized ? new Dictionary<string, object> { ["EditLabel"] = "he:edit", ["HeaderLabel"] = "he:actions" } : None;
+
+    private static readonly Dictionary<string, object> Hebrew = new()
+    {
+        ["SelectionSummaryContent"] = (RenderFragment<DataTableSelection>)(s => @<span class="summary">he:@s.Selected/@s.Total</span>),
+        ["SelectAllAriaLabel"] = "he:select-all",
+        ["SelectRowAriaLabel"] = "he:select-row",
+        ["ContainerAriaLabel"] = "he:table",
+        ["PaginationAriaLabel"] = "he:pages",
+        ["PaginationPreviousLabel"] = "he:prev",
+        ["PaginationPreviousAriaLabel"] = "he:go-prev",
+        ["PaginationNextLabel"] = "he:next",
+        ["PaginationNextAriaLabel"] = "he:go-next",
+        ["PaginationEllipsisAriaLabel"] = "he:more",
+        ["PaginationPageAriaLabel"] = (Func<int, string>)(page => $"he:page-{page}"),
+        ["EditFormCloseLabel"] = "he:close",
+        ["EditRejectedMessage"] = "he:not-saved",
+        ["EditDiscardedMessage"] = "he:discarded",
+        ["EditParseErrorMessage"] = (Func<CellParseError, string>)(e => $"he:{e.Kind}:{e.Field}:{string.Join('|', e.Options)}"),
+        ["ColumnAnnouncement"] = (Func<DataTableColumnAnnouncement, string>)(a => $"he:{a.Kind}:{a.Column}:{a.Width}:{a.Position}:{a.Count}"),
+    };
+
+    private RenderFragment<DataTableEditForm<Ticket>> Form => context => @<div class="own-form">
+        @{ LastForm = context; }
+        @context.Field("Due")
+    </div>;
+
+    private async Task OnEditAsync(DataTableEditEventArgs<Ticket> e)
+    {
+        if (Handler is not null) await Handler(e);
+    }
+}

@@ -29,6 +29,8 @@ public class CellBindingTests
         public DateTime When { get; set; }
         public TimeOnly At { get; set; }
         public Guid Id { get; set; }
+        public char Grade { get; set; }
+        [Silent] public int Quiet { get; set; }
         public string Code { get; init; } = "";
         public int Computed => Age * 2;
         public Address Home { get; set; } = new();
@@ -47,6 +49,12 @@ public class CellBindingTests
     }
 
     private sealed record Item(string Name);
+
+    // A rule that refuses every value without a message of its own.
+    private sealed class SilentAttribute : ValidationAttribute
+    {
+        protected override ValidationResult? IsValid(object? value, ValidationContext validationContext) => new(null);
+    }
 
     private static readonly CultureInfo Us = CultureInfo.GetCultureInfo("en-US");
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
@@ -174,6 +182,57 @@ public class CellBindingTests
         Assert.Equal("The Day field must be a date.", date);
         Assert.Equal("The At field must be a time.", time);
         Assert.Equal("The State field must be one of: Active, Paused.", choice);
+    }
+
+    [Fact]
+    public void A_message_builder_words_every_refusal_from_its_kind()
+    {
+        var seen = new List<CellParseError>();
+        string Hebrew(CellParseError e)
+        {
+            seen.Add(e);
+            return $"he:{e.Kind}:{e.Field}";
+        }
+
+        Assert.False(new CellBinding<Row, int>(r => r.Age).TryParse("", out _, out var required, "Age", Us, Hebrew));
+        Assert.False(new CellBinding<Row, int>(r => r.Age).TryParse("abc", out _, out var number, null, Us, Hebrew));
+        Assert.False(new CellBinding<Row, DateOnly>(r => r.Day).TryParse("soon", out _, out var date, null, Us, Hebrew));
+        Assert.False(new CellBinding<Row, TimeOnly>(r => r.At).TryParse("noonish", out _, out var time, null, Us, Hebrew));
+        Assert.False(new CellBinding<Row, bool>(r => r.Active).TryParse("maybe", out _, out var boolean, null, Us, Hebrew));
+        Assert.False(new CellBinding<Row, char>(r => r.Grade).TryParse("AB", out _, out var character, null, Us, Hebrew));
+        Assert.False(new CellBinding<Row, Status>(r => r.State).TryParse("Gone", out _, out var choice, null, Us, Hebrew));
+        Assert.False(new CellBinding<Row, Guid>(r => r.Id).TryParse("not-a-guid", out _, out var invalid, null, Us, Hebrew));
+
+        Assert.Equal("he:Required:Age", required);
+        Assert.Equal("he:Number:Age", number);
+        Assert.Equal("he:Date:Day", date);
+        Assert.Equal("he:Time:At", time);
+        Assert.Equal("he:Boolean:Active", boolean);
+        Assert.Equal("he:Character:Grade", character);
+        Assert.Equal("he:Choice:State", choice);
+        Assert.Equal("he:Invalid:Id", invalid);
+        // A choice carries the names it takes; the others carry none.
+        Assert.Equal(["Active", "Paused"], seen.Single(e => e.Kind == CellParseErrorKind.Choice).Options);
+        Assert.All(seen.Where(e => e.Kind != CellParseErrorKind.Choice), e => Assert.Empty(e.Options));
+    }
+
+    [Fact]
+    public void The_english_message_stays_when_the_builder_gives_back_nothing()
+    {
+        Assert.False(new CellBinding<Row, int>(r => r.Age).TryParse("abc", out _, out var error, "Age", Us, _ => ""));
+        Assert.Equal("The Age field must be a number.", error);
+
+        Assert.Equal("The Role field must be one of: A, B.", new CellParseError(CellParseErrorKind.Choice, "Role", ["A", "B"]).Message);
+        Assert.Equal("The Grade field must be a single character.", new CellParseError(CellParseErrorKind.Character, "Grade", []).Message);
+        Assert.Equal("The Id field has an invalid value.", new CellParseError(CellParseErrorKind.Invalid, "Id", []).Message);
+    }
+
+    [Fact]
+    public void A_rule_without_a_message_of_its_own_is_worded_by_the_rule()
+    {
+        // The attribute's own wording (localized through the attribute), never one of the binding's.
+        var quiet = new CellBinding<Row, int>(r => r.Quiet);
+        Assert.Equal(new SilentAttribute().FormatErrorMessage("Quiet"), quiet.Validate(new Row(), 1));
     }
 
     [Fact]
