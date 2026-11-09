@@ -1,27 +1,31 @@
 <RtlDemo Context="t">
     <BzDirectionProvider Dir="Direction.Rtl">
         <div class="w-full max-w-2xl">
-            <BzDataTable TItem="Member" Items="_members.Take(4)" Selectable RowKey="@(m => m.Id)">
-                <BzPropertyColumn Title='@t["الاسم", "שם"]' Property="@(m => m.Name)" Sortable />
-                <BzPropertyColumn Title='@t["الدور", "תפקיד"]' Property="@(m => m.Role)" Sortable />
-                <BzPropertyColumn Title='@t["الرصيد", "יתרה"]' Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+            <BzDataTable TItem="Member" Items="_members" Selectable RowKey="@(m => m.Id)"
+                         SelectAllAriaLabel='@t["تحديد كل الصفوف", "בחירת כל השורות"]' SelectRowAriaLabel='@t["تحديد الصف", "בחירת שורה"]'>
+                <ChildContent>
+                    <BzPropertyColumn Title='@t["الاسم", "שם"]' Property="@(m => t[m.Name.Ar, m.Name.He])" Sortable />
+                    <BzPropertyColumn Title='@t["الدور", "תפקיד"]' Property="@(m => t[m.Role.Ar, m.Role.He])" Sortable />
+                    <BzPropertyColumn Title='@t["المدينة", "עיר"]' Property="@(m => t[m.City.Ar, m.City.He])" Sortable />
+                    <BzPropertyColumn Title='@t["الرصيد", "יתרה"]' Property="@(m => m.Balance)" Format="C" Align="end" Sortable />
+                </ChildContent>
+                <SelectionSummaryContent>
+                    @t[$"الصفوف المحددة: {context.Selected} من {context.Total}", $"שורות שנבחרו: {context.Selected} מתוך {context.Total}"]
+                </SelectionSummaryContent>
             </BzDataTable>
         </div>
     </BzDirectionProvider>
 </RtlDemo>
 
 @code {
-    private sealed record Member(int Id, string Name, string Email, string Role, string Status, decimal Balance);
+    private sealed record Member(int Id, (string Ar, string He) Name, (string Ar, string He) Role, (string Ar, string He) City, decimal Balance);
 
     private static readonly Member[] _members =
     [
-        new(1, "Amara Okafor", "amara.okafor@example.com", "Admin", "Active", 1999.00m),
-        new(2, "Lucas Ferreira", "lucas.ferreira@example.com", "Member", "Active", 39.00m),
-        new(3, "Mei Tanaka", "mei.tanaka@example.com", "Owner", "Invited", 299.00m),
-        new(4, "Daniel Brooks", "daniel.brooks@example.com", "Member", "Suspended", 99.00m),
-        new(5, "Priya Raman", "priya.raman@example.com", "Viewer", "Active", 0.00m),
-        new(6, "Liam Johnson", "liam.johnson@example.com", "Admin", "Active", 845.50m),
-        new(7, "Emma Wilson", "emma.wilson@example.com", "Member", "Invited", 120.00m),
-        new(8, "Noah Brown", "noah.brown@example.com", "Viewer", "Suspended", 12.75m),
+        new(1, ("ليلى حداد", "נועה כהן"), ("مسؤولة", "מנהלת"), ("دبي", "תל אביב"), 1999.00m),
+        new(2, ("عمر الخطيب", "איתי לוי"), ("عضو", "חבר צוות"), ("عمّان", "חיפה"), 39.00m),
+        new(3, ("سارة المنصوري", "מיכל אברהם"), ("مالكة", "בעלים"), ("الرياض", "ירושלים"), 299.00m),
+        new(4, ("يوسف النجار", "יונתן מזרחי"), ("عضو", "חבר צוות"), ("القاهرة", "באר שבע"), 99.00m),
+        new(5, ("كريم عبد الله", "דניאל שפירא"), ("مسؤول", "מנהל"), ("بيروت", "נתניה"), 845.50m),
     ];
 }
