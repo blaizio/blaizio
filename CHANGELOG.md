@@ -238,6 +238,9 @@ lockstep under one version.
   needs the new name.
 
 ### Fixed
+- **Input Time** (`blaizio update input-time`): a click on the 12-hour face's AM/PM toggle flips
+  it. The toggle handed its click handler to the button under a name the button does not take, so
+  only the arrow keys and the A and P keys switched it.
 - **Base**: a number field removed right after it rendered (a data table cell editor committed by
   a fast typist) no longer throws "Cannot read properties of null" from its input guard, which
   surfaced as an unhandled rendering error.
