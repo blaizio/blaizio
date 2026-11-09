@@ -13,6 +13,9 @@
               SelectedIndexChanged="@SelectedIndexChanged"
               AriaLabel="@AriaLabel"
               AriaLabelledBy="@AriaLabelledBy"
+              RoleDescription="@RoleDescription"
+              SlideRoleDescription="@SlideRoleDescription"
+              SlideAriaLabel="@SlideAriaLabel"
               Class="@Tw.Merge("bz-carousel relative", Class)"
               Attributes="Attributes">
     @ChildContent
@@ -44,6 +47,18 @@
 
     /// <summary>Id of the element that names the region (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
     [Parameter] public string? AriaLabelledBy { get; set; }
+
+    /// <summary>What screen readers call the region, in place of its role. Defaults to "carousel".</summary>
+    [Parameter] public string RoleDescription { get; set; } = "carousel";
+
+    /// <summary>What screen readers call each slide, in place of its role. Defaults to "slide".</summary>
+    [Parameter] public string SlideRoleDescription { get; set; } = "slide";
+
+    /// <summary>
+    /// Each slide's name for screen readers, given its place (<c>context.Position</c>, from 1) among
+    /// <c>context.Count</c> slides. Defaults to "N of M". A slide's own <c>AriaLabel</c> wins over it.
+    /// </summary>
+    [Parameter] public Func<CarouselSlidePosition, string>? SlideAriaLabel { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

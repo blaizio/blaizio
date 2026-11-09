@@ -70,6 +70,13 @@ public sealed class GeneratorOptions
             // Editing (CellBinding, TabSeparatedText and the keyboard grid in dist/dataTable.js)
             // arrived in 0.3.6; the table does not compile against an older Base.
             ["table"] = "0.3.6",
+            // The label and announcement parameters these pass to their Base parts (the month
+            // buttons' names, the slide and item role descriptions, Announcement) arrived in 0.3.6;
+            // an older Base would take them as plain HTML attributes and keep its English.
+            ["calendar"] = "0.3.6",
+            ["carousel"] = "0.3.6",
+            ["sortable"] = "0.3.6",
+            ["tree"] = "0.3.6",
         };
 
     /// <summary>

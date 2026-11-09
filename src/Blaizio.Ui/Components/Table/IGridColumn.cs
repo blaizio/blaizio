@@ -120,8 +120,12 @@ internal interface IGridEditor<TItem>
     /// <summary>A value as editing text: the raw value in the current culture, no display format.</summary>
     string Format(object? value);
 
-    /// <summary>Parses editing text; on failure <paramref name="error"/> names <paramref name="displayName"/>.</summary>
-    bool TryParse(string? text, string displayName, out object? value, [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string? error);
+    /// <summary>
+    /// Parses editing text; on failure <paramref name="error"/> names <paramref name="displayName"/>,
+    /// worded by <paramref name="messages"/> (the table's <c>EditParseErrorMessage</c>), in English without it.
+    /// </summary>
+    bool TryParse(string? text, string displayName, Func<CellParseError, string>? messages, out object? value,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string? error);
 
     /// <summary>The member's DataAnnotations, then the column's own Validate. Null when valid.</summary>
     string? Validate(TItem item, object? value, string displayName);

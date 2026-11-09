@@ -64,6 +64,12 @@
     [Parameter] public IEnumerable<TProp>? Options { get; set; }
 
     /// <summary>
+    /// The label of the blank option a nullable enum's pick list starts with, which empties the
+    /// cell. Defaults to "None".
+    /// </summary>
+    [Parameter] public string NoneLabel { get; set; } = "None";
+
+    /// <summary>
     /// Your own editor control for this column, replacing the built-in one. Bind it to
     /// <c>context.Value</c> and spread <c>context.Attributes</c> onto it; a pick-style control can
     /// commit as soon as it changes with <c>@bind-Value:after="context.Commit"</c>. Used in the
@@ -258,7 +264,7 @@
 
         public string Format(object? value) => value is TProp typed ? Binding.Format(typed) : string.Empty;
 
-        public bool TryParse(string? text, string displayName, out object? value,
+        public bool TryParse(string? text, string displayName, Func<CellParseError, string>? messages, out object? value,
             [System.Diagnostics.CodeAnalysis.NotNullWhen(false)] out string? error)
         {
             // A pick list over Options takes one of its options, matched by label.
@@ -269,11 +275,12 @@
                     error = null;
                     return true;
                 }
-                error = $"The {displayName} field must be one of: {string.Join(", ", column._options.Select(o => o.Label))}.";
+                error = new CellParseError(CellParseErrorKind.Choice, displayName, column._options.Select(o => o.Label).ToArray())
+                    .Describe(messages);
                 return false;
             }
 
-            var ok = Binding.TryParse(text, out var parsed, out error, displayName);
+            var ok = Binding.TryParse(text, out var parsed, out error, displayName, messages: messages);
             value = parsed;
             return ok;
         }
@@ -324,6 +331,7 @@
             builder.AddComponentParameter(2, nameof(DataTableEditorHost<TItem, TProp>.Kind), column._kind);
             builder.AddComponentParameter(3, nameof(DataTableEditorHost<TItem, TProp>.Options), column._options);
             builder.AddComponentParameter(4, nameof(DataTableEditorHost<TItem, TProp>.InputMode), Binding.InputMode);
+            builder.AddComponentParameter(5, nameof(DataTableEditorHost<TItem, TProp>.NoneLabel), column.NoneLabel);
             builder.CloseComponent();
         };
 

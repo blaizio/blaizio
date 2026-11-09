@@ -135,9 +135,11 @@ public sealed class CellBinding<TItem, TValue>
     /// Parses editing text back into a value in <paramref name="culture"/> (the current culture by
     /// default). Text is taken as typed; blank text is <see langword="null"/> for a nullable member and
     /// an error otherwise. On failure <paramref name="error"/> holds a message naming
-    /// <paramref name="displayName"/> (falling back to <see cref="DisplayName"/>, then the member name).
+    /// <paramref name="displayName"/> (falling back to <see cref="DisplayName"/>, then the member name),
+    /// worded by <paramref name="messages"/> from the <see cref="CellParseError"/>, in English without it.
     /// </summary>
-    public bool TryParse(string? text, out TValue value, [NotNullWhen(false)] out string? error, string? displayName = null, CultureInfo? culture = null)
+    public bool TryParse(string? text, out TValue value, [NotNullWhen(false)] out string? error, string? displayName = null,
+        CultureInfo? culture = null, Func<CellParseError, string>? messages = null)
     {
         culture ??= CultureInfo.CurrentCulture;
         text ??= string.Empty;
@@ -159,7 +161,7 @@ public sealed class CellBinding<TItem, TValue>
                 error = null;
                 return true;
             }
-            error = $"The {name} field is required.";
+            error = new CellParseError(CellParseErrorKind.Required, name, []).Describe(messages);
             return false;
         }
 
@@ -171,13 +173,14 @@ public sealed class CellBinding<TItem, TValue>
         }
 
         value = default!;
-        error = ParseError(s_type, name);
+        error = ParseError(s_type, name).Describe(messages);
         return false;
     }
 
     /// <summary>
     /// Runs the member's DataAnnotations against <paramref name="value"/> as the new value on
-    /// <paramref name="item"/>, without assigning it. Returns the first failure's message, or
+    /// <paramref name="item"/>, without assigning it. Returns the first failure's message (each rule
+    /// words its own, so an attribute's <c>ErrorMessage</c> or resource localizes it), or
     /// <see langword="null"/> when every rule passes (or the member has none).
     /// </summary>
     public string? Validate(TItem item, TValue value, string? displayName = null)
@@ -191,7 +194,7 @@ public sealed class CellBinding<TItem, TValue>
         foreach (var rule in _rules)
         {
             if (rule.GetValidationResult(value, context) is { } failure && failure != ValidationResult.Success)
-                return failure.ErrorMessage ?? $"The {context.DisplayName} field is invalid.";
+                return failure.ErrorMessage ?? rule.FormatErrorMessage(context.DisplayName);
         }
         return null;
     }
@@ -331,19 +334,20 @@ public sealed class CellBinding<TItem, TValue>
         type.IsDefined(typeof(FlagsAttribute), inherit: false) || Enum.IsDefined(type, value) ||
         !text.All(c => char.IsDigit(c) || c is '-' or '+');
 
-    private static string ParseError(Type type, string name)
+    private static CellParseError ParseError(Type type, string name)
     {
         if (type.IsEnum)
-            return $"The {name} field must be one of: {string.Join(", ", Enum.GetNames(type))}.";
-        return Type.GetTypeCode(type) switch
+            return new(CellParseErrorKind.Choice, name, Enum.GetNames(type));
+        var kind = Type.GetTypeCode(type) switch
         {
-            TypeCode.Boolean => $"The {name} field must be true or false.",
-            TypeCode.Char => $"The {name} field must be a single character.",
-            >= TypeCode.SByte and <= TypeCode.Decimal => $"The {name} field must be a number.",
-            TypeCode.DateTime => $"The {name} field must be a date.",
-            _ when type == typeof(DateOnly) || type == typeof(DateTimeOffset) => $"The {name} field must be a date.",
-            _ when type == typeof(TimeOnly) || type == typeof(TimeSpan) => $"The {name} field must be a time.",
-            _ => $"The {name} field has an invalid value.",
+            TypeCode.Boolean => CellParseErrorKind.Boolean,
+            TypeCode.Char => CellParseErrorKind.Character,
+            >= TypeCode.SByte and <= TypeCode.Decimal => CellParseErrorKind.Number,
+            TypeCode.DateTime => CellParseErrorKind.Date,
+            _ when type == typeof(DateOnly) || type == typeof(DateTimeOffset) => CellParseErrorKind.Date,
+            _ when type == typeof(TimeOnly) || type == typeof(TimeSpan) => CellParseErrorKind.Time,
+            _ => CellParseErrorKind.Invalid,
         };
+        return new(kind, name, []);
     }
 }

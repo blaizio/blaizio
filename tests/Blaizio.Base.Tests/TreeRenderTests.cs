@@ -526,4 +526,95 @@ public class TreeRenderTests : BunitContext
             configure?.Invoke(ps);
         });
     }
+
+    // ---- labels and announcements ------------------------------------------------------------------------
+
+    private static string LiveText(IRenderedComponent<BaseTree<Node>> cut) => cut.Find("[role=status]").TextContent.Trim();
+
+    [Fact]
+    public void Keyboard_moves_are_announced_in_English_by_default()
+    {
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps
+            .Add(t => t.Draggable, true)
+            .Add(t => t.OnMove, EventCallback.Factory.Create<TreeChange>(this, _ => { })));
+
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = " ", CtrlKey = true });
+        Assert.Equal("Grabbed readme. Use the arrow keys to move, Control Space or Enter to drop, Escape to cancel.", LiveText(cut));
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "ArrowUp" });
+        Assert.Equal("Moved readme.", LiveText(cut));
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        Assert.Equal("Move cancelled.", LiveText(cut));
+    }
+
+    [Fact]
+    public void Announcement_words_the_grab_move_drop_and_rename()
+    {
+        var seen = new List<string>();
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps
+            .Add(t => t.Draggable, true)
+            .Add(t => t.Renamable, true)
+            .Add(t => t.OnMove, EventCallback.Factory.Create<TreeChange>(this, _ => { }))
+            .Add(t => t.Announcement, a =>
+            {
+                seen.Add($"{a.Kind} {a.Node}");
+                return $"{a.Kind}: {a.Node}";
+            }));
+
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = " ", CtrlKey = true });
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "ArrowUp" });
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "Enter" });
+        Assert.Equal("Dropped: readme", LiveText(cut));
+
+        cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "F2" });
+        cut.Find("[data-part=rename-input]").Input("changelog");
+        cut.Find("[data-part=rename-input]").KeyDown(new KeyboardEventArgs { Key = "Enter" });
+        Assert.Equal("Renamed: changelog", LiveText(cut));
+
+        Assert.Equal(new[] { "Grabbed readme", "Moved readme", "Dropped readme", "Renamed changelog" }, seen);
+    }
+
+    [Fact]
+    public async Task A_pointer_drop_names_the_node_by_its_text()
+    {
+        var cut = Render<BaseTree<Node>>(ps => ps
+            .Add(t => t.Items, Sample())
+            .Add(t => t.ValueSelector, n => n.Value)
+            .Add(t => t.TextSelector, n => n.Value.ToUpperInvariant())
+            .Add(t => t.ChildrenSelector, n => n.Children)
+            .Add(t => t.Draggable, true)
+            .Add(t => t.OnMove, EventCallback.Factory.Create<TreeChange>(this, _ => { })));
+
+        await cut.InvokeAsync(() => cut.Instance.NotifyMove("readme", "src", "before", "", ""));
+
+        Assert.Equal("Moved README.", LiveText(cut));
+    }
+
+    [Fact]
+    public void A_failed_load_is_announced_through_Announcement()
+    {
+        var items = new List<Node> { Leaf("lazy") };
+        var cut = RenderTreeComponent(items, configure: ps => ps
+            .Add(t => t.HasChildrenSelector, n => n.Value == "lazy")
+            .Add(t => t.LoadChildren, _ => Task.FromException<IReadOnlyList<Node>>(new InvalidOperationException("offline")))
+            .Add(t => t.Announcement, a => a.Kind == TreeAnnouncementKind.LoadFailed ? $"تعذر تحميل {a.Node}" : a.Message));
+
+        cut.Find("[data-part=branch-control][data-value=lazy]").Click();
+
+        Assert.Equal("تعذر تحميل lazy", LiveText(cut));
+        Assert.Equal("false", cut.Find("[data-part=branch][data-value=lazy]").GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
+    public void Rename_box_takes_its_name_from_RenameAriaLabel()
+    {
+        var english = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Renamable, true));
+        english.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "F2" });
+        Assert.Equal("Rename", english.Find("[data-part=rename-input]").GetAttribute("aria-label"));
+
+        var arabic = RenderTreeComponent(Sample(), configure: ps => ps
+            .Add(t => t.Renamable, true)
+            .Add(t => t.RenameAriaLabel, "إعادة التسمية"));
+        arabic.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "F2" });
+        Assert.Equal("إعادة التسمية", arabic.Find("[data-part=rename-input]").GetAttribute("aria-label"));
+    }
 }

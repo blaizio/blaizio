@@ -8,7 +8,9 @@
     "dd/MM/yyyy"). You edit the day / month / year segments in place: type digits (the focus hops to
     the next segment once the value is unambiguous) or step with the arrow keys. ShowCalendar adds a
     trailing button that opens a BzCalendar popup - picking a day fills the field and closes it.
-    Bind CalendarOpen to open or close that popup from code, or to know when it opens.
+    Bind CalendarOpen to open or close that popup from code, or to know when it opens. Everything
+    it says to screen readers (the segments, the calendar button, the popup and its month buttons)
+    has a parameter, English by default.
 
         <BzInputDate @bind-Value="_date" />
         <BzInputDate @bind-Value="_date" Format="dd/MM/yyyy" ShowCalendar />
@@ -41,7 +43,7 @@
             else if (token.Part == Part.Day)
             {
                 <input @ref="_dayRef" @key="Part.Day" inputmode="numeric" autocomplete="off" maxlength="2"
-                       placeholder="--" value="@FormatPart(Part.Day)" disabled="@Disabled" aria-label="Day"
+                       placeholder="--" value="@FormatPart(Part.Day)" disabled="@Disabled" aria-label="@DayAriaLabel"
                        onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Day, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Day, e))" />
@@ -49,7 +51,7 @@
             else if (token.Part == Part.Month)
             {
                 <input @ref="_monthRef" @key="Part.Month" inputmode="numeric" autocomplete="off" maxlength="2"
-                       placeholder="--" value="@FormatPart(Part.Month)" disabled="@Disabled" aria-label="Month"
+                       placeholder="--" value="@FormatPart(Part.Month)" disabled="@Disabled" aria-label="@MonthAriaLabel"
                        onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Month, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Month, e))" />
@@ -57,7 +59,7 @@
             else
             {
                 <input @ref="_yearRef" @key="Part.Year" inputmode="numeric" autocomplete="off" maxlength="4"
-                       placeholder="----" value="@FormatPart(Part.Year)" disabled="@Disabled" aria-label="Year"
+                       placeholder="----" value="@FormatPart(Part.Year)" disabled="@Disabled" aria-label="@YearAriaLabel"
                        onfocus="this.select()" class="@YearSegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Year, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Year, e))" />
@@ -72,14 +74,15 @@
                    radius, focus ring, disabled treatment and the aria-expanded fill for free. *@
                 <RenderAs Context="p">
                     <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Ghost" Size="ButtonSize.IconXs" Disabled="@Disabled"
-                              aria-label="Open calendar" Class="@CalendarButtonClasses" @attributes="p.Attributes">
+                              aria-label="@CalendarButtonAriaLabel" Class="@CalendarButtonClasses" @attributes="p.Attributes">
                         <BzIcon Icon="@BzGlyphs.CalendarDown" Class="size-4" />
                     </BzButton>
                 </RenderAs>
             </BzPopoverTrigger>
-            <BzPopoverContent Class="w-auto p-0" aria-label="Calendar">
+            <BzPopoverContent Class="w-auto p-0" aria-label="@CalendarAriaLabel">
                 <BzCalendar Value="@Current" ValueChanged="OnCalendarPicked"
-                            Min="@Min" Max="@Max" Culture="@Culture" Class="p-3" />
+                            Min="@Min" Max="@Max" Culture="@Culture" Class="p-3"
+                            PreviousMonthAriaLabel="@PreviousMonthAriaLabel" NextMonthAriaLabel="@NextMonthAriaLabel" />
             </BzPopoverContent>
         </BzPopover>
     }
@@ -125,6 +128,27 @@
 
     /// <summary>Culture for the calendar popup's month/weekday names.</summary>
     [Parameter] public CultureInfo? Culture { get; set; }
+
+    /// <summary>The day segment's name for screen readers. Defaults to "Day".</summary>
+    [Parameter] public string DayAriaLabel { get; set; } = "Day";
+
+    /// <summary>The month segment's name for screen readers. Defaults to "Month".</summary>
+    [Parameter] public string MonthAriaLabel { get; set; } = "Month";
+
+    /// <summary>The year segment's name for screen readers. Defaults to "Year".</summary>
+    [Parameter] public string YearAriaLabel { get; set; } = "Year";
+
+    /// <summary>The name of the button that opens the calendar popup (with <see cref="ShowCalendar"/>), for screen readers. Defaults to "Open calendar".</summary>
+    [Parameter] public string CalendarButtonAriaLabel { get; set; } = "Open calendar";
+
+    /// <summary>The calendar popup's name for screen readers. Defaults to "Calendar".</summary>
+    [Parameter] public string CalendarAriaLabel { get; set; } = "Calendar";
+
+    /// <summary>The name of the calendar popup's previous-month button, for screen readers. Defaults to "Go to the previous month".</summary>
+    [Parameter] public string PreviousMonthAriaLabel { get; set; } = "Go to the previous month";
+
+    /// <summary>The name of the calendar popup's next-month button, for screen readers. Defaults to "Go to the next month".</summary>
+    [Parameter] public string NextMonthAriaLabel { get; set; } = "Go to the next month";
 
     /// <summary>Show a leading calendar icon. Defaults to <c>true</c>.</summary>
     [Parameter] public bool ShowIcon { get; set; } = true;

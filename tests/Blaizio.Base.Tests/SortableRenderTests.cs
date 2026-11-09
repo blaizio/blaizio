@@ -214,6 +214,83 @@ public class SortableRenderTests : BunitContext
         Assert.Empty(cut.FindAll("[data-grabbed]"));
     }
 
+    // ---- labels and announcements -------------------------------------------------------------
+
+    [Fact]
+    public void Items_are_sortable_items_in_English_by_default()
+    {
+        var cut = RenderList(SortableStrategy.Sort, SortableOrientation.Vertical, ["a", "b"]);
+
+        Assert.All(cut.FindAll("[data-sortable-item]"), i => Assert.Equal("sortable item", i.GetAttribute("aria-roledescription")));
+    }
+
+    [Fact]
+    public void Items_take_their_role_description_from_the_list()
+    {
+        var cut = RenderList(SortableStrategy.Sort, SortableOrientation.Vertical, ["a", "b"],
+            configure: ps => ps.Add(x => x.ItemRoleDescription, "عنصر قابل للترتيب"));
+
+        Assert.All(cut.FindAll("[data-sortable-item]"), i => Assert.Equal("عنصر قابل للترتيب", i.GetAttribute("aria-roledescription")));
+    }
+
+    [Fact]
+    public async Task Keyboard_moves_are_announced_in_English_by_default()
+    {
+        var cut = RenderList(SortableStrategy.Sort, SortableOrientation.Vertical, ["a", "b", "c"]);
+
+        await PressOnItem(cut, 0, " ");
+        Assert.Equal("Grabbed item 1 of 3. Use the arrow keys to move, space to drop, escape to cancel.", LiveText(cut));
+        await PressOnItem(cut, 0, "ArrowDown");
+        Assert.Equal("Moved to position 2 of 3.", LiveText(cut));
+        await PressOnItem(cut, 0, "Escape");
+        Assert.Equal("Move cancelled.", LiveText(cut));
+        await PressOnItem(cut, 0, " ");
+        await PressOnItem(cut, 0, " ");
+        Assert.Equal("Dropped at position 1 of 3.", LiveText(cut));
+    }
+
+    [Fact]
+    public async Task Announcement_words_every_keyboard_move()
+    {
+        var seen = new List<string>();
+        var cut = RenderList(SortableStrategy.Sort, SortableOrientation.Vertical, ["a", "b", "c"],
+            configure: ps => ps.Add(x => x.Announcement, a =>
+            {
+                seen.Add($"{a.Kind} {a.Position}/{a.Count}");
+                return a.Kind switch
+                {
+                    SortableAnnouncementKind.Grabbed => $"تم التقاط العنصر {a.Position} من {a.Count}",
+                    SortableAnnouncementKind.Moved => $"نقل إلى الموضع {a.Position} من {a.Count}",
+                    SortableAnnouncementKind.Dropped => $"أفلت في الموضع {a.Position} من {a.Count}",
+                    _ => "ألغي النقل",
+                };
+            }));
+
+        await PressOnItem(cut, 1, " ");
+        Assert.Equal("تم التقاط العنصر 2 من 3", LiveText(cut));
+        await PressOnItem(cut, 1, "ArrowDown");
+        Assert.Equal("نقل إلى الموضع 3 من 3", LiveText(cut));
+        // Nothing applied the move (the item is still second), so Escape has nowhere to go back to.
+        await PressOnItem(cut, 1, "Escape");
+        Assert.Equal("ألغي النقل", LiveText(cut));
+        await PressOnItem(cut, 2, "Enter");
+        await PressOnItem(cut, 2, "Enter");
+        Assert.Equal("أفلت في الموضع 3 من 3", LiveText(cut));
+
+        Assert.Equal(new[] { "Grabbed 2/3", "Moved 3/3", "Cancelled 2/3", "Grabbed 3/3", "Dropped 3/3" }, seen);
+    }
+
+    [Fact]
+    public async Task An_empty_announcement_keeps_the_English_message()
+    {
+        var cut = RenderList(SortableStrategy.Sort, SortableOrientation.Vertical, ["a", "b"],
+            configure: ps => ps.Add(x => x.Announcement, _ => ""));
+
+        await PressOnItem(cut, 0, " ");
+
+        Assert.StartsWith("Grabbed item 1 of 2.", LiveText(cut));
+    }
+
     // ---- helpers ------------------------------------------------------------------------------
 
     private static AngleSharp.Dom.IElement Item(IRenderedComponent<BaseSortable> cut, int index) =>
@@ -236,7 +313,8 @@ public class SortableRenderTests : BunitContext
         SortableStrategy strategy, SortableOrientation orientation,
         string[] items, Action<SortableChange>? onReorder = null,
         Action<int>? onDragStart = null, Action<int>? onDragEnd = null,
-        Func<string, RenderFragment>? itemContent = null)
+        Func<string, RenderFragment>? itemContent = null,
+        Action<ComponentParameterCollectionBuilder<BaseSortable>>? configure = null)
     {
         RenderFragment content = builder =>
         {
@@ -252,12 +330,17 @@ public class SortableRenderTests : BunitContext
             }
         };
 
-        return Render<BaseSortable>(ps => ps
-            .Add(x => x.Strategy, strategy)
-            .Add(x => x.Orientation, orientation)
-            .Add(x => x.OnReorder, EventCallback.Factory.Create<SortableChange>(this, c => onReorder?.Invoke(c)))
-            .Add(x => x.OnDragStart, EventCallback.Factory.Create<int>(this, i => onDragStart?.Invoke(i)))
-            .Add(x => x.OnDragEnd, EventCallback.Factory.Create<int>(this, i => onDragEnd?.Invoke(i)))
-            .AddChildContent(content));
+        return Render<BaseSortable>(ps =>
+        {
+            ps.Add(x => x.Strategy, strategy)
+              .Add(x => x.Orientation, orientation)
+              .Add(x => x.OnReorder, EventCallback.Factory.Create<SortableChange>(this, c => onReorder?.Invoke(c)))
+              .Add(x => x.OnDragStart, EventCallback.Factory.Create<int>(this, i => onDragStart?.Invoke(i)))
+              .Add(x => x.OnDragEnd, EventCallback.Factory.Create<int>(this, i => onDragEnd?.Invoke(i)))
+              .AddChildContent(content);
+            configure?.Invoke(ps);
+        });
     }
+
+    private static string LiveText(IRenderedComponent<BaseSortable> cut) => cut.Find("[role=status]").TextContent.Trim();
 }

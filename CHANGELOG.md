@@ -131,6 +131,59 @@ lockstep under one version.
   the virtualizer adds mid-drag slide too, and on release it slides into place. Either way the
   order is reported once, on release, and Escape puts everything back. Needs Blaizio.Base 0.3.6
   (the column script).
+- **Data Table in any language** (`blaizio update table`): everything `BzDataTable` says on its
+  own now has a parameter, so a right-to-left or non-English app words all of it. The selection
+  line takes `SelectionSummaryContent`, a template of your own given `context.Selected` and
+  `context.Total`, in place of "N of M row(s) selected." (which also read scrambled in a
+  right-to-left page); `SelectAllAriaLabel` and `SelectRowAriaLabel` name the selection
+  checkboxes, and `ContainerAriaLabel` the scroll box that `MaxHeight` or `Virtualize` makes a
+  keyboard stop. The pager takes `PaginationAriaLabel`, `PaginationPreviousLabel`,
+  `PaginationPreviousAriaLabel`, `PaginationNextLabel`, `PaginationNextAriaLabel`,
+  `PaginationEllipsisAriaLabel` and `PaginationPageAriaLabel`, a function of the page number. For
+  editing, `EditFormCloseLabel` names the form's close button in the dialog and the drawer,
+  `EditRejectedMessage` words a save refused without a message of its own, `EditDiscardedMessage`
+  what follows a refused value when the focus leaves the table, and `EditParseErrorMessage` words a
+  value the table refuses before saving it ("The Hours field must be a number.", "... is
+  required.", "... must be one of: ...") from a `CellParseError` that gives the problem (`Kind`),
+  the column's title (`Field`), a pick list's options (`Options`) and the English `Message`.
+  `EditorLabels` words what the built-in date and time editors say to screen readers, and the time
+  editor's AM and PM text, from a `DataTableEditorLabels` (`Day`, `Month`, `Year`, `CalendarButton`,
+  `Calendar`, `PreviousMonth`, `NextMonth`, `Hour`, `Minute`, `Meridiem`, `Am`, `Pm`).
+  `ColumnAnnouncement` words what screen readers hear after a key resizes or moves a column, from
+  a `DataTableColumnAnnouncement` (`Kind`, `Column`, `Width`, `Position`, `Count`, `Message`);
+  while it is set, the column script asks .NET for each announcement's words, one call at a time.
+  On the columns, `HeaderLabel` on `BzEditActionsColumn` names its header for screen readers
+  ("Actions"), and `NoneLabel` on `BzPropertyColumn` labels a nullable enum's blank option
+  ("None"). Left unset, every one of them keeps the English the table said before. Needs
+  Blaizio.Base 0.3.6 (`CellParseError` and the column script).
+- **Date, time and overlay controls in any language** (`blaizio update input-date input-time
+  calendar sheet drawer panel dialog carousel sortable tree`): what these controls say on their own
+  now has a parameter, English by default. `BzInputDate` takes `DayAriaLabel`, `MonthAriaLabel`,
+  `YearAriaLabel`, `CalendarButtonAriaLabel` ("Open calendar"), `CalendarAriaLabel` and, for its
+  calendar popup, `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BzCalendar` takes the same two
+  month-button names and `WeekNumberLabel`. `BzInputTime` takes `HourAriaLabel`, `MinuteAriaLabel`,
+  `SecondAriaLabel`, `MeridiemAriaLabel` for the AM/PM toggle ("AM or PM"), and `AmLabel` and
+  `PmLabel` for the toggle's text. `CloseLabel` names the corner close button of `BzDialogContent`,
+  `BzSheetContent` and `BzDrawerContent` ("Close"), and of a dialog or sheet shown from
+  `IDialogService` (`BzDialogOptions.CloseLabel`, which the `BzDialogOptions` you give
+  `BlaizioOptions.DialogDefaults` can carry for the whole app); `Label` names `BzPanelClose`
+  ("Close panel"). On `BzCarousel`, `RoleDescription` and `SlideRoleDescription` replace what screen
+  readers call the region and each slide ("carousel", "slide"), and `SlideAriaLabel` words each
+  slide's "N of M" from a `CarouselSlidePosition` (`Position`, `Count`); `DotAriaLabel` on
+  `BzCarouselDots` words "Go to slide N". `BzSortable` and `BzSortableList` take
+  `ItemRoleDescription` ("sortable item") and `Announcement`, which words what screen readers hear
+  as the keyboard picks an item up, moves it, puts it down or puts it back, from a
+  `SortableAnnouncement` (`Kind`, `Position`, `Count` and the English `Message`). `BzTree` takes
+  `RenameAriaLabel` for the rename box and `Announcement`, worded from a `TreeAnnouncement` (`Kind`,
+  `Node` and `Message`): a node picked up, moved by keyboard or a pointer drop, put down, let go,
+  renamed, or whose children failed to load. Needs Blaizio.Base 0.3.6.
+- **`Blaizio.Base`**: `CellBinding.TryParse` takes a `messages` builder that words a refused text
+  in the reader's language from a `CellParseError`, the English `Message` without one. A
+  DataAnnotations rule that returns no message of its own is worded by the rule itself.
+  The headless parts take the same words as the styled controls: `BaseCalendar` takes
+  `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BaseCarousel` takes `RoleDescription`,
+  `SlideRoleDescription` and `SlideAriaLabel`; `BaseSortable` takes `ItemRoleDescription` and
+  `Announcement`; `BaseTree` takes `RenameAriaLabel` and `Announcement`.
 - **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
   optional description and a status (done, running with a shimmering title, error, pending). A
   line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's
@@ -215,6 +268,11 @@ lockstep under one version.
   in view. The spy marked the link but never scrolled the box it sits in (a sticky aside with
   `overflow-y-auto`, or the floating panel's own max height), so far down a long page the
   highlight sat below the fold. The first and last sections pin the box to its ends.
+- **Input Time** (`blaizio update input-time`): a click on the 12-hour face's AM/PM toggle flips
+  it. The toggle handed its click handler to the button under a name the button does not take, so
+  only the arrow keys and the A and P keys switched it.
+- **Base**: a tree node moved by a pointer drop is announced by its text ("Moved Reports."), as a
+  keyboard move is, not by its value.
 - **Base**: a number field removed right after it rendered (a data table cell editor committed by
   a fast typist) no longer throws "Cannot read properties of null" from its input guard, which
   surfaced as an unhandled rendering error.

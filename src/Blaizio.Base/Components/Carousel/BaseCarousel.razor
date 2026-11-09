@@ -52,6 +52,18 @@
     /// <summary>Id of the element that names the region (takes precedence over <see cref="AriaLabel"/>, per ARIA).</summary>
     [Parameter] public string? AriaLabelledBy { get; set; }
 
+    /// <summary>What screen readers call the region, in place of its role. Defaults to "carousel".</summary>
+    [Parameter] public string RoleDescription { get; set; } = "carousel";
+
+    /// <summary>What screen readers call each slide, in place of its role. Defaults to "slide".</summary>
+    [Parameter] public string SlideRoleDescription { get; set; } = "slide";
+
+    /// <summary>
+    /// Each slide's name for screen readers, given its place (<c>Position</c>, from 1) among
+    /// <c>Count</c> slides. Defaults to "N of M". A slide's own <c>AriaLabel</c> wins over it.
+    /// </summary>
+    [Parameter] public Func<CarouselSlidePosition, string>? SlideAriaLabel { get; set; }
+
     /// <summary>The content, controls and dots.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -99,7 +111,7 @@
         new PropBuilder(this)
             .Data("slot", "carousel")
             .Set("role", "region")
-            .Aria("roledescription", "carousel")
+            .Aria("roledescription", RoleDescription)
             .Aria("label", AriaLabel)
             .Aria("labelledby", AriaLabelledBy)
             .Data("orientation", IsHorizontal ? "horizontal" : "vertical")
@@ -127,6 +139,10 @@
     /// <summary>How many slides are registered (the M in "N of M" - tracks the markup, unlike
     /// <see cref="SlideCount"/> which waits for the scroll engine's first report).</summary>
     internal int RegisteredSlideCount => _slides.Count;
+
+    /// <summary>The default name of the slide at <paramref name="position"/>: <see cref="SlideAriaLabel"/>'s words, else "N of M".</summary>
+    internal string SlideName(int position, int count) =>
+        SlideAriaLabel?.Invoke(new CarouselSlidePosition(position, count)) is { Length: > 0 } name ? name : $"{position} of {count}";
 
     /// <summary>Called by <see cref="BaseCarouselContent"/> once its viewport element is in the DOM; wires the
     /// scroll engine to it. Idempotent.</summary>

@@ -30,6 +30,8 @@
             OnReceive="@OnReceive"
             OnDragStart="@OnDragStart"
             OnDragEnd="@OnDragEnd"
+            ItemRoleDescription="@ItemRoleDescription"
+            Announcement="@Announcement"
             Class="@Class"
             Attributes="Attributes">
     @for (var index = 0; index < Items.Count; index++)
@@ -132,6 +134,17 @@
 
     /// <summary>Raised with the item's index when a drag ends or a grab is dropped/cancelled.</summary>
     [Parameter] public EventCallback<int> OnDragEnd { get; set; }
+
+    /// <summary>What screen readers call each item, in place of its role. Defaults to "sortable item".</summary>
+    [Parameter] public string ItemRoleDescription { get; set; } = "sortable item";
+
+    /// <summary>
+    /// Words what screen readers hear while the keyboard moves an item: picked up, moved, put down,
+    /// or put back with Escape. The context names the change (<c>Kind</c>), the item's place
+    /// (<c>Position</c>, from 1) among <c>Count</c> items, and the English announcement
+    /// (<c>Message</c>), used while this is unset.
+    /// </summary>
+    [Parameter] public Func<SortableAnnouncement, string>? Announcement { get; set; }
 
     /// <summary>Extra classes for the list container.</summary>
     [Parameter] public string? Class { get; set; }

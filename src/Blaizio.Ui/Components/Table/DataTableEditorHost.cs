@@ -47,6 +47,9 @@ internal sealed class DataTableEditorRequest
     /// <summary>Counts the times code set this column's draft: a text box takes its text again when it moves.</summary>
     public int Version { get; init; }
 
+    /// <summary>The table's <c>EditorLabels</c>: the date and time editors' words, English while null.</summary>
+    public DataTableEditorLabels? Labels { get; init; }
+
     /// <summary>The draft value, or the row's value while there is none.</summary>
     public required Func<object?> ReadValue { get; init; }
 
@@ -88,6 +91,9 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     /// <summary>The <c>inputmode</c> hint for the text box.</summary>
     [Parameter] public string? InputMode { get; set; }
 
+    /// <summary>The label of a pick list's blank option (the column's <c>NoneLabel</c>).</summary>
+    [Parameter] public string NoneLabel { get; set; } = "None";
+
     private object? _session;
     private int _version;
     private TValue _value = default!;
@@ -108,6 +114,9 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
     private const string FillWide = "h-full min-h-0 w-max min-w-full shrink-0 gap-1 px-2";
 
     private bool InForm => Request.Placement == DataTableEditorPlacement.Form;
+
+    // The date and time editors' words: the table's EditorLabels, English while it has none.
+    private DataTableEditorLabels Labels => Request.Labels ?? DataTableEditorLabels.English;
 
     // A text box takes its text once per edit (and again only when code sets the draft); every
     // other control shows the draft as it stands, so a value set from code shows up too.
@@ -208,7 +217,14 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
                 builder.AddComponentParameter(8, nameof(BzInputDate.CalendarOpen), _calendarOpen);
                 builder.AddComponentParameter(9, nameof(BzInputDate.CalendarOpenChanged),
                     EventCallback.Factory.Create<bool>(this, open => _calendarOpen = open));
-                builder.AddMultipleAttributes(10, ControlAttributes());
+                builder.AddComponentParameter(10, nameof(BzInputDate.DayAriaLabel), Labels.Day);
+                builder.AddComponentParameter(11, nameof(BzInputDate.MonthAriaLabel), Labels.Month);
+                builder.AddComponentParameter(12, nameof(BzInputDate.YearAriaLabel), Labels.Year);
+                builder.AddComponentParameter(13, nameof(BzInputDate.CalendarButtonAriaLabel), Labels.CalendarButton);
+                builder.AddComponentParameter(14, nameof(BzInputDate.CalendarAriaLabel), Labels.Calendar);
+                builder.AddComponentParameter(15, nameof(BzInputDate.PreviousMonthAriaLabel), Labels.PreviousMonth);
+                builder.AddComponentParameter(16, nameof(BzInputDate.NextMonthAriaLabel), Labels.NextMonth);
+                builder.AddMultipleAttributes(17, ControlAttributes());
                 builder.CloseComponent();
                 break;
             case DataTableEditor.Time:
@@ -221,7 +237,12 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
                 builder.AddComponentParameter(4, nameof(BzInputTime.ShowIcon), false);
                 builder.AddComponentParameter(5, nameof(BzInputTime.AutoFocus), InForm && Request.Focus);
                 builder.AddComponentParameter(6, nameof(BzInputTime.Class), InForm ? "w-full" : FillWide);
-                builder.AddMultipleAttributes(7, ControlAttributes());
+                builder.AddComponentParameter(7, nameof(BzInputTime.HourAriaLabel), Labels.Hour);
+                builder.AddComponentParameter(8, nameof(BzInputTime.MinuteAriaLabel), Labels.Minute);
+                builder.AddComponentParameter(9, nameof(BzInputTime.MeridiemAriaLabel), Labels.Meridiem);
+                builder.AddComponentParameter(10, nameof(BzInputTime.AmLabel), Labels.Am);
+                builder.AddComponentParameter(11, nameof(BzInputTime.PmLabel), Labels.Pm);
+                builder.AddMultipleAttributes(12, ControlAttributes());
                 builder.CloseComponent();
                 break;
             default:
@@ -307,7 +328,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
                     list.SetKey(option.Key);
                     list.AddComponentParameter(1, nameof(BzSelectItem.Value), option.Key);
                     list.AddComponentParameter(2, nameof(BzSelectItem.ChildContent), (RenderFragment)(item =>
-                        item.AddContent(0, option.Label.Length == 0 ? "None" : option.Label)));
+                        item.AddContent(0, option.Label.Length == 0 ? NoneLabel : option.Label)));
                     list.CloseComponent();
                 }
             }));

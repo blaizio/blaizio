@@ -1904,9 +1904,14 @@ interface ColumnsOptions {
   hasRows: boolean;
   /** A dragged column moves with the pointer and the others make room (LiveReorder), instead of a floating label and a landing line. */
   live: boolean;
+  /** .NET words what screen readers hear after a key resizes or moves a column (the table's ColumnAnnouncement). */
+  announce: boolean;
   /** The visible columns, in display order. */
   columns: ColumnSpec[];
 }
+
+/** What a key press did to a column, for screen readers: a new width, a move, or a move with nowhere to go. */
+type ColumnChange = 'resized' | 'moved' | 'blocked';
 
 /** The narrowest a column gets without a MinWidth (BzDataTable's ColumnFloor). */
 const COLUMN_FLOOR = 32;
@@ -2058,6 +2063,9 @@ class DataTableColumns {
   private keyRun: { key: string; timer: number } | null = null;
   private moved: { key: string; index: number; button: boolean; until: number } | null = null;
   private swallowClick = false;
+  /** The newest change still to be worded by .NET, and whether a call for one is out. */
+  private unspoken: [ColumnChange, string, number, number] | null = null;
+  private speaking = false;
 
   constructor(
     private readonly root: HTMLElement,
@@ -2489,7 +2497,7 @@ class DataTableColumns {
     this.freezeBefore(key);
     const width = this.setWidth(key, natural.max);
     void this.report(key);
-    if (announceIt) announce(`${this.titleOf(key)}: ${width} pixels`);
+    if (announceIt) this.say('resized', key, width);
   }
 
   // Alt+Shift+Left / Right: a step narrower or wider. A run of presses reports once it pauses.
@@ -2499,7 +2507,7 @@ class DataTableColumns {
     const width = this.setWidth(key, this.widthOf(key, th) + direction * RESIZE_STEP);
     if (this.keyRun) window.clearTimeout(this.keyRun.timer);
     this.keyRun = { key, timer: window.setTimeout(() => this.flushKeys(), KEY_SETTLE) };
-    announce(`${this.titleOf(key)}: ${width} pixels`);
+    this.say('resized', key, width);
   }
 
   private flushKeys(): void {
@@ -2540,13 +2548,48 @@ class DataTableColumns {
     const [first, last] = this.range(from);
     const to = from + direction;
     if (to < first || to > last) {
-      announce(`${this.titleOf(key)} cannot move further`);
+      this.say('blocked', key);
       return;
     }
     // Focus follows the column once .NET's render lands (see refocus).
     this.moved = { key, index: to, button, until: performance.now() + 3000 };
     this.moveTo(key, from, to);
-    announce(`${this.titleOf(key)} moved to column ${to + 1} of ${heads.length}`);
+    this.say('moved', key, to + 1, heads.length);
+  }
+
+  // What screen readers hear after a key resizes or moves a column (the header keeps the focus, so
+  // nothing else would be heard): worded here, or by .NET when the table's ColumnAnnouncement is
+  // set. Those calls go one at a time: when presses come faster than .NET answers, only the
+  // newest is heard.
+  private say(change: ColumnChange, key: string, value = 0, count = 0): void {
+    if (!this.options.announce) {
+      const title = this.titleOf(key);
+      announce(
+        change === 'resized'
+          ? `${title}: ${value} pixels`
+          : change === 'moved'
+            ? `${title} moved to column ${value} of ${count}`
+            : `${title} cannot move further`,
+      );
+      return;
+    }
+    this.unspoken = [change, key, value, count];
+    if (!this.speaking) void this.speak();
+  }
+
+  private async speak(): Promise<void> {
+    this.speaking = true;
+    try {
+      while (this.unspoken) {
+        const [change, key, value, count] = this.unspoken;
+        this.unspoken = null;
+        const text = await invokeDotNetResult<string>(this.ref, '', 'ColumnAnnouncementText', change, key, value, count);
+        // A newer press came in meanwhile: only its words are worth hearing.
+        if (text && !this.unspoken) announce(text);
+      }
+    } finally {
+      this.speaking = false;
+    }
   }
 
   // After a keyboard move: once the column's header is in its new place, the focus goes with it

@@ -15,7 +15,9 @@
               Range="@Range" DefaultRange="@DefaultRange" RangeChanged="@RangeChanged"
               Month="@Month" DefaultMonth="@DefaultMonth" MonthChanged="@MonthChanged"
               NumberOfMonths="@NumberOfMonths" WeekStartsOn="@WeekStartsOn" ShowOutsideDays="@ShowOutsideDays"
-              ShowWeekNumber="@ShowWeekNumber" CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
+              ShowWeekNumber="@ShowWeekNumber" WeekNumberLabel="@WeekNumberLabel"
+              PreviousMonthAriaLabel="@PreviousMonthAriaLabel" NextMonthAriaLabel="@NextMonthAriaLabel"
+              CaptionLayout="@CaptionLayout" FromYear="@FromYear" ToYear="@ToYear"
               Min="@Min" Max="@Max" DisabledSelector="@DisabledSelector" Disabled="@Disabled"
               Culture="@Culture" NativeDigits="@NativeDigits" Today="@Today" Dir="@Dir"
               DayContent="@DayContent"
@@ -108,6 +110,12 @@
     /// <summary>Accessible name for the caption's year dropdown (screen readers only). Defaults to "Year".</summary>
     [Parameter] public string YearDropdownLabel { get; set; } = "Year";
 
+    /// <summary>The previous-month button's name for screen readers. Defaults to "Go to the previous month".</summary>
+    [Parameter] public string PreviousMonthAriaLabel { get; set; } = "Go to the previous month";
+
+    /// <summary>The next-month button's name for screen readers. Defaults to "Go to the next month".</summary>
+    [Parameter] public string NextMonthAriaLabel { get; set; } = "Go to the next month";
+
     /// <summary>Controlled visible month. Use with <c>@bind-Month</c>.</summary>
     [Parameter] public DateOnly? Month { get; set; }
 
@@ -137,6 +145,9 @@
 
     /// <summary>Show a leading week-of-year column. Defaults to <c>false</c>.</summary>
     [Parameter] public bool ShowWeekNumber { get; set; }
+
+    /// <summary>The week-number column's header text, for screen readers only (with <see cref="ShowWeekNumber"/>). Defaults to "Week".</summary>
+    [Parameter] public string WeekNumberLabel { get; set; } = "Week";
 
     /// <summary>Earliest selectable day.</summary>
     [Parameter] public DateOnly? Min { get; set; }
