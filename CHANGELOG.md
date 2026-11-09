@@ -146,6 +146,9 @@ lockstep under one version.
   value the table refuses before saving it ("The Hours field must be a number.", "... is
   required.", "... must be one of: ...") from a `CellParseError` that gives the problem (`Kind`),
   the column's title (`Field`), a pick list's options (`Options`) and the English `Message`.
+  `EditorLabels` words what the built-in date and time editors say to screen readers, and the time
+  editor's AM and PM text, from a `DataTableEditorLabels` (`Day`, `Month`, `Year`, `CalendarButton`,
+  `Calendar`, `PreviousMonth`, `NextMonth`, `Hour`, `Minute`, `Meridiem`, `Am`, `Pm`).
   `ColumnAnnouncement` words what screen readers hear after a key resizes or moves a column, from
   a `DataTableColumnAnnouncement` (`Kind`, `Column`, `Width`, `Position`, `Count`, `Message`);
   while it is set, the column script asks .NET for each announcement's words, one call at a time.

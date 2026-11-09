@@ -493,6 +493,15 @@
     [Parameter] public bool EditOnClick { get; set; }
 
     /// <summary>
+    /// What the built-in date and time editors say to screen readers (their segments, the calendar
+    /// button and popup, the AM/PM toggle) and the time editor's AM and PM text, worded in the
+    /// reader's language. Set only the ones you need:
+    /// <c>EditorLabels="@(new DataTableEditorLabels { Day = "...", Hour = "..." })"</c>; the rest,
+    /// and every one while this is unset, stay English.
+    /// </summary>
+    [Parameter] public DataTableEditorLabels? EditorLabels { get; set; }
+
+    /// <summary>
     /// Raised once per user action that changed cells: a committed cell, row or form, a toggled
     /// checkbox, a paste or a clear. Properties with a setter already hold the new values; call
     /// <c>Reject</c> on the arguments to put the old ones back. Required when an editable property
@@ -2237,6 +2246,7 @@
                 Attributes = attributes,
                 Align = column.Align,
                 Activation = activation,
+                Labels = EditorLabels,
                 ReadValue = () => DraftValue(session, editor, key),
                 WriteValue = value => session.Drafts[key] = value,
                 ReadText = () => key == session.FocusKey && session.Seed is not null ? session.Seed : SeedText(session, editor, key),
@@ -2653,6 +2663,7 @@
                         Focus = focus,
                         Activation = session.ActivationFor(key),
                         Version = session.Versions.GetValueOrDefault(key),
+                        Labels = EditorLabels,
                         ReadValue = () => DraftValue(session, editor, key),
                         WriteValue = value => session.Drafts[key] = value,
                         ReadText = () => DraftText(session, editor, key),
