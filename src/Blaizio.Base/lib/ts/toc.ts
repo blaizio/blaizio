@@ -151,11 +151,48 @@ class TocSpy {
 
   private setActive(id: string): void {
     this.active = id;
+    let activeLink: HTMLElement | null = null;
     for (const link of this.nav.querySelectorAll<HTMLElement>('a[data-toc-id]')) {
-      if (link.dataset.tocId === id) link.setAttribute('data-active', 'true');
-      else link.removeAttribute('data-active');
+      if (link.dataset.tocId === id) {
+        link.setAttribute('data-active', 'true');
+        activeLink = link;
+      } else link.removeAttribute('data-active');
     }
+    if (activeLink) this.reveal(activeLink);
     this.placeIndicator();
+  }
+
+  /**
+   * A long list outgrows its box (the nav's own max-height, or a sticky aside with overflow-y-auto),
+   * so the active link can sit below the fold of that box while the page is far down. Scroll the
+   * nearest scrolling ancestor just enough to bring it back, keeping a margin so the neighbours
+   * show too. Never the document: that would yank the page the reader is scrolling.
+   */
+  private reveal(link: HTMLElement): void {
+    let box = link.parentElement;
+    while (box && box !== document.body && box !== document.documentElement) {
+      const overflow = getComputedStyle(box).overflowY;
+      if ((overflow === 'auto' || overflow === 'scroll') && box.scrollHeight > box.clientHeight) break;
+      box = box.parentElement;
+    }
+    if (!box || box === document.body || box === document.documentElement) return;
+
+    // The ends pin the box to its own ends, so a title above the first link shows again.
+    const links = this.nav.querySelectorAll<HTMLElement>('a[data-toc-id]');
+    if (link === links[0]) {
+      box.scrollTop = 0;
+      return;
+    }
+    if (link === links[links.length - 1]) {
+      box.scrollTop = box.scrollHeight;
+      return;
+    }
+
+    const view = box.getBoundingClientRect();
+    const rect = link.getBoundingClientRect();
+    const margin = Math.min(48, box.clientHeight / 4);
+    if (rect.top < view.top + margin) box.scrollTop -= view.top + margin - rect.top;
+    else if (rect.bottom > view.bottom - margin) box.scrollTop += rect.bottom - (view.bottom - margin);
   }
 
   private onClick = (event: MouseEvent): void => {

@@ -211,6 +211,10 @@ lockstep under one version.
   needs the new name.
 
 ### Fixed
+- **Base**: a table of contents with more sections than its box can show keeps the active section
+  in view. The spy marked the link but never scrolled the box it sits in (a sticky aside with
+  `overflow-y-auto`, or the floating panel's own max height), so far down a long page the
+  highlight sat below the fold. The first and last sections pin the box to its ends.
 - **Base**: a number field removed right after it rendered (a data table cell editor committed by
   a fast typist) no longer throws "Cannot read properties of null" from its input guard, which
   surfaced as an unhandled rendering error.
