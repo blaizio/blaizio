@@ -403,6 +403,9 @@
     /// <summary>Queue a polite live-region announcement for the next render.</summary>
     internal void Announce(string message) => _liveMessage = message;
 
+    /// <summary>The text of the node with <paramref name="value"/>, or the value when the tree no longer has it.</summary>
+    internal string NodeText(string value) => FindItem(value) is { } item ? TextOf(item) : value;
+
     /// <summary>Re-render on behalf of a collaborator (StateHasChanged is protected).</summary>
     internal void Rerender() => StateHasChanged();
 
@@ -1057,7 +1060,7 @@
     {
         var change = BuildChange(sourceValue, targetValue, position, fromId, toId);
         if (CanDrop is not null && !CanDrop(change)) return;
-        _liveMessage = $"Moved {sourceValue}.";
+        _liveMessage = $"Moved {NodeText(sourceValue)}.";
         await OnMove.InvokeAsync(change);
         Invalidate();
         StateHasChanged();
