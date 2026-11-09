@@ -153,11 +153,34 @@ lockstep under one version.
   ("Actions"), and `NoneLabel` on `BzPropertyColumn` labels a nullable enum's blank option
   ("None"). Left unset, every one of them keeps the English the table said before. Needs
   Blaizio.Base 0.3.6 (`CellParseError` and the column script).
-- **Dialog**: `CloseLabel` on `BzDialogContent` names the corner close button for screen readers.
-  Defaults to "Close".
+- **Date, time and overlay controls in any language** (`blaizio update input-date input-time
+  calendar sheet drawer panel dialog carousel sortable tree`): what these controls say on their own
+  now has a parameter, English by default. `BzInputDate` takes `DayAriaLabel`, `MonthAriaLabel`,
+  `YearAriaLabel`, `CalendarButtonAriaLabel` ("Open calendar"), `CalendarAriaLabel` and, for its
+  calendar popup, `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BzCalendar` takes the same two
+  month-button names and `WeekNumberLabel`. `BzInputTime` takes `HourAriaLabel`, `MinuteAriaLabel`,
+  `SecondAriaLabel`, `MeridiemAriaLabel` for the AM/PM toggle ("AM or PM"), and `AmLabel` and
+  `PmLabel` for the toggle's text. `CloseLabel` names the corner close button of `BzDialogContent`,
+  `BzSheetContent` and `BzDrawerContent` ("Close"), and of a dialog or sheet shown from
+  `IDialogService` (`BzDialogOptions.CloseLabel`, which the `BzDialogOptions` you give
+  `BlaizioOptions.DialogDefaults` can carry for the whole app); `Label` names `BzPanelClose`
+  ("Close panel"). On `BzCarousel`, `RoleDescription` and `SlideRoleDescription` replace what screen
+  readers call the region and each slide ("carousel", "slide"), and `SlideAriaLabel` words each
+  slide's "N of M" from a `CarouselSlidePosition` (`Position`, `Count`); `DotAriaLabel` on
+  `BzCarouselDots` words "Go to slide N". `BzSortable` and `BzSortableList` take
+  `ItemRoleDescription` ("sortable item") and `Announcement`, which words what screen readers hear
+  as the keyboard picks an item up, moves it, puts it down or puts it back, from a
+  `SortableAnnouncement` (`Kind`, `Position`, `Count` and the English `Message`). `BzTree` takes
+  `RenameAriaLabel` for the rename box and `Announcement`, worded from a `TreeAnnouncement` (`Kind`,
+  `Node` and `Message`): a node picked up, moved by keyboard or a pointer drop, put down, let go,
+  renamed, or whose children failed to load. Needs Blaizio.Base 0.3.6.
 - **`Blaizio.Base`**: `CellBinding.TryParse` takes a `messages` builder that words a refused text
   in the reader's language from a `CellParseError`, the English `Message` without one. A
   DataAnnotations rule that returns no message of its own is worded by the rule itself.
+  The headless parts take the same words as the styled controls: `BaseCalendar` takes
+  `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BaseCarousel` takes `RoleDescription`,
+  `SlideRoleDescription` and `SlideAriaLabel`; `BaseSortable` takes `ItemRoleDescription` and
+  `Announcement`; `BaseTree` takes `RenameAriaLabel` and `Announcement`.
 - **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
   optional description and a status (done, running with a shimmering title, error, pending). A
   line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's

@@ -25,16 +25,16 @@ internal sealed class TreeDragController<TItem>(BaseTree<TItem> tree)
     {
         if (!tree.CanDragNode(item) || !tree.OnMove.HasDelegate) return;
         GrabbedValue = value;
-        tree.Announce($"Grabbed {tree.TextOf(item)}. Use the arrow keys to move, Control Space or Enter to drop, Escape to cancel.");
+        tree.Announce(TreeAnnouncementKind.Grabbed, tree.TextOf(item));
         tree.Rerender();
     }
 
     public void Release(bool cancelled)
     {
-        if (GrabbedValue is null) return;
-        tree.RequestRefocus(GrabbedValue);
+        if (GrabbedValue is not { } value) return;
+        tree.RequestRefocus(value);
         GrabbedValue = null;
-        tree.Announce(cancelled ? "Move cancelled." : "Dropped.");
+        tree.Announce(cancelled ? TreeAnnouncementKind.Cancelled : TreeAnnouncementKind.Dropped, tree.NodeText(value));
         tree.Rerender();
     }
 
@@ -86,7 +86,7 @@ internal sealed class TreeDragController<TItem>(BaseTree<TItem> tree)
         }
 
         if (change is null || (tree.CanDrop is not null && !tree.CanDrop(change))) return;
-        tree.Announce($"Moved {tree.TextOf(node.Item)}.");
+        tree.Announce(TreeAnnouncementKind.Moved, tree.TextOf(node.Item));
         tree.RequestRefocus(node.Value);
         await tree.OnMove.InvokeAsync(change);
         tree.InvalidateVisible();

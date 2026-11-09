@@ -88,6 +88,17 @@
     /// <summary>Raised with the item's index when a drag ends or a keyboard grab is dropped/cancelled.</summary>
     [Parameter] public EventCallback<int> OnDragEnd { get; set; }
 
+    /// <summary>What screen readers call each item, in place of its role. Defaults to "sortable item".</summary>
+    [Parameter] public string ItemRoleDescription { get; set; } = "sortable item";
+
+    /// <summary>
+    /// Words what screen readers hear while the keyboard moves an item: picked up, moved, put down,
+    /// or put back with Escape. The context names the change (<c>Kind</c>), the item's place
+    /// (<c>Position</c>, from 1) among <c>Count</c> items, and the English announcement
+    /// (<c>Message</c>), used while this is unset.
+    /// </summary>
+    [Parameter] public Func<SortableAnnouncement, string>? Announcement { get; set; }
+
     /// <summary>The items (and any non-draggable decoration) to render.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
@@ -225,14 +236,14 @@
         _grabbed = item;
         _grabOrigin = item.Index;
         _activeIndex = item.Index;
-        _liveMessage = $"Grabbed item {item.Index + 1} of {_items.Count}. Use the arrow keys to move, space to drop, escape to cancel.";
+        Announce(SortableAnnouncementKind.Grabbed, item.Index, _items.Count);
         await OnDragStart.InvokeAsync(item.Index);
         StateHasChanged();
     }
 
     private async Task Drop(BaseSortableItem item)
     {
-        _liveMessage = $"Dropped at position {item.Index + 1} of {_items.Count}.";
+        Announce(SortableAnnouncementKind.Dropped, item.Index, _items.Count);
         await Release(item, cancelled: false);
     }
 
@@ -240,7 +251,7 @@
     {
         var index = item.Index;
         _grabbed = null;
-        if (cancelled) _liveMessage = "Move cancelled.";
+        if (cancelled) Announce(SortableAnnouncementKind.Cancelled, _grabOrigin, _items.Count);
         _refocus = item;
         await OnDragEnd.InvokeAsync(index);
         StateHasChanged();
@@ -254,7 +265,7 @@
         if (target == item.Index) return;
         _activeIndex = target;
         _refocus = item;
-        _liveMessage = $"Moved to position {target + 1} of {count}.";
+        Announce(SortableAnnouncementKind.Moved, target, count);
         await OnReorder.InvokeAsync(new SortableChange
         {
             From = item.Index,
@@ -263,6 +274,13 @@
             ToId = ResolvedId,
             Strategy = SortableStrategy.Sort,
         });
+    }
+
+    // The live region's next words: the Announcement builder's, else the English message.
+    private void Announce(SortableAnnouncementKind kind, int index, int count)
+    {
+        var announcement = new SortableAnnouncement(kind, index + 1, count);
+        _liveMessage = Announcement?.Invoke(announcement) is { Length: > 0 } text ? text : announcement.Message;
     }
 
     // Move the roving tab stop (no reorder) and focus that item.

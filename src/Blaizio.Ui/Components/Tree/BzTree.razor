@@ -58,6 +58,7 @@
           Renamable="@Renamable"
           CanRename="@CanRename"
           OnRename="@OnRename"
+          RenameAriaLabel="@RenameAriaLabel"
           Draggable="@Draggable"
           CanDrag="@CanDrag"
           Group="@Group"
@@ -76,6 +77,7 @@
           Disabled="@Disabled"
           Typeahead="@Typeahead"
           AriaLabel="@AriaLabel"
+          Announcement="@Announcement"
           OnFocusChange="@OnFocusChange"
           NodeContent="@NodeContent"
           IndicatorContent="@(IndicatorContent ?? DefaultIndicator)"
@@ -177,6 +179,9 @@
     /// <summary>Raised when a rename is committed. Update your data here.</summary>
     [Parameter] public EventCallback<TreeRename<TItem>> OnRename { get; set; }
 
+    /// <summary>The rename box's name for screen readers. Defaults to "Rename".</summary>
+    [Parameter] public string RenameAriaLabel { get; set; } = "Rename";
+
     /// <summary>
     /// Marquee for truncated labels: a label that overflows into an ellipsis slides its hidden
     /// tail into view while hovered, then slides back. Labels that fit never move. Off by default.
@@ -237,6 +242,14 @@
 
     /// <summary>The tree's accessible label. Defaults to "Tree".</summary>
     [Parameter] public string AriaLabel { get; set; } = "Tree";
+
+    /// <summary>
+    /// Words what screen readers hear when a node is picked up, moved, put down or let go (by
+    /// keyboard, or a pointer drop), renamed, or fails to load its children. The context names
+    /// the change (<c>Kind</c>), the node (<c>Node</c>, its text, or the new text of a rename) and
+    /// the English announcement (<c>Message</c>), used while this is unset.
+    /// </summary>
+    [Parameter] public Func<TreeAnnouncement, string>? Announcement { get; set; }
 
     /// <summary>Raised with the newly focused node's value as the roving focus moves.</summary>
     [Parameter] public EventCallback<string?> OnFocusChange { get; set; }

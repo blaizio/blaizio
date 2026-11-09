@@ -34,6 +34,12 @@ public sealed class CalendarContext
     /// <summary>Visually hidden header text for the week-number column.</summary>
     public required string WeekNumberLabel { get; init; }
 
+    /// <summary>The previous-month button's name for screen readers.</summary>
+    public string PreviousMonthAriaLabel { get; init; } = "Go to the previous month";
+
+    /// <summary>The next-month button's name for screen readers.</summary>
+    public string NextMonthAriaLabel { get; init; } = "Go to the next month";
+
     /// <summary>The current date, marked with <c>data-today</c>.</summary>
     public required DateOnly Today { get; init; }
 

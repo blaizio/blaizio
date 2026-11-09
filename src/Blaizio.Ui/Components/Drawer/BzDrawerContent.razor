@@ -29,6 +29,9 @@
     /// <summary>Renders the corner close button. Defaults to <see langword="true"/>; auto-hidden when the drawer is locked (the root's DismissOnOutsideClick=false).</summary>
     [Parameter] public bool ShowCloseButton { get; set; } = true;
 
+    /// <summary>The corner close button's name for screen readers. Defaults to "Close".</summary>
+    [Parameter] public string CloseLabel { get; set; } = "Close";
+
     /// <summary>
     /// Resting positions the drawer can snap to, each a fraction (0..1) of the panel that is VISIBLE at
     /// that snap (1 = fully open). Drag between them; a drag below the lowest snap dismisses. Empty (the
@@ -299,7 +302,7 @@
                                 Class="bz-drawer-close"
                                 @attributes="p.Attributes">
                             <BzIcon Icon="@BzGlyphs.X" />
-                            <span class="sr-only">Close</span>
+                            <span class="sr-only">@CloseLabel</span>
                         </BzButton>
                     </RenderAs>
                 </BaseDialogClose>

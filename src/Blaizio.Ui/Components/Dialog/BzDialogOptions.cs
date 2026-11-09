@@ -14,6 +14,13 @@ public record BzDialogOptions : DialogOptions
     /// <summary>Show the corner close button (non-alert dialogs only). Defaults to <see langword="true"/>.</summary>
     public bool ShowCloseButton { get; init; } = true;
 
+    /// <summary>
+    /// The corner close button's name for screen readers (non-alert dialogs and sheets). Set it on
+    /// the <c>BzDialogOptions</c> you give <c>BlaizioOptions.DialogDefaults</c> to word it once for
+    /// every call that passes no options. Defaults to "Close".
+    /// </summary>
+    public string CloseLabel { get; init; } = "Close";
+
     /// <summary>Extra classes merged onto the dialog window (e.g. a wider <c>sm:max-w-lg</c>, or a theme-pin class). Non-alert dialogs.</summary>
     public string? ContentClass { get; init; }
 
@@ -23,8 +30,8 @@ public record BzDialogOptions : DialogOptions
     /// <summary>
     /// Render the Sheet presentation instead of the dialog window, sliding in from this edge. Set by
     /// <see cref="DialogServiceExtensions.ShowSheetAsync{TComponent}(IDialogService, System.Collections.Generic.IReadOnlyDictionary{string, object?}?, PanelSide, BzDialogOptions?)"/>;
-    /// <see cref="Alert"/> wins when both are set. <see cref="ShowCloseButton"/> and
-    /// <see cref="ContentClass"/> apply to the sheet as they do to the dialog.
+    /// <see cref="Alert"/> wins when both are set. <see cref="ShowCloseButton"/>, <see cref="CloseLabel"/>
+    /// and <see cref="ContentClass"/> apply to the sheet as they do to the dialog.
     /// </summary>
     public PanelSide? SheetSide { get; init; }
 

@@ -4,8 +4,8 @@
 @*
     A single slide. role="group" + aria-roledescription="slide" so assistive tech announces it as one of
     the carousel's slides, labelled "N of M" (APG) from its registration order in the cascaded root - a
-    consumer aria-label/AriaLabel overrides the default. The snap alignment and sizing (how many show at
-    once) come from the styled layer.
+    consumer aria-label/AriaLabel overrides the default. The root words both (SlideRoleDescription,
+    SlideAriaLabel). The snap alignment and sizing (how many show at once) come from the styled layer.
 *@
 
 <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
@@ -36,7 +36,7 @@
             if (Carousel is null) return null;
             var position = Carousel.SlidePosition(this);
             var count = Carousel.RegisteredSlideCount;
-            return position == 0 || count == 0 ? null : $"{position} of {count}";
+            return position == 0 || count == 0 ? null : Carousel.SlideName(position, count);
         }
     }
 
@@ -44,7 +44,7 @@
         new PropBuilder(this)
             .Data("slot", "carousel-item")
             .Set("role", "group")
-            .Aria("roledescription", "slide")
+            .Aria("roledescription", Carousel?.SlideRoleDescription ?? "slide")
             .Aria("label", AriaLabel ?? PositionLabel)
             .Merge(Attributes, Class, Style);
 

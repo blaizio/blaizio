@@ -19,8 +19,11 @@
     /// <summary>Extra classes, merged over the default ghost button.</summary>
     [Parameter] public string? Class { get; set; }
 
-    /// <summary>The button content. Defaults to an X icon plus a screen-reader label.</summary>
+    /// <summary>The button content. Defaults to an X icon plus a screen-reader label (<see cref="Label"/>).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>The button's name for screen readers, beside the default X icon (your own <see cref="ChildContent"/> replaces both). Defaults to "Close panel".</summary>
+    [Parameter] public string Label { get; set; } = "Close panel";
 
     /// <summary>Render the close behaviour onto your own element instead of the default <c>&lt;BzButton&gt;</c>.</summary>
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
@@ -40,6 +43,6 @@
 
     private RenderFragment DefaultContent => @<text>
         <BzIcon Icon="@BzGlyphs.X" />
-        <span class="sr-only">Close panel</span>
+        <span class="sr-only">@Label</span>
     </text>;
 }

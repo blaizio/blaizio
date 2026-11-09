@@ -14,7 +14,8 @@
 
     ShowSeconds adds the seconds segment; MinuteStep coarsens the minute increment. A leading clock
     icon shows by default (hide with ShowIcon, swap via Icon). Pairs with BzCalendar to build a
-    date-and-time picker.
+    date-and-time picker. Every word it says (the segment names, the AM/PM toggle's name and its
+    AM / PM text) has a parameter, English by default.
 
         <BzInputTime @bind-Value="_time" />                (hour:minute, browser convention)
         <BzInputTime @bind-Value="_time" HourCycle="InputTimeHourCycle.TwelveHour" />
@@ -47,13 +48,13 @@
         <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-time-input"
              data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
             <input @ref="_hourRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                   value="@Shown(Part.Hour, DisplayHour)" disabled="@Disabled" aria-label="Hour"
+                   value="@Shown(Part.Hour, DisplayHour)" disabled="@Disabled" aria-label="@HourAriaLabel"
                    onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                    @oninput="@(e => OnSegmentInput(Part.Hour, e))"
                    @onkeydown="@(e => OnSegmentKeyDown(Part.Hour, e))" />
             <span class="text-muted-foreground select-none">:</span>
             <input @ref="_minuteRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                   value="@Shown(Part.Minute, _minute)" disabled="@Disabled" aria-label="Minute"
+                   value="@Shown(Part.Minute, _minute)" disabled="@Disabled" aria-label="@MinuteAriaLabel"
                    onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                    @oninput="@(e => OnSegmentInput(Part.Minute, e))"
                    @onkeydown="@(e => OnSegmentKeyDown(Part.Minute, e))" />
@@ -61,7 +62,7 @@
             {
                 <span class="text-muted-foreground select-none">:</span>
                 <input @ref="_secondRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                       value="@Shown(Part.Second, _second)" disabled="@Disabled" aria-label="Second"
+                       value="@Shown(Part.Second, _second)" disabled="@Disabled" aria-label="@SecondAriaLabel"
                        onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
                        @oninput="@(e => OnSegmentInput(Part.Second, e))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Second, e))" />
@@ -71,9 +72,9 @@
                 @* A BzButton sized down to sit inline with the segments: the style's radius, focus
                    ring and disabled treatment, without the standing height of a button. *@
                 <BzButton Type="ButtonType.Button" Variant="ButtonVariant.Ghost" Size="ButtonSize.Sm" Disabled="@Disabled"
-                          aria-label="AM or PM" Class="@MeridiemClasses"
+                          aria-label="@MeridiemAriaLabel" Class="@MeridiemClasses"
                           OnClick="ToggleMeridiemAsync"
-                          @onkeydown="OnMeridiemKeyDown">@(_pm ? "PM" : "AM")</BzButton>
+                          @onkeydown="OnMeridiemKeyDown">@(_pm ? PmLabel : AmLabel)</BzButton>
             }
         </div>
     }
@@ -113,6 +114,31 @@
     /// <summary>Accessible name for the native time input (Auto hour cycle). Defaults to "Time";
     /// an aria-label passed through <see cref="Attributes"/> takes precedence.</summary>
     [Parameter] public string AriaLabel { get; set; } = "Time";
+
+    /// <summary>The hour segment's name for screen readers (12- and 24-hour faces). Defaults to "Hour".</summary>
+    [Parameter] public string HourAriaLabel { get; set; } = "Hour";
+
+    /// <summary>The minute segment's name for screen readers (12- and 24-hour faces). Defaults to "Minute".</summary>
+    [Parameter] public string MinuteAriaLabel { get; set; } = "Minute";
+
+    /// <summary>The seconds segment's name for screen readers (with <see cref="ShowSeconds"/>, on 12- and 24-hour faces). Defaults to "Second".</summary>
+    [Parameter] public string SecondAriaLabel { get; set; } = "Second";
+
+    /// <summary>
+    /// The name of the 12-hour face's AM/PM toggle, for screen readers. Keep the toggle's
+    /// <see cref="AmLabel"/> and <see cref="PmLabel"/> text in it, as the default does, so speech
+    /// users can say what they see. Defaults to "AM or PM".
+    /// </summary>
+    [Parameter] public string MeridiemAriaLabel { get; set; } = "AM or PM";
+
+    /// <summary>
+    /// The AM/PM toggle's text before noon (12-hour face), for example the culture's
+    /// <c>DateTimeFormat.AMDesignator</c>. The A and P keys still switch it. Defaults to "AM".
+    /// </summary>
+    [Parameter] public string AmLabel { get; set; } = "AM";
+
+    /// <summary>The AM/PM toggle's text from noon on (12-hour face), for example the culture's <c>DateTimeFormat.PMDesignator</c>. Defaults to "PM".</summary>
+    [Parameter] public string PmLabel { get; set; } = "PM";
 
     /// <summary>Focus the field (the native input, or the first segment) when it appears - works for Blazor-rendered and late-mounted markup, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>. Segments already select themselves on focus.</summary>
     [Parameter] public bool AutoFocus { get; set; }

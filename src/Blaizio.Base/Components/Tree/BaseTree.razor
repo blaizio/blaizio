@@ -151,6 +151,9 @@
     /// <summary>Raised when a rename is committed (Enter or blur, with non-empty changed text). Update your data here.</summary>
     [Parameter] public EventCallback<TreeRename<TItem>> OnRename { get; set; }
 
+    /// <summary>The rename box's name for screen readers. Defaults to "Rename".</summary>
+    [Parameter] public string RenameAriaLabel { get; set; } = "Rename";
+
     // ---- drag and drop --------------------------------------------------------------------------
 
     /// <summary>Enables drag-and-drop of nodes - by pointer, and by keyboard (Ctrl+Space grabs the
@@ -211,6 +214,14 @@
 
     /// <summary>The tree's accessible label. Defaults to "Tree".</summary>
     [Parameter] public string AriaLabel { get; set; } = "Tree";
+
+    /// <summary>
+    /// Words what screen readers hear when a node is picked up, moved, put down or let go (by
+    /// keyboard, or a pointer drop), renamed, or fails to load its children. The context names
+    /// the change (<c>Kind</c>), the node (<c>Node</c>, its text, or the new text of a rename) and
+    /// the English announcement (<c>Message</c>), used while this is unset.
+    /// </summary>
+    [Parameter] public Func<TreeAnnouncement, string>? Announcement { get; set; }
 
     /// <summary>Raised with the newly focused node's value as the roving focus moves.</summary>
     [Parameter] public EventCallback<string?> OnFocusChange { get; set; }
@@ -400,8 +411,15 @@
 
     // ---- collaborator callbacks (TreeSelectionController / TreeDragController) --------------------
 
-    /// <summary>Queue a polite live-region announcement for the next render.</summary>
-    internal void Announce(string message) => _liveMessage = message;
+    /// <summary>
+    /// Queue a polite live-region announcement for the next render: the <see cref="Announcement"/>
+    /// builder's words, else the English message.
+    /// </summary>
+    internal void Announce(TreeAnnouncementKind kind, string node)
+    {
+        var announcement = new TreeAnnouncement(kind, node);
+        _liveMessage = Announcement?.Invoke(announcement) is { Length: > 0 } text ? text : announcement.Message;
+    }
 
     /// <summary>The text of the node with <paramref name="value"/>, or the value when the tree no longer has it.</summary>
     internal string NodeText(string value) => FindItem(value) is { } item ? TextOf(item) : value;
@@ -597,7 +615,7 @@
                 catch
                 {
                     _loading.Remove(value);
-                    _liveMessage = $"Could not load {TextOf(item)}.";
+                    Announce(TreeAnnouncementKind.LoadFailed, TextOf(item));
                     await OnLoadChildrenError.InvokeAsync(item);
                     StateHasChanged();
                     return;
@@ -908,7 +926,7 @@
 
         if (text.Length > 0 && text != TextOf(item))
         {
-            _liveMessage = $"Renamed to {text}.";
+            Announce(TreeAnnouncementKind.Renamed, text);
             await OnRename.InvokeAsync(new TreeRename<TItem>(item, value, text));
         }
 
@@ -1060,7 +1078,7 @@
     {
         var change = BuildChange(sourceValue, targetValue, position, fromId, toId);
         if (CanDrop is not null && !CanDrop(change)) return;
-        _liveMessage = $"Moved {NodeText(sourceValue)}.";
+        Announce(TreeAnnouncementKind.Moved, NodeText(sourceValue));
         await OnMove.InvokeAsync(change);
         Invalidate();
         StateHasChanged();
