@@ -77,6 +77,9 @@ lockstep under one version.
   that is not showing (Cell edit mode, or nothing editable).
 - **Data Table**: `BzPropertyColumn` no longer recompiles `Property="x => x.Name"` each time the
   page re-renders, which made large or busy tables slower than they needed to be.
+- **Resizable**: dragging a handle by touch now resizes the panels instead of scrolling the page,
+  and a drag the browser interrupts ends cleanly. It used to leave the resize cursor on the page
+  and keep resizing on later pointer moves.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

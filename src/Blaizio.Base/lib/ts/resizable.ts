@@ -58,6 +58,9 @@ class ResizeHandleDrag {
     if (this.dragCursor) this.handle.style.cursor = this.dragCursor;
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
+    // The browser can take the pointer away mid-drag (a touch it claims for scrolling, a lost
+    // capture): no pointerup follows, so without this the drag never ends.
+    window.addEventListener('pointercancel', this.onUp);
     void invokeDotNet(this.ref, 'OnDragStart');
   };
 
@@ -78,6 +81,7 @@ class ResizeHandleDrag {
     if (this.dragCursor) this.handle.style.cursor = this.prevHandleCursor;
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
+    window.removeEventListener('pointercancel', this.onUp);
     void invokeDotNet(this.ref, 'OnDragEnd');
   };
 
@@ -86,6 +90,7 @@ class ResizeHandleDrag {
     this.handle.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
+    window.removeEventListener('pointercancel', this.onUp);
   }
 }
 
