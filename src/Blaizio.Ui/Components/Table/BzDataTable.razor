@@ -1014,7 +1014,7 @@
     private static readonly IReadOnlyDictionary<string, double> NoWidths = new Dictionary<string, double>();
 
     private ColumnFrame? _frame;
-    private IJSObjectReference? _columns;
+    private readonly JsInstance _columns = new();
     private string? _columnsSignature;
     private bool _columnsCreating;
 
@@ -1253,11 +1253,11 @@
     // its inputs change - the visible columns and their widths, bounds, pins and switches.
     private async Task SyncColumnsAsync()
     {
-        if (_frame is null && _columns is null) return;
+        if (_frame is null && !_columns.IsCreated) return;
         // The frame belongs to the last render: a column shown or hidden since then waits for the next one.
         if (_frame is not null && _frame.Pin.Length != VisibleColumns.Count) return;
         var options = ColumnsOptions(out var signature);
-        if (_columns is not null)
+        if (_columns.IsCreated)
         {
             if (signature == _columnsSignature) return;
             _columnsSignature = signature;
@@ -1278,7 +1278,7 @@
             _selfRef ??= DotNetObjectReference.Create(this);
             _rowClicksModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dataTable.js");
             _columnsSignature = signature;
-            _columns = await _rowClicksModule.InvokeAsync<IJSObjectReference>("createColumns", _root, _selfRef, options);
+            await _columns.CreateAsync(_rowClicksModule, "createColumns", _root, _selfRef, options);
         }
         catch (JSDisconnectedException)
         {
@@ -1580,7 +1580,7 @@
     {
         if (_edit is not { } session) return false;
         Dictionary<string, string?>? values = null;
-        if (!session.InForm && _grid is not null)
+        if (!session.InForm && _grid.IsCreated)
         {
             try
             {
@@ -2145,7 +2145,7 @@
     private async Task CommitFromTemplateAsync()
     {
         if (_edit is not { Mode: DataTableEditMode.Cell }) return;
-        if (_grid is null)
+        if (!_grid.IsCreated)
         {
             await CommitEditAsync();
             return;
@@ -2486,7 +2486,7 @@
 
     private async Task InvokeGridAsync(string method, params object?[] args)
     {
-        if (_grid is null) return;
+        if (!_grid.IsCreated) return;
         try
         {
             await _grid.InvokeVoidAsync(method, args);
@@ -2747,8 +2747,8 @@
 
     private ElementReference _root;
     private IJSObjectReference? _rowClicksModule;
-    private IJSObjectReference? _rowClicks;
-    private IJSObjectReference? _grid;
+    private readonly JsInstance _rowClicks = new();
+    private readonly JsInstance _grid = new();
     private string? _gridSignature;
     private bool _gridCreating;
     private DotNetObjectReference<BzDataTable<TItem>>? _selfRef;
@@ -2760,7 +2760,7 @@
     private async Task SyncGridAsync()
     {
         var options = GridOptions(out var signature);
-        if (_grid is not null)
+        if (_grid.IsCreated)
         {
             if (signature == _gridSignature) return;
             _gridSignature = signature;
@@ -2782,7 +2782,7 @@
             _selfRef ??= DotNetObjectReference.Create(this);
             _rowClicksModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dataTable.js");
             _gridSignature = signature;
-            _grid = await _rowClicksModule.InvokeAsync<IJSObjectReference>("createGrid", _root, _selfRef, options);
+            await _grid.CreateAsync(_rowClicksModule, "createGrid", _root, _selfRef, options);
         }
         catch (JSDisconnectedException)
         {
@@ -2862,15 +2862,14 @@
         await SyncColumnsAsync();
         if (_editing) await SyncGridAsync();
 
-        if (!RowsClickable || _rowClicks is not null || _rowClicksCreating) return;
+        if (!RowsClickable || _rowClicks.IsCreated || _rowClicksCreating) return;
         _rowClicksCreating = true;
 
         try
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             _rowClicksModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dataTable.js");
-            _rowClicks = await _rowClicksModule.InvokeAsync<IJSObjectReference>(
-                "createRowClicks", _root, _selfRef);
+            await _rowClicks.CreateAsync(_rowClicksModule, "createRowClicks", _root, _selfRef);
         }
         catch (JSDisconnectedException)
         {
@@ -2890,21 +2889,9 @@
         try
         {
             // The row-clicks and grid INSTANCES are ours; the module is the shared JsModules proxy.
-            if (_rowClicks is not null)
-            {
-                await _rowClicks.InvokeVoidAsync("dispose");
-                await _rowClicks.DisposeAsync();
-            }
-            if (_grid is not null)
-            {
-                await _grid.InvokeVoidAsync("dispose");
-                await _grid.DisposeAsync();
-            }
-            if (_columns is not null)
-            {
-                await _columns.InvokeVoidAsync("dispose");
-                await _columns.DisposeAsync();
-            }
+            await _rowClicks.DisposeAsync();
+            await _grid.DisposeAsync();
+            await _columns.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
