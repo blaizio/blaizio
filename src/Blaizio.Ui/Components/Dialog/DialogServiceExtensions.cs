@@ -23,7 +23,7 @@ public static class DialogServiceExtensions
             [nameof(BzConfirmDialog.Description)] = description,
         };
         // The alert presentation is non-dismissable by backdrop; Escape still cancels (-> false).
-        var result = await dialogs.ShowAsync<BzConfirmDialog>(parameters, (options ?? new BzDialogOptions()) with { Alert = true });
+        var result = await dialogs.ShowAsync<BzConfirmDialog>(parameters, (options ?? DefaultsOf(dialogs)) with { Alert = true });
         return result is { Cancelled: false, Value: true };
     }
 
@@ -40,7 +40,7 @@ public static class DialogServiceExtensions
         BzDialogOptions? options = null) where TComponent : IComponent
     {
         ArgumentNullException.ThrowIfNull(dialogs);
-        return dialogs.ShowAsync<TComponent>(parameters, WithSheet(options, side));
+        return dialogs.ShowAsync<TComponent>(parameters, WithSheet(dialogs, options, side));
     }
 
     /// <summary>
@@ -55,9 +55,20 @@ public static class DialogServiceExtensions
         BzDialogOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(dialogs);
-        return dialogs.ShowAsync(template, WithSheet(options, side));
+        return dialogs.ShowAsync(template, WithSheet(dialogs, options, side));
     }
 
-    private static BzDialogOptions WithSheet(BzDialogOptions? options, PanelSide side) =>
-        (options ?? new BzDialogOptions()) with { SheetSide = options?.SheetSide ?? side };
+    private static BzDialogOptions WithSheet(IDialogService dialogs, BzDialogOptions? options, PanelSide side) =>
+        (options ?? DefaultsOf(dialogs)) with { SheetSide = options?.SheetSide ?? side };
+
+    // These methods always pass options (they set Alert / SheetSide), so the service's own
+    // "no options given" fallback never runs for them: start from the app-wide defaults here. A
+    // plain DialogOptions default still carries the mechanism-level settings.
+    private static BzDialogOptions DefaultsOf(IDialogService dialogs) =>
+        dialogs.Defaults as BzDialogOptions ?? new BzDialogOptions
+        {
+            Modal = dialogs.Defaults.Modal,
+            DismissOnOutsideClick = dialogs.Defaults.DismissOnOutsideClick,
+            PreventDismiss = dialogs.Defaults.PreventDismiss,
+        };
 }

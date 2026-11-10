@@ -22,4 +22,11 @@ public interface IDialogService
     /// so it can close itself.
     /// </summary>
     Task<DialogResult> ShowAsync(RenderFragment<DialogInstance> template, DialogOptions? options = null);
+
+    /// <summary>
+    /// The options a call that passes none is shown with (<c>BlaizioOptions.DialogDefaults</c>).
+    /// Sugar that has to adjust the options before showing (the styled <c>ConfirmAsync</c>,
+    /// <c>ShowSheetAsync</c>) starts from these so the app-wide defaults still apply.
+    /// </summary>
+    DialogOptions Defaults => new();
 }

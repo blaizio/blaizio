@@ -38,6 +38,10 @@ lockstep under one version.
   `data-panel-size` carries the declared size there too, where it used to read `0`.
 - **Data Table**: when an `ItemsProvider` throws, the table leaves its loading state and the same
   request can run again. It used to stay loading and skip the retry.
+- **Dialog service**: `ConfirmAsync` and `ShowSheetAsync` called without options now start from
+  `BlaizioOptions.DialogDefaults`, as `ShowAsync` does. `IDialogService` gains a `Defaults`
+  property with a default implementation, so the updated `DialogServiceExtensions.cs` needs this
+  version of Blaizio.Base.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

@@ -6,6 +6,9 @@ namespace Blaizio;
 public sealed class DialogService(IDialogStore store, BlaizioOptions defaults) : IDialogService
 {
     /// <inheritdoc/>
+    public DialogOptions Defaults => defaults.DialogDefaults;
+
+    /// <inheritdoc/>
     public Task<DialogResult> ShowAsync(RenderFragment<DialogInstance> template, DialogOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(template);
