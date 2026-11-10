@@ -36,6 +36,8 @@ lockstep under one version.
 - **Resizable**: panels are laid out from `DefaultSize` on the first frame and on statically
   rendered pages. They used to collapse to zero until the first interactive render.
   `data-panel-size` carries the declared size there too, where it used to read `0`.
+- **Data Table**: when an `ItemsProvider` throws, the table leaves its loading state and the same
+  request can run again. It used to stay loading and skip the retry.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

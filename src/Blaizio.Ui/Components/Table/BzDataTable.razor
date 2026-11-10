@@ -781,7 +781,8 @@
         try
         {
             var result = await ItemsProvider(new DataTableRequest<TItem>(start, count, _sort.Value, _filter.Value, cts.Token));
-            if (cts.Token.IsCancellationRequested) return;
+            // Read the source, not cts.Token: disposal disposes the source, after which Token throws.
+            if (cts.IsCancellationRequested) return;
             _rendered = result.Items;
             _totalCount = result.TotalCount;
             _loading = false;
@@ -790,6 +791,15 @@
         catch (OperationCanceledException)
         {
             // Superseded by a newer request - a later load owns the loading flag + result.
+        }
+        catch when (ReferenceEquals(_loadCts, cts) && !cts.IsCancellationRequested)
+        {
+            // The provider failed. Forget the request key so the same request can run again
+            // (otherwise it is deduplicated forever) and drop the loading state, then let the
+            // exception reach the app's error handling.
+            _lastLoadKey = null;
+            _loading = false;
+            throw;
         }
     }
 
