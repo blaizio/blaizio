@@ -80,6 +80,8 @@ lockstep under one version.
 - **Resizable**: dragging a handle by touch now resizes the panels instead of scrolling the page,
   and a drag the browser interrupts ends cleanly. It used to leave the resize cursor on the page
   and keep resizing on later pointer moves.
+- **Panel**: dragging the resize handle by touch now resizes the panel instead of scrolling the
+  page, and an interrupted drag ends cleanly and commits the size it reached.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

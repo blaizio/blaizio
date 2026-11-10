@@ -116,6 +116,9 @@ class PanelResize {
     }
     window.addEventListener('pointermove', this.onMove);
     window.addEventListener('pointerup', this.onUp);
+    // The browser can take the pointer away mid-drag (a touch it claims for scrolling, a lost
+    // capture): no pointerup follows, so without this the drag never ends.
+    window.addEventListener('pointercancel', this.onUp);
   };
 
   private onMove = (e: PointerEvent) => {
@@ -133,6 +136,7 @@ class PanelResize {
     if (this.dragCursor) this.handle.style.cursor = this.prevHandleCursor;
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
+    window.removeEventListener('pointercancel', this.onUp);
     this.commit();
   };
 
@@ -166,6 +170,7 @@ class PanelResize {
     this.handle.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pointermove', this.onMove);
     window.removeEventListener('pointerup', this.onUp);
+    window.removeEventListener('pointercancel', this.onUp);
     if (this.dragging) {
       this.root.removeAttribute('data-dragging');
       document.body.style.cursor = '';
