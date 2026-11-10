@@ -4,12 +4,27 @@
 @*
     Avatar image. Always present in the DOM (so it can load), but hidden until its native load
     event fires; reports success/failure to the ancestor BaseAvatar so the fallback can react.
+
+    A statically rendered page has no Blazor events, so nothing would ever report the load and
+    the image would stay hidden for good. There the swap is done by the element itself: its own
+    load handler shows it and hides the fallback beside it. Where inline handlers are blocked
+    (a strict Content-Security-Policy) the fallback simply stays, as before.
 *@
 
-<img src="@Src" alt="@Alt" data-slot="avatar-image"
-     class="@Class" style="@CurrentStyle"
-     @onload="OnLoad" @onerror="OnError"
-     @attributes="Attributes" />
+@if (Interactive)
+{
+    <img src="@Src" alt="@Alt" data-slot="avatar-image"
+         class="@Class" style="@CurrentStyle"
+         @onload="OnLoad" @onerror="OnError"
+         @attributes="Attributes" />
+}
+else
+{
+    <img src="@Src" alt="@Alt" data-slot="avatar-image"
+         class="@Class" style="@CurrentStyle"
+         onload="@StaticOnLoad"
+         @attributes="Attributes" />
+}
 
 @code {
     [CascadingParameter] private BaseAvatar? Avatar { get; set; }
@@ -19,6 +34,22 @@
 
     /// <summary>Alt text.</summary>
     [Parameter] public string? Alt { get; set; }
+
+    // A host that supplies no renderer info (some test renderers throw on the property) is treated
+    // as interactive: the Blazor events are the path that needs no inline script.
+    private bool Interactive
+    {
+        get
+        {
+            try { return RendererInfo.IsInteractive; }
+            catch (Exception) { return true; }
+        }
+    }
+
+    private const string StaticOnLoad =
+        "this.style.display='';" +
+        "var f=this.parentElement&&this.parentElement.querySelector('[data-slot=avatar-fallback]');" +
+        "if(f)f.style.display='none'";
 
     private string CurrentStyle =>
         Avatar?.Status == ImageStatus.Loaded ? (Style ?? string.Empty) : $"display:none;{Style}";
