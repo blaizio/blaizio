@@ -64,6 +64,8 @@ else
     {
         var props = new PropBuilder(this);
         if (!Disabled) props.On("onclick", OnClick);
+        // Before the merge, so an aria-current the consumer sets (e.g. "step") still wins.
+        if (Active) props.Aria("current", "page");
 
         // Fold in the tooltip trigger's behaviour (pointer/focus handlers) and the consumer's
         // attributes + classes first, THEN re-assert the button's own identity data-* so the trigger's

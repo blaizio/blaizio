@@ -126,6 +126,8 @@ lockstep under one version.
 - **Select**: a multiple select's listbox now has `aria-multiselectable="true"`.
 - **Menubar**: two menubars using the same menu `Value` no longer share ids or open under the
   wrong trigger, and a `Value` with a quote no longer throws. Element ids are now generated.
+- **Sidebar**: Ctrl/Cmd+B inside a rich-text editor is left to the editor. `Class` applies to
+  the mobile sheet too. An `Active` menu button or sub-button has `aria-current="page"`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
