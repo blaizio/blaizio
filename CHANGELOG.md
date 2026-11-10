@@ -100,6 +100,8 @@ lockstep under one version.
   on the page.
 - **Copy Button**: leaving a page before its copy buttons finished wiring up no longer raises an
   unhandled `ObjectDisposedException`.
+- **Drawer, Panel, Select, Sidebar, Toolbar, Data Table**: a component removed while it is
+  still wiring up no longer leaves its listeners and observers running on the page.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

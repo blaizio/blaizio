@@ -156,7 +156,7 @@
     private bool _initialSnapCaptured;
     private double? _initialSnap;
     private IJSObjectReference? _dragModule;
-    private IJSObjectReference? _drag;
+    private readonly JsInstance _drag = new();
     private Task? _wireTask;
     private DotNetObjectReference<BzDrawerContent>? _selfRef;
 
@@ -255,17 +255,17 @@
                 snapPoints = SnappedFractions,
                 activeSnap = _snapIndex,
             };
-            _drag = await _dragModule.InvokeAsync<IJSObjectReference>("createDrawerDrag", contentId, _selfRef, options);
+            await _drag.CreateAsync(_dragModule, "createDrawerDrag", contentId, _selfRef, options);
             // In relay (scaling) mode the surface mounts a beat later under the provider; if the element
             // isn't in the DOM yet, re-arm and retry on the next render rather than giving up.
-            if (_drag is null && _open && _wireTries++ < 20)
+            if (!_drag.IsCreated && !_drag.IsDisposed && _open && _wireTries++ < 20)
             {
                 _dragWired = false;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
             // In snap mode JS owns the open motion (slide from hidden to the active snap).
-            if (Snapping && _drag is not null) await _drag.InvokeVoidAsync("open");
+            if (Snapping) await _drag.InvokeVoidAsync("open");
         }
         catch (JSDisconnectedException)
         {
@@ -343,14 +343,15 @@
         _dragWired = false;
         try
         {
+            // The drawer closed but the component stays: drop the drag (and a wiring still in
+            // flight) so the next opening wires a fresh one.
+            await _drag.ReleaseAsync();
             if (_wireTask is not null) await _wireTask;
-            if (_drag is not null) { await _drag.InvokeVoidAsync("dispose"); await _drag.DisposeAsync(); }
         }
         catch (JSDisconnectedException)
         {
             // Circuit gone.
         }
-        _drag = null;
     }
 
     public async ValueTask DisposeAsync()
@@ -359,6 +360,7 @@
         try
         {
             // Drag instance is ours; the module is the shared JsModules proxy.
+            await _drag.DisposeAsync();
             await TeardownDragAsync();
         }
         catch (JSDisconnectedException)
