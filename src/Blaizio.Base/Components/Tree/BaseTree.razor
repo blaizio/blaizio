@@ -1072,6 +1072,14 @@
         await ToggleExpandAsync(item, value);
     }
 
+    /// <summary>
+    /// JS asks, before a cross-tree drop, whether this tree's <see cref="CanDrop"/> allows it. Both
+    /// trees are asked first so the move is applied by both or by neither.
+    /// </summary>
+    [JSInvokable]
+    public bool CanAcceptDrop(string sourceValue, string? targetValue, string position, string fromId, string toId) =>
+        CanDrop is null || CanDrop(BuildChange(sourceValue, targetValue, position, fromId, toId));
+
     /// <summary>JS reports a committed drop; the SOURCE tree raises <see cref="OnMove"/>.</summary>
     [JSInvokable]
     public async Task NotifyMove(string sourceValue, string? targetValue, string position, string fromId, string toId)

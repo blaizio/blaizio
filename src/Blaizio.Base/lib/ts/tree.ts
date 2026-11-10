@@ -21,7 +21,7 @@
 // so a drag can cross between them (subject to each side's transferOut/transferIn). This module
 // also suppresses the browser's default scrolling for the keys C# drives the tree with.
 
-import { invokeDotNet } from './core';
+import { invokeDotNet, invokeDotNetResult } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -455,13 +455,25 @@ class Tree {
     void invokeDotNet(this.ref, 'NotifyDragEnd', value);
     if (!drop) return;
 
-    void invokeDotNet(this.ref, 
-      'NotifyMove', value, drop.value, drop.position, this.options.id, drop.tree.options.id);
-    if (drop.tree !== this) {
-      // The receiving tree gets its own notification (its handler may live elsewhere entirely).
-      void invokeDotNet(drop.tree.ref, 
-        'NotifyReceiveMove', value, drop.value, drop.position, this.options.id, drop.tree.options.id, carriedExpanded);
+    const target = drop.tree;
+    const move = [value, drop.value, drop.position, this.options.id, target.options.id] as const;
+    if (target === this) {
+      void invokeDotNet(this.ref, 'NotifyMove', ...move);
+      return;
     }
+
+    // A cross-tree drop is two notifications, each tree applying its own half (the source removes,
+    // the receiver inserts; the receiver's handler may live elsewhere entirely). Both trees have a
+    // CanDrop veto, so ask both BEFORE telling either: one side refusing while the other applied
+    // would lose the node or duplicate it.
+    void Promise.all([
+      invokeDotNetResult(this.ref, false, 'CanAcceptDrop', ...move),
+      invokeDotNetResult(target.ref, false, 'CanAcceptDrop', ...move),
+    ]).then(([sourceAllows, targetAllows]) => {
+      if (!sourceAllows || !targetAllows) return;
+      void invokeDotNet(this.ref, 'NotifyMove', ...move);
+      void invokeDotNet(target.ref, 'NotifyReceiveMove', ...move, carriedExpanded);
+    });
   }
 
   // Scroll the nearest scrollable ancestor when the pointer nears an edge (kept alive by rAF).

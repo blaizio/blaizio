@@ -55,6 +55,9 @@ lockstep under one version.
 - **Sortable**: a list whose first item is disabled can be reached with Tab again, and the arrow
   keys step over disabled items instead of stopping on one. A disabled item can still be shifted
   by items dropped around it; its `Disabled` summary no longer says otherwise.
+- **Tree**: a node dragged to another tree is moved only when both trees' `CanDrop` allow it.
+  When just one refused, the node used to disappear or appear twice. `CanDrop` now runs more
+  than once for such a drop, so keep it free of side effects.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
