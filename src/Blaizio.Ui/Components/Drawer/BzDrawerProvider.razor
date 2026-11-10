@@ -23,7 +23,7 @@
     @* Relayed drawer surfaces render OUTSIDE the scaled wrapper so they keep full size. *@
     @foreach (var entry in _surfaces)
     {
-        <div @key="entry.Key">@entry.Value</div>
+        <div @key="entry.Key">@RenderOutlet(entry.Key, entry.Value)</div>
     }
 </CascadingValue>
 
@@ -33,6 +33,7 @@
 
     private readonly List<KeyValuePair<object, RenderFragment>> _surfaces = new();
     private readonly HashSet<object> _scaling = new();
+    private readonly Dictionary<object, Outlet> _outlets = new();
 
     private bool Scaled => _scaling.Count > 0;
 
@@ -45,12 +46,42 @@
         StateHasChanged();
     }
 
+    /// <summary>
+    /// Re-renders one relayed surface without re-rendering the provider. A drawer calls this when
+    /// its own parameters or content change while it is open: the provider sits above the drawer's
+    /// owner, so the owner re-rendering never reaches the relayed copy by itself.
+    /// </summary>
+    public void Refresh(object key)
+    {
+        if (_outlets.TryGetValue(key, out var outlet)) outlet.Refresh();
+    }
+
     /// <summary>Drops a closed drawer's surface and clears its scale contribution.</summary>
     public void Remove(object key)
     {
         _surfaces.RemoveAll(e => Equals(e.Key, key));
-        if (_scaling.Remove(key)) { /* scale recomputed below */ }
+        _outlets.Remove(key);
+        _scaling.Remove(key); // Scaled is derived from the set, so the render below picks it up
         StateHasChanged();
+    }
+
+    private RenderFragment RenderOutlet(object key, RenderFragment surface) => builder =>
+    {
+        builder.OpenComponent<Outlet>(0);
+        builder.AddComponentParameter(1, nameof(Outlet.Surface), surface);
+        builder.AddComponentReferenceCapture(2, outlet => _outlets[key] = (Outlet)outlet);
+        builder.CloseComponent();
+    };
+
+    // Hosts one relayed surface so it can re-render independently of the provider (see Refresh).
+    private sealed class Outlet : ComponentBase
+    {
+        [Parameter] public RenderFragment? Surface { get; set; }
+
+        public void Refresh() => _ = InvokeAsync(StateHasChanged);
+
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder) =>
+            builder.AddContent(0, Surface);
     }
 
     /// <summary>Toggles whether a given drawer is currently scaling the background.</summary>

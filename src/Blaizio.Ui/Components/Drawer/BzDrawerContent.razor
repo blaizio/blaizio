@@ -188,6 +188,10 @@
             if (open)
             {
                 if (!_relayRegistered) { _relayRegistered = true; _closePushed = false; Provider!.Relay(this, RelaySurface); }
+                // Already relayed: the provider only re-renders on open/close, so refresh the
+                // relayed copy alone to carry this render's content and parameters across. That
+                // re-renders the outlet, not the provider, so it cannot loop back here.
+                else Provider!.Refresh(this);
                 if (!_scaledPushed) { _scaledPushed = true; Provider!.SetScaled(this, true); }
             }
             else if (_relayRegistered)
@@ -312,9 +316,17 @@
 
     private RenderFragment RelaySurface => @<CascadingValue Value="Dialog" IsFixed="false">@Surface</CascadingValue>;
 
+    /// <summary>
+    /// Infrastructure: the drag gesture asks to close. Answers whether the close was requested;
+    /// <see langword="false"/> (dismissal is blocked) tells the script to slide the panel back.
+    /// </summary>
     [JSInvokable]
-    public Task OnDragDismiss() =>
-        Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+    public async Task<bool> OnDragDismiss()
+    {
+        if (Dialog is not { PreventDismiss: false }) return false;
+        await Dialog.SetOpen.InvokeAsync(false);
+        return true;
+    }
 
     [JSInvokable]
     public Task OnSnapChanged(int index)

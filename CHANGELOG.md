@@ -47,6 +47,10 @@ lockstep under one version.
   out of sight.
 - **Dialog, Sheet, Popover, Hover Card, Tooltip**: a surface reopened while its close animation
   is finishing no longer stays invisible (and, for a dialog, focus-trapped with the page locked).
+- **Drawer**: with `ScaleBackground`, content inside an open drawer now updates when the
+  component that owns the drawer re-renders. It used to show the state from when it opened.
+- **Drawer**: dragging a drawer shut after `PreventDismiss` was turned on while it was open slides
+  it back. It used to slide off screen and leave the modal open and invisible.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

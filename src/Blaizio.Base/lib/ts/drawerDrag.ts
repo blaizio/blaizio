@@ -15,7 +15,7 @@
 // stays set through unmount, so presence.ts sees no exit animation and tears down immediately - the
 // JS transform has already carried the panel off-screen.
 
-import { invokeDotNet } from './core';
+import { invokeDotNet, invokeDotNetResult } from './core';
 
 interface DotNetObjectReference {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
@@ -290,7 +290,16 @@ class DrawerDrag {
       this.overlay.style.transition = 'opacity 0.3s ease-out';
       this.overlay.style.opacity = '0';
     }
-    this.afterTransition(() => void invokeDotNet(this.ref, 'OnDragDismiss'));
+    // `dismissible` was captured when the drag was wired, so C# has the last word: it answers
+    // false when dismissal has since been blocked (PreventDismiss turned on while open). The panel
+    // is already off-screen by then, so bring it back instead of leaving an open, invisible modal.
+    this.afterTransition(() => {
+      void invokeDotNetResult<boolean | null>(this.ref, true, 'OnDragDismiss').then((closing) => {
+        if (closing !== false) return;
+        if (this.snapping) this.snapTo(Math.max(this.snapIndex, 0));
+        else this.springBack();
+      });
+    });
     this.dragging = false;
   }
 
