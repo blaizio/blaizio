@@ -101,12 +101,20 @@
 
     protected override void OnParametersSet()
     {
+        // An inline lambda (Property="x => x.Name") is a NEW expression object on every parent
+        // render, so reference equality alone would recompile the getter - and, for an editable
+        // column, the setter and its rules - each time. A plain member path that names the same
+        // members compiles to the same thing, so it is reused.
         if (Property is not null && !ReferenceEquals(Property, _lastProperty))
         {
+            var same = _lastProperty is not null && SameMemberPath(Property.Body, _lastProperty.Body);
             _lastProperty = Property;
-            _compiled = Property.Compile();
-            _memberName = MemberName(Property);
-            _binding = null;
+            if (!same)
+            {
+                _compiled = Property.Compile();
+                _memberName = MemberName(Property);
+                _binding = null;
+            }
         }
 
         // The setter and the parse / validate rules compile only for editable columns.
@@ -117,18 +125,34 @@
             if (!ReferenceEquals(_binding, _resolvedFor) || Editor != _resolvedEditor ||
                 !ReferenceEquals(Options, _resolvedOptions) || Format != _resolvedFormat)
             {
+                // Resolve first, remember the inputs after: ResolveKind throws on a misconfigured
+                // column, and remembering first would let the next pass skip it and report a
+                // different, misleading error.
+                _kind = ResolveKind();
+                _options = BuildOptions();
                 _resolvedFor = _binding;
                 _resolvedEditor = Editor;
                 _resolvedOptions = Options;
                 _resolvedFormat = Format;
-                _kind = ResolveKind();
-                _options = BuildOptions();
             }
             if (_kind == DataTableEditor.Auto && EditorContent is null)
                 throw new InvalidOperationException(
                     $"The {ResolveTitle() ?? "property"} column is Editable, but a {s_type.Name} value has no built-in editor. Give the column an EditorContent.");
         }
     }
+
+    // True when both bodies are the same chain of member reads from the row parameter (through
+    // any conversions). Anything else - a call, arithmetic, a captured variable - may differ in
+    // ways the shape does not show, so it is treated as changed.
+    private static bool SameMemberPath(Expression left, Expression right) => (left, right) switch
+    {
+        (ParameterExpression a, ParameterExpression b) => a.Type == b.Type,
+        (MemberExpression a, MemberExpression b) =>
+            a.Member == b.Member && a.Expression is not null && b.Expression is not null && SameMemberPath(a.Expression, b.Expression),
+        (UnaryExpression a, UnaryExpression b) when a.NodeType is ExpressionType.Convert or ExpressionType.ConvertChecked =>
+            a.NodeType == b.NodeType && a.Type == b.Type && SameMemberPath(a.Operand, b.Operand),
+        _ => false,
+    };
 
     internal override IGridEditor<TItem>? GridEditor => Editable && _binding is not null ? _editor : null;
 

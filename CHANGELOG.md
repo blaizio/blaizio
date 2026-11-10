@@ -75,6 +75,8 @@ lockstep under one version.
   loaded rows. It used to show "No results.".
 - **Data Table**: moving a column no longer throws when the table has a `BzEditActionsColumn`
   that is not showing (Cell edit mode, or nothing editable).
+- **Data Table**: `BzPropertyColumn` no longer recompiles `Property="x => x.Name"` each time the
+  page re-renders, which made large or busy tables slower than they needed to be.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
