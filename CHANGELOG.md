@@ -363,6 +363,8 @@ lockstep under one version.
   `AvailableSkins` are `[Obsolete]` and forward to the style-named members. The positional
   `TemplateTokens` parameter is now named `Style`, so a call passing it by name (`Skin: ...`)
   needs the new name.
+- **Combobox**: `BaseComboboxItemIndicator.KeepMounted` is `[Obsolete]` and forwards to the new
+  `KeepRendered`.
 
 ### Fixed
 - **Base**: a table of contents with more sections than its box can show keeps the active section

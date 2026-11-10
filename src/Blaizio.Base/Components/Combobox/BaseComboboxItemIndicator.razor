@@ -2,11 +2,11 @@
 @inherits BzComponentBase
 @*
     The check shown on a chosen item. Reads the enclosing BaseComboboxItem's cascaded state and renders its
-    content only while that item is selected (set KeepMounted to keep it in the DOM and let the style fade
+    content only while that item is selected (set KeepRendered to keep it in the DOM and let the style fade
     it via data-selected). Carries no own behaviour - just the selected-only gate.
 *@
 
-@if (Item is { Selected: true } || KeepMounted)
+@if (Item is { Selected: true } || KeepRendered)
 {
     <span @attributes="BuildAttributes()">
         @ChildContent
@@ -17,8 +17,13 @@
     /// <summary>The indicator content (usually a check icon).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    /// <summary>Keep the indicator mounted even when unselected (so a style can animate it). Defaults to <see langword="false"/>.</summary>
-    [Parameter] public bool KeepMounted { get; set; }
+    /// <summary>Keep the indicator rendered even when unselected (so a style can animate it). Defaults to <see langword="false"/>.</summary>
+    [Parameter] public bool KeepRendered { get; set; }
+
+    /// <summary>The earlier name of <see cref="KeepRendered"/>.</summary>
+    [Obsolete("Use KeepRendered.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [Parameter] public bool KeepMounted { get => KeepRendered; set => KeepRendered = value; }
 
     [CascadingParameter] private ComboboxItemContext? Item { get; set; }
 
