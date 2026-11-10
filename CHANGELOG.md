@@ -148,6 +148,8 @@ lockstep under one version.
   style, preset or overlay value containing whitespace is ignored instead of breaking startup.
 - **Item, Attachment**: the group no longer claims `role="list"` (its children are not list
   items), which assistive tech read as a list with nothing in it.
+- **Tree**: searching a tree that loads children on demand no longer shows the "no results" text
+  beside a match found in a loaded branch.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

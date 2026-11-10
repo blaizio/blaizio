@@ -440,6 +440,13 @@
 
     internal string TextOf(TItem item) => TextSelector?.Invoke(item) ?? item?.ToString() ?? string.Empty;
 
+    /// <summary>
+    /// The children of <paramref name="item"/> as the tree has them: the ones <c>LoadChildren</c>
+    /// fetched for it, else what <c>ChildrenSelector</c> returns. <see langword="null"/> when it
+    /// has none (a leaf, or a lazy branch that was never expanded).
+    /// </summary>
+    public IList<TItem>? ChildrenOf(TItem item) => EffectiveChildrenOf(item);
+
     internal IList<TItem>? EffectiveChildrenOf(TItem item) =>
         _loaded.TryGetValue(ValueSelector(item), out var loaded) ? loaded : ChildrenSelector?.Invoke(item);
 

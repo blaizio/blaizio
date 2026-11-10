@@ -344,7 +344,10 @@
         foreach (var item in items)
         {
             if (NodeMatches(item, query)) return true;
-            if (ChildrenSelector?.Invoke(item) is { } kids && AnyMatch(kids, query)) return true;
+            // Through the base tree, so children loaded on demand count: with ChildrenSelector alone
+            // a match inside a loaded branch showed next to the "no results" text.
+            var kids = _base is not null ? _base.ChildrenOf(item) : ChildrenSelector?.Invoke(item);
+            if (kids is not null && AnyMatch(kids, query)) return true;
         }
         return false;
     }
