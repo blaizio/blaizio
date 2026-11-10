@@ -78,8 +78,19 @@ internal static class InputNumberValue<TValue>
     }
 
     /// <summary>Parses in <typeparamref name="TValue"/>'s own terms: integral types reject fractions outright, like Blazor's converter - a typed "2.7" is invalid for an int field, not a 2.</summary>
+    /// <remarks>
+    /// The text is the field's edit text, which never carries grouping: the script guard admits
+    /// digits, a sign and ONE separator, and that separator may be "." in any culture because
+    /// numeric keypads emit it. So a "." here always means the decimal point. Parsed with the
+    /// culture as-is, "1.5" would read as 15 wherever "." is the group separator (de-DE, es-ES,
+    /// and others), hence the normalisation and the styles without thousands.
+    /// </remarks>
     public static bool TryParse(string text, CultureInfo culture, out decimal value)
     {
+        var separator = culture.NumberFormat.NumberDecimalSeparator;
+        if (separator != "." && !text.Contains(separator, StringComparison.Ordinal))
+            text = text.Replace(".", separator, StringComparison.Ordinal);
+
         switch (Code)
         {
             case TypeCode.Int32 when int.TryParse(text, IntegerStyles, culture, out var i):
@@ -92,10 +103,10 @@ internal static class InputNumberValue<TValue>
                 value = s;
                 return true;
             case TypeCode.Single or TypeCode.Double
-                when double.TryParse(text, NumberStyles.Number, culture, out var d) && double.IsFinite(d):
+                when double.TryParse(text, DecimalStyles, culture, out var d) && double.IsFinite(d):
                 value = Saturate(d);
                 return true;
-            case TypeCode.Decimal when decimal.TryParse(text, NumberStyles.Number, culture, out var m):
+            case TypeCode.Decimal when decimal.TryParse(text, DecimalStyles, culture, out var m):
                 value = m;
                 return true;
             default:
@@ -104,7 +115,8 @@ internal static class InputNumberValue<TValue>
         }
     }
 
-    private const NumberStyles IntegerStyles = NumberStyles.Integer | NumberStyles.AllowThousands;
+    private const NumberStyles IntegerStyles = NumberStyles.Integer;
+    private const NumberStyles DecimalStyles = NumberStyles.Integer | NumberStyles.AllowDecimalPoint;
 
     /// <summary>decimal's range is smaller than double's - clamp instead of throwing on conversion (and NaN, which decimal cannot express, lands on 0).</summary>
     public static decimal Saturate(double value) => value switch

@@ -61,6 +61,9 @@ lockstep under one version.
 - **Carousel**: dragging or wheeling during a Previous / Next / dot scroll no longer freezes the
   selected slide, the dots and `SelectedIndexChanged`. The carousel now takes the slide it came
   to rest on, and raises `SelectedIndexChanged` for it.
+- **Input Number**: in cultures that group thousands with `.` (German, Spanish, and others),
+  typing `1.5` now gives 1.5. It used to give 15. Typed text is no longer read as grouped, so
+  `1.234` there now means 1.234, not 1234.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
