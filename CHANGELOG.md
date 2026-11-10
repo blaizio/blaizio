@@ -118,6 +118,7 @@ lockstep under one version.
   gradient angle written in `grad` is read. A swatch saved in HSB or CMYK shows its color.
 - **Hotkey, Kbd**: the `up`, `down`, `left`, `right` and `return` key names now trigger. They
   rendered their glyph but never fired.
+- **Toast**: a toast whose `OnDismiss` or `OnAutoClose` handler throws is still removed.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

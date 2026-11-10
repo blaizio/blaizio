@@ -64,10 +64,17 @@ public sealed class ToastStore : IToastStore, IDisposable
         if (Find(id) is not { } instance) return;
 
         // Fire the lifecycle callback before dropping the toast, so a handler can still read its data.
-        (autoClose ? instance.Data.OnAutoClose : instance.Data.OnDismiss)?.Invoke();
-
-        _instances.Remove(instance);
-        Changed?.Invoke();
+        // The toast goes even when the handler throws: this is the only removal path, and a toast
+        // left behind would be rendered (and matched by id) for the rest of the session.
+        try
+        {
+            (autoClose ? instance.Data.OnAutoClose : instance.Data.OnDismiss)?.Invoke();
+        }
+        finally
+        {
+            _instances.Remove(instance);
+            Changed?.Invoke();
+        }
     }
 
     private ToastInstance? Find(string id) => _instances.Find(t => t.Id == id);
