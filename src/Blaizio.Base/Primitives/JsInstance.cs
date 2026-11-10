@@ -40,17 +40,18 @@ public sealed class JsInstance : IAsyncDisposable
 
     /// <summary>
     /// Calls <paramref name="factory"/> on <paramref name="module"/> and keeps the instance it
-    /// returns. Returns false, keeping nothing, when the handle was disposed or released in the
-    /// meantime, when an instance is already attached, or when the circuit is gone.
+    /// returns. Returns false, keeping nothing, when the factory returned null, when the handle
+    /// was disposed or released in the meantime, when an instance is already attached, or when the
+    /// circuit is gone.
     /// </summary>
     public async Task<bool> CreateAsync(IJSObjectReference module, string factory, params object?[] args)
     {
         if (_disposed || _reference is not null) return false;
         var epoch = _epoch;
-        IJSObjectReference reference;
+        IJSObjectReference? reference;
         try
         {
-            reference = await module.InvokeAsync<IJSObjectReference>(factory, args);
+            reference = await module.InvokeAsync<IJSObjectReference?>(factory, args);
         }
         catch (JSDisconnectedException)
         {
@@ -60,6 +61,10 @@ public sealed class JsInstance : IAsyncDisposable
         {
             return false; // the owner disposed an argument (its DotNetObjectReference) under the call
         }
+
+        // A factory may answer null when it has nothing to attach to yet (its element is not in
+        // the DOM): nothing was created, and the caller may try again.
+        if (reference is null) return false;
 
         if (_disposed || epoch != _epoch || _reference is not null)
         {
