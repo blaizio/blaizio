@@ -10,10 +10,7 @@
 // mode it passes the measured spacer pixels it alone can know.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 const clamp = (value: number, min: number, max: number): number =>
   value < min ? min : value > max ? max : value;

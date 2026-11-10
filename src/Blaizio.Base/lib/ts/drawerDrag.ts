@@ -16,10 +16,7 @@
 // JS transform has already carried the panel off-screen.
 
 import { invokeDotNet, invokeDotNetResult } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 type Direction = 'top' | 'bottom' | 'left' | 'right'; // physical, after resolving the logical edge
 type Edge = 'top' | 'bottom' | 'start' | 'end'; // logical, as the component authors it

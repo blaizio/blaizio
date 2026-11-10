@@ -7,10 +7,7 @@
 // child swaps) and a ResizeObserver keep both in sync. Pure DOM - no .NET round-trips.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 class NavMenu {
   private readonly ro: ResizeObserver;

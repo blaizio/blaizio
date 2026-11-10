@@ -28,6 +28,11 @@ interface DotNetCallbackRef {
   invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
 }
 
+/** The .NET object a module calls back into (the JS side of a C# DotNetObjectReference). */
+export interface DotNetObjectReference {
+  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
+}
+
 /** The dispatcher's disposed-reference rejection (raced teardown), as opposed to a real failure. */
 const isDisposedRefError = (e: unknown): boolean => {
   const message = e instanceof Error ? e.message : String(e);

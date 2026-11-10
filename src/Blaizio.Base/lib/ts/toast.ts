@@ -16,10 +16,7 @@
  */
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 const TOAST_SELECTOR = '[data-bz-toast]';
 const LIST_SELECTOR = '[data-bz-toaster]';

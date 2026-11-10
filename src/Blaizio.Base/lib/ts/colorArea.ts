@@ -10,10 +10,7 @@
  */
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 const THUMB_SELECTOR = '[data-bz-color-area-thumb]';
 

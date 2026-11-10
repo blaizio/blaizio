@@ -6,10 +6,7 @@
 // getCookie/setCookie persist the open/collapsed state across reloads.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 class MobileWatcher {
   private readonly mql: MediaQueryList;

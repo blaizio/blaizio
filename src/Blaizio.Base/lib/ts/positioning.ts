@@ -11,10 +11,7 @@ import { invokeDotNet } from './core';
 
 import { computePosition, autoUpdate, offset, flip, shift, size, arrow, type Placement } from '@floating-ui/dom';
 import { portalToBody } from './portal';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 interface PositionOptions {
   side: 'top' | 'right' | 'bottom' | 'left';

@@ -15,10 +15,7 @@
 // restarts it); hover merely suspends the timer while the pointer is over the viewport.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 interface CarouselOptions {
   horizontal: boolean;

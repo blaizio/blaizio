@@ -7,10 +7,7 @@
 //   OnDragEnd()        pointer released
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 class ResizeHandleDrag {
   private dragging = false;

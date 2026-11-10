@@ -9,10 +9,7 @@
 // C# turns the mirror selection + value into per-slot {char, isActive, hasFakeCaret} and re-renders.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 const STYLE_ID = 'bz-input-otp-style';
 

@@ -14,10 +14,7 @@
 //                                   "\n" is a blank line); without any, its whole textContent is.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 const owners = new Map<string, DotNetObjectReference>();
 

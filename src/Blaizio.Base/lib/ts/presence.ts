@@ -4,10 +4,7 @@
 // removal (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 class Presence {
   private fallback?: number;

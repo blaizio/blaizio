@@ -10,10 +10,7 @@
 // open/close (and keyboard nudges) gets out of the pointer's way.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
 
 type PanelDock = 'start' | 'end' | 'top' | 'bottom';
 

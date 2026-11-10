@@ -11,12 +11,9 @@ import {
   parseCombo,
   type ParsedCombo,
 } from './core';
+import type { DotNetObjectReference } from './core';
 
 export { getPlatform } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
 
 class Hotkey {
   constructor(
