@@ -124,6 +124,8 @@ lockstep under one version.
 - **Popover, Hover Card, Tooltip**: a surface with a non-default `Side` or `Align` no longer plays
   its first frame, entry slide and arrow for the default side.
 - **Select**: a multiple select's listbox now has `aria-multiselectable="true"`.
+- **Menubar**: two menubars using the same menu `Value` no longer share ids or open under the
+  wrong trigger, and a `Value` with a quote no longer throws. Element ids are now generated.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

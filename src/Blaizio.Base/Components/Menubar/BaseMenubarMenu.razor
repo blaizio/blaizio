@@ -24,10 +24,14 @@
 
     [CascadingParameter] private MenubarContext? Bar { get; set; }
 
+    // _key identifies this menu to the bar (the consumer's Value when given). _baseId is the DOM
+    // identity - always generated, because Value is free text: the same one in two bars would
+    // duplicate ids and anchor to the wrong trigger, and a quote in it would break the selector.
     private string _baseId = default!;
+    private string _key = default!;
     private readonly JsInstance _triggerGuard = new();
 
-    private bool IsOpen => Bar?.Value == _baseId;
+    private bool IsOpen => Bar?.Value == _key;
 
     private DropdownMenuContext MenuContext => new(
         IsOpen,
@@ -38,12 +42,16 @@
         EventCallback.Factory.Create<MenuFocusIntent>(this, OpenAsync),
         EventCallback.Factory.Create(this, CloseAsync));
 
-    protected override void OnInitialized() => _baseId = Value ?? Identifier.Create("menubar-menu");
+    protected override void OnInitialized()
+    {
+        _baseId = Identifier.Create("menubar-menu");
+        _key = Value ?? _baseId;
+    }
 
     private Task OpenAsync(MenuFocusIntent intent) =>
-        Bar is null ? Task.CompletedTask : Bar.Open.InvokeAsync((_baseId, intent));
+        Bar is null ? Task.CompletedTask : Bar.Open.InvokeAsync((_key, intent));
 
-    private Task CloseAsync() => Bar is null ? Task.CompletedTask : Bar.Close.InvokeAsync(_baseId);
+    private Task CloseAsync() => Bar is null ? Task.CompletedTask : Bar.Close.InvokeAsync(_key);
 
     // Suppress the page scroll when ArrowDown/Up open the menu from its (closed) trigger - the same
     // guard BaseDropdownMenu uses. The bar's roving focus leaves Up/Down alone (it is horizontal), so
