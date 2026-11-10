@@ -137,6 +137,8 @@ lockstep under one version.
   reaches it.
 - **Chart**: a series with one point, or with every point at the same x, draws. Charts whose
   values are all negative include the zero line.
+- **Tree**: double-clicking a word in the rename input selects it. It used to restart the rename
+  and discard what was typed.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

@@ -910,6 +910,7 @@
     private void StartRename(TItem item, string value)
     {
         if (!Renamable || IsDisabledNode(item) || CanRename?.Invoke(item) == false) return;
+        if (_renamingValue == value) return; // already renaming this node: keep what was typed
         _renamingValue = value;
         _renameDraft = TextOf(item);
         StateHasChanged();
