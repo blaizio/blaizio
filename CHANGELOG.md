@@ -24,6 +24,10 @@ lockstep under one version.
   items. It used to show a neighbouring slice, or nothing.
 - **Toast**: the toast provider unsubscribes from the toast store when it is disposed. The store
   used to keep the disposed provider referenced for the rest of the scope.
+- **Tooltip, Hover Card**: your own `@onpointerenter`, `@onpointerleave` or `@onpointerdown` on a
+  trigger no longer turns off hover-open. Your handler now runs after the component's instead of
+  replacing it. The same holds for any event a Blaizio.Base component handles without reading its
+  arguments.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

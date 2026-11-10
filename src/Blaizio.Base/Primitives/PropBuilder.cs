@@ -113,8 +113,11 @@ public sealed class PropBuilder
 
     /// <summary>
     /// Compose the primitive's handler with the consumer's for the same event - primitive first,
-    /// then consumer. Callbacks of the same shape compose; anything else (a non-callback value, or
-    /// two callbacks with different argument types) lets the consumer's value win.
+    /// then consumer. Callbacks of the same shape compose, and so does an untyped primitive handler
+    /// with a typed consumer one (a consumer's <c>@onpointerenter</c> always arrives typed, while
+    /// primitives that ignore the event args wire it untyped). Anything else (a non-callback value,
+    /// two differently typed callbacks, or an argument type not listed below) lets the consumer's
+    /// value win.
     /// </summary>
     /// <remarks>
     /// The composed callback keeps the incoming shape, which matters beyond the element splat: a
@@ -129,22 +132,40 @@ public sealed class PropBuilder
         if (!_props.TryGetValue(key, out var mine)) return false;
 
         var owner = _owner ?? this;
-        switch (mine, userValue)
+        if (mine is EventCallback a && userValue is EventCallback b)
         {
-            case (EventCallback a, EventCallback b):
-                composed = EventCallback.Factory.Create(owner, () => Both(a.InvokeAsync(), b.InvokeAsync));
+            composed = EventCallback.Factory.Create(owner, () => Both(a.InvokeAsync(), b.InvokeAsync));
+            return true;
+        }
+
+        // EventCallback<T> is a struct with no shared invocable base, so each argument type is
+        // tried by name. Pointer comes before Mouse only for readability: the two are distinct
+        // closed generics and never match each other.
+        return ComposeTyped<PointerEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<MouseEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<KeyboardEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<FocusEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<ChangeEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<TouchEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<WheelEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<DragEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<ClipboardEventArgs>(owner, mine, userValue, ref composed)
+            || ComposeTyped<EventArgs>(owner, mine, userValue, ref composed);
+    }
+
+    // The consumer's callback is typed TArgs; the primitive's is the same type or untyped. Either
+    // way the result keeps the consumer's (incoming) shape.
+    private static bool ComposeTyped<TArgs>(object owner, object mine, object userValue, ref object composed)
+    {
+        if (userValue is not EventCallback<TArgs> theirs) return false;
+
+        switch (mine)
+        {
+            case EventCallback<TArgs> typed:
+                composed = EventCallback.Factory.Create<TArgs>(owner, e => Both(typed.InvokeAsync(e), () => theirs.InvokeAsync(e)));
                 return true;
-            case (EventCallback<MouseEventArgs> a, EventCallback<MouseEventArgs> b):
-                composed = EventCallback.Factory.Create<MouseEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
-                return true;
-            case (EventCallback<KeyboardEventArgs> a, EventCallback<KeyboardEventArgs> b):
-                composed = EventCallback.Factory.Create<KeyboardEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
-                return true;
-            case (EventCallback<FocusEventArgs> a, EventCallback<FocusEventArgs> b):
-                composed = EventCallback.Factory.Create<FocusEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
-                return true;
-            case (EventCallback<ChangeEventArgs> a, EventCallback<ChangeEventArgs> b):
-                composed = EventCallback.Factory.Create<ChangeEventArgs>(owner, e => Both(a.InvokeAsync(e), () => b.InvokeAsync(e)));
+            case EventCallback untyped:
+                composed = EventCallback.Factory.Create<TArgs>(owner, e => Both(untyped.InvokeAsync(), () => theirs.InvokeAsync(e)));
                 return true;
             default:
                 return false;
