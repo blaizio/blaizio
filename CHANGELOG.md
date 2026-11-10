@@ -105,6 +105,8 @@ lockstep under one version.
 - **Input Number**: leaving a read-only or disabled field no longer clamps or snaps its value or
   raises `ValueChanged`. Focusing a value with more than six decimals no longer truncates it. With
   a fractional `Min` the step grid keeps that fraction (`Min="0.5" Step="1"` gives 0.5, 1.5, 2.5).
+- **Slider**: with a fractional `Min` the thumb lands on the real grid (`Min="0.5" Step="1"` gives
+  0.5, 1.5, 2.5) and Home no longer goes below `Min`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

@@ -107,18 +107,19 @@
     {
         var steps = Math.Round((value - Min) / EffectiveStep, MidpointRounding.AwayFromZero);
         var snapped = Math.Clamp(Min + steps * EffectiveStep, Min, Max);
-        return Math.Round(snapped, StepDecimals); // kill binary-float drift so values read cleanly.
+        // Kill binary-float drift so values read cleanly. The grid starts at Min, so its points
+        // carry Min's decimals too (Min 0.5, Step 1 gives 0.5, 1.5, ...).
+        return Math.Round(snapped, Math.Max(StepDecimals, DecimalsOf(Min)));
     }
 
     // Decimal places implied by Step, so 0.1 increments don't surface as 0.30000000000000004.
-    private int StepDecimals
+    private int StepDecimals => DecimalsOf(EffectiveStep);
+
+    private static int DecimalsOf(double value)
     {
-        get
-        {
-            var text = EffectiveStep.ToString(CultureInfo.InvariantCulture);
-            var dot = text.IndexOf('.');
-            return dot < 0 ? 0 : Math.Min(text.Length - dot - 1, 15);
-        }
+        var text = value.ToString(CultureInfo.InvariantCulture);
+        var dot = text.IndexOf('.');
+        return dot < 0 || text.Contains('E') ? 0 : Math.Min(text.Length - dot - 1, 15);
     }
 
     private static string Fmt(double value) => value.ToString(CultureInfo.InvariantCulture);
