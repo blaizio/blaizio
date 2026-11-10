@@ -54,6 +54,7 @@
     private CancellationTokenSource? _reset;
     private IJSObjectReference? _module;
     private DotNetObjectReference<BaseCopyButton>? _selfRef;
+    private bool _disposed;
 
     private string Announcement => _copied switch
     {
@@ -67,9 +68,21 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        _selfRef = DotNetObjectReference.Create(this);
-        _module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/clipboard.js");
-        await _module.InvokeVoidAsync("register", _token, _selfRef);
+        try
+        {
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/clipboard.js");
+            // Disposed while the import was in flight (a fast navigation): registering now would
+            // hand the script a reference DisposeAsync already disposed, and nothing would ever
+            // unregister it.
+            if (_disposed) return;
+            _selfRef = DotNetObjectReference.Create(this);
+            _module = module;
+            await module.InvokeVoidAsync("register", _token, _selfRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone before the button was registered.
+        }
     }
 
     /// <summary>Invoked by dist/clipboard.js with the outcome of a click's copy.</summary>
@@ -114,6 +127,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         _reset?.Cancel();
         _reset?.Dispose();
         try

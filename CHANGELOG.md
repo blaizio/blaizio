@@ -98,6 +98,8 @@ lockstep under one version.
   Roving Focus**: a component removed while it is still wiring up (leaving a page quickly, an
   item removed right after it rendered) no longer leaves its listeners and observers running
   on the page.
+- **Copy Button**: leaving a page before its copy buttons finished wiring up no longer raises an
+  unhandled `ObjectDisposedException`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
