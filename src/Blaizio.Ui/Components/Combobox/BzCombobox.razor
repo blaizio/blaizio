@@ -130,6 +130,11 @@
     // for a given list, so the parts don't needlessly re-cascade between renders.
     protected override void OnParametersSet()
     {
+        // What the parent holds as selected is known by item, whatever Items says right now.
+        if (Value is { } value) Remember(value);
+        foreach (var item in Values ?? DefaultValues ?? []) Remember(item);
+        if (DefaultValue is { } initial) Remember(initial);
+
         if (ReferenceEquals(_lastItems, Items)) return;
         _lastItems = Items;
         _data = new ComboboxData<TItem>(Items, Str, Find);
@@ -137,18 +142,54 @@
 
     private string Str(TItem item) => (ItemToStringValue ?? (i => i?.ToString() ?? ""))(item);
 
-    private TItem? Find(string value)
+    // Selected items by their string key. With server-side search Items holds only the current
+    // matches, so an earlier pick is no longer in it: without this it would drop out of Values
+    // (and lose its chip) as soon as the query changed.
+    private readonly Dictionary<string, TItem> _picked = new(StringComparer.Ordinal);
+
+    // An item whose key is null (ItemToStringValue or ToString returned none) cannot be selected by
+    // key, so there is nothing to remember for it.
+    private void Remember(TItem item)
     {
-        foreach (var item in Items)
-        {
-            if (string.Equals(Str(item), value, StringComparison.Ordinal)) return item;
-        }
-        return default;
+        if (item is not null && Str(item) is { } key) _picked[key] = item;
     }
 
-    private Task OnBaseValueChanged(string? value) =>
-        ValueChanged.InvokeAsync(value is null ? default : Find(value));
+    private TItem? Find(string value) => TryFind(value, out var item) ? item : default;
 
-    private Task OnBaseValuesChanged(IReadOnlyList<string> values) =>
-        ValuesChanged.InvokeAsync(values.Select(Find).Where(i => i is not null).Select(i => i!).ToList());
+    private bool TryFind(string value, out TItem item)
+    {
+        foreach (var candidate in Items)
+        {
+            if (!string.Equals(Str(candidate), value, StringComparison.Ordinal)) continue;
+            item = candidate;
+            return true;
+        }
+        return _picked.TryGetValue(value, out item!);
+    }
+
+    private Task OnBaseValueChanged(string? value)
+    {
+        _picked.Clear();
+        if (value is null || !TryFind(value, out var item)) return ValueChanged.InvokeAsync(default);
+        _picked[value] = item;
+        return ValueChanged.InvokeAsync(item);
+    }
+
+    private Task OnBaseValuesChanged(IReadOnlyList<string> values)
+    {
+        // Found, not "not null": for a value-type TItem a miss must be dropped, not sent as default.
+        var items = new List<TItem>(values.Count);
+        var kept = new Dictionary<string, TItem>(values.Count, StringComparer.Ordinal);
+        foreach (var value in values)
+        {
+            if (!TryFind(value, out var item)) continue;
+            items.Add(item);
+            kept[value] = item;
+        }
+
+        // Only the current selection is remembered, so the cache cannot grow with every search.
+        _picked.Clear();
+        foreach (var (key, item) in kept) _picked[key] = item;
+        return ValuesChanged.InvokeAsync(items);
+    }
 }

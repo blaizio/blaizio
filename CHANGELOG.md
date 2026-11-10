@@ -152,6 +152,9 @@ lockstep under one version.
   beside a match found in a loaded branch.
 - **Theme**: setting or reading the font no longer removes or misreads Tailwind `font-*` classes
   (`font-sans`, `font-medium`, ...) that an app put on `<html>`.
+- **Combobox**: with server-side search (`ShouldFilter="false"` and `Items` replaced per query), a
+  multiple selection keeps the items picked under earlier queries. For a value-type item, a value
+  that matches nothing is dropped instead of arriving as `default`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
