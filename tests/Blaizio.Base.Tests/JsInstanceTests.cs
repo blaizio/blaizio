@@ -60,6 +60,8 @@ public class JsInstanceTests
 
         public void Fail(Exception exception) => _pending.Dequeue().SetException(exception);
 
+        public void LandNothing() => _pending.Dequeue().SetResult(null!);
+
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
         private static async Task<TValue> Cast<TValue>(Task<IJSObjectReference> task) => (TValue)await task;
@@ -159,6 +161,23 @@ public class JsInstanceTests
         Assert.False(await second);
         Assert.False(kept.Disposed);
         Assert.True(extra.Disposed);
+    }
+
+    [Fact]
+    public async Task A_factory_that_returns_nothing_creates_nothing_and_can_be_retried()
+    {
+        var module = new FakeModule();
+        var handle = new JsInstance();
+
+        var first = handle.CreateAsync(module, "create");
+        module.LandNothing(); // e.g. the element the factory attaches to is not in the DOM yet
+        Assert.False(await first);
+        Assert.False(handle.IsCreated);
+
+        var second = handle.CreateAsync(module, "create");
+        module.Land();
+        Assert.True(await second);
+        Assert.True(handle.IsCreated);
     }
 
     [Fact]
