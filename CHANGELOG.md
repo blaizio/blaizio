@@ -22,6 +22,8 @@ lockstep under one version.
   `type="button"`.
 - **Chart**: a pie chart's tooltip shows the hovered slice when the data has zero or negative
   items. It used to show a neighbouring slice, or nothing.
+- **Toast**: the toast provider unsubscribes from the toast store when it is disposed. The store
+  used to keep the disposed provider referenced for the rest of the scope.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

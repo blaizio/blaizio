@@ -167,6 +167,10 @@
 
     public async ValueTask DisposeAsync()
     {
+        // Blazor calls only DisposeAsync on a component that implements both interfaces, so the
+        // store subscription is dropped here too (removing a handler twice is harmless).
+        Store.Changed -= OnStoreChanged;
+
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
