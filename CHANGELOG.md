@@ -128,6 +128,7 @@ lockstep under one version.
   wrong trigger, and a `Value` with a quote no longer throws. Element ids are now generated.
 - **Sidebar**: Ctrl/Cmd+B inside a rich-text editor is left to the editor. `Class` applies to
   the mobile sheet too. An `Active` menu button or sub-button has `aria-current="page"`.
+- **Toolbar**: changing `Overflow` after the toolbar rendered now takes effect.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

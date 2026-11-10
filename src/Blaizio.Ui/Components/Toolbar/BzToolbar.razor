@@ -221,14 +221,22 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || !(Scrolls || Expands)) return;
+        // The script is wired for one mode. Overflow can change after the first render, so re-wire
+        // whenever the mode differs from the one in place (and drop it for a mode that needs none).
+        var mode = Scrolls ? "scroll" : Expands ? "expand" : null;
+        if (mode == _wiredMode) return;
+        _wiredMode = mode;
+        await _scroller.ReleaseAsync();
+        if (mode is null) return;
 
         // The root element is the viewport's parent - resolved JS-side from the ref, so no second
         // ElementReference has to thread through BaseToolbar. Expand only needs the overflow
         // watcher (its clip is CSS); Scroll also gets the paging and the per-direction state.
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toolbar.js");
-        await _scroller.CreateAsync(module, "createScrollerFromViewport", _viewport, Scrolls ? "scroll" : "expand");
+        await _scroller.CreateAsync(module, "createScrollerFromViewport", _viewport, mode);
     }
+
+    private string? _wiredMode;
 
     public async ValueTask DisposeAsync()
     {

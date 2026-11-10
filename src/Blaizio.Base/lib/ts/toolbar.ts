@@ -86,6 +86,9 @@ export function createScroller(
       });
     },
     dispose() {
+      // The published state describes this mode; a scroller wired for another one starts clean.
+      for (const name of ['data-overflowing', 'data-can-scroll-prev', 'data-can-scroll-next', 'data-reveal-open'])
+        root.removeAttribute(name);
       observer.disconnect();
       mutations.disconnect();
       viewport.removeEventListener('scroll', update);
