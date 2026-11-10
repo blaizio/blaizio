@@ -171,15 +171,8 @@
         // store subscription is dropped here too (removing a handler twice is harmless).
         Store.Changed -= OnStoreChanged;
 
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await _instance.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone (navigation / refresh) - nothing to clean up.
-        }
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        await _instance.DisposeAsync();
 
         _selfRef?.Dispose();
     }

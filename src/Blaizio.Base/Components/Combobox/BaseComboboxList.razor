@@ -56,15 +56,8 @@
     [ExcludeFromCodeCoverage]
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await _handle.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone - nothing to clean up.
-        }
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        await _handle.DisposeAsync();
 
         GC.SuppressFinalize(this);
     }

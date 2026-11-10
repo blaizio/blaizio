@@ -112,17 +112,10 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await _scrollObserver.DisposeAsync();
-            await _instance.DisposeAsync();
-            await _marqueeInstance.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit gone.
-        }
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        await _scrollObserver.DisposeAsync();
+        await _instance.DisposeAsync();
+        await _marqueeInstance.DisposeAsync();
         _selfRef?.Dispose();
     }
 }

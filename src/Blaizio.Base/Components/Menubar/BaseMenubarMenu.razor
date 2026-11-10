@@ -72,15 +72,8 @@
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await _triggerGuard.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        await _triggerGuard.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }
