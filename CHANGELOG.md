@@ -102,6 +102,9 @@ lockstep under one version.
   unhandled `ObjectDisposedException`.
 - **Drawer, Panel, Select, Sidebar, Toolbar, Data Table**: a component removed while it is
   still wiring up no longer leaves its listeners and observers running on the page.
+- **Input Number**: leaving a read-only or disabled field no longer clamps or snaps its value or
+  raises `ValueChanged`. Focusing a value with more than six decimals no longer truncates it. With
+  a fractional `Min` the step grid keeps that fraction (`Min="0.5" Step="1"` gives 0.5, 1.5, 2.5).
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

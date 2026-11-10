@@ -195,6 +195,14 @@
         _focused = false;
         PressEnd();
 
+        // A field that cannot be edited has nothing to commit: leaving it must not clamp or snap
+        // the value it was only showing.
+        if (Disabled || ReadOnly)
+        {
+            _text = FormatValue(_value.Value);
+            return;
+        }
+
         decimal? committed =
             string.IsNullOrWhiteSpace(_text) ? (InputNumberValue<TValue>.Nullable ? null : _value.Value)
             : TryParse(_text, out var parsed) ? Snap(Clamp(parsed))
@@ -301,7 +309,9 @@
             var origin = MinBound ?? 0;
             var steps = decimal.Round((value - origin) / EffectiveStep, MidpointRounding.AwayFromZero);
             var snapped = Clamp(origin + steps * EffectiveStep);
-            return decimal.Round(snapped, StepDecimals);
+            // The grid starts at the lower bound, so its points carry that bound's decimals too
+            // (Min 0.5, Step 1 gives 0.5, 1.5, ...): rounding to the step alone would move them.
+            return decimal.Round(snapped, Math.Max(StepDecimals, DecimalsOf(origin)));
         }
         catch (OverflowException)
         {
@@ -311,14 +321,13 @@
         }
     }
 
-    private int StepDecimals
+    private int StepDecimals => DecimalsOf(EffectiveStep);
+
+    private static int DecimalsOf(decimal value)
     {
-        get
-        {
-            var text = EffectiveStep.ToString(CultureInfo.InvariantCulture);
-            var dot = text.IndexOf('.');
-            return dot < 0 ? 0 : Math.Min(text.Length - dot - 1, 15);
-        }
+        var text = value.ToString(CultureInfo.InvariantCulture);
+        var dot = text.IndexOf('.');
+        return dot < 0 ? 0 : Math.Min(text.Length - dot - 1, 15);
     }
 
     private bool TryParse(string text, out decimal value) =>
@@ -327,8 +336,10 @@
     private string FormatValue(decimal? value) =>
         value is { } v ? v.ToString(Format ?? "0.######", Cult) : "";
 
+    // Every decimal the value has (a decimal holds 28): the edit text is what blur parses back, so
+    // a shorter format would drop digits from a value the user only tabbed through.
     private string RawValue(decimal? value) =>
-        value is { } v ? v.ToString("0.######", Cult) : "";
+        value is { } v ? v.ToString("0.############################", Cult) : "";
 
     public void Dispose() => PressEnd();
 }
