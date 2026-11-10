@@ -337,6 +337,9 @@ lockstep under one version.
   `ICssAssetProvider.GetSharedStyleCss()` / `GetStyleCss(string)` / `AvailableStyles`. The
   interface's style and skin members forward to each other by default, so an implementer
   overrides one set and existing implementations keep compiling.
+- **`JsInstance`** (Blaizio.Base): owns one script-side instance created from a module factory.
+  It releases an instance that lands after the component was disposed, and ignores calls made
+  before the instance exists or after it is gone. For components that wire their own script.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with
