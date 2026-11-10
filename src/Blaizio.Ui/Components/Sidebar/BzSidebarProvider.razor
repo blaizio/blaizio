@@ -58,8 +58,8 @@
     private bool _cookieRead;
 
     private IJSObjectReference? _module;
-    private IJSObjectReference? _watcher;
-    private IJSObjectReference? _hotkey;
+    private readonly JsInstance _watcher = new();
+    private readonly JsInstance _hotkey = new();
     private DotNetObjectReference<BzSidebarProvider>? _selfRef;
 
     private bool OpenState => Open ?? _open;
@@ -115,11 +115,12 @@
         try
         {
             _module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/sidebar.js");
+            if (_watcher.IsDisposed) return; // disposed while the import was in flight
             _selfRef = DotNetObjectReference.Create(this);
 
             // Seed the mobile state and subscribe to breakpoint crossings.
             _isMobile = await _module.InvokeAsync<bool>("matchesMobile", MobileBreakpoint);
-            _watcher = await _module.InvokeAsync<IJSObjectReference>("observeMobile", _selfRef, MobileBreakpoint);
+            await _watcher.CreateAsync(_module, "observeMobile", _selfRef, MobileBreakpoint);
 
             // Restore the persisted open state (uncontrolled only).
             if (Open is null && PersistState && !_cookieRead)
@@ -131,7 +132,7 @@
 
             // Ctrl/Cmd+B toggles the sidebar.
             var hotkeys = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/hotkeys.js");
-            _hotkey = await hotkeys.InvokeAsync<IJSObjectReference>("createHotkey", "mod+b", _selfRef, true);
+            await _hotkey.CreateAsync(hotkeys, "createHotkey", "mod+b", _selfRef, true);
 
             StateHasChanged();
         }
@@ -155,8 +156,8 @@
         try
         {
             // Instances are ours; the modules are shared JsModules proxies and stay alive.
-            if (_watcher is not null) { await _watcher.InvokeVoidAsync("dispose"); await _watcher.DisposeAsync(); }
-            if (_hotkey is not null) { await _hotkey.InvokeVoidAsync("dispose"); await _hotkey.DisposeAsync(); }
+            await _watcher.DisposeAsync();
+            await _hotkey.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
         _selfRef?.Dispose();
