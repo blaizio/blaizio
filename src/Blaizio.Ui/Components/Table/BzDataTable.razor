@@ -784,6 +784,10 @@
             // Read the source, not cts.Token: disposal disposes the source, after which Token throws.
             if (cts.IsCancellationRequested) return;
             _rendered = result.Items;
+            // A virtualized table renders, navigates and row-clicks from _view, not _rendered
+            // (paging and virtualizing are alternatives). Without this a provider-fed virtualized
+            // table had rows loaded and showed "No results.".
+            if (!Paged) _view = result.Items as List<TItem> ?? [.. result.Items];
             _totalCount = result.TotalCount;
             _loading = false;
             StateHasChanged();
@@ -1231,10 +1235,15 @@
             return;
         }
 
+        // Columns that are not on screen keep their slot; the visible ones take the new order.
+        // "Not on screen" is VisibleColumns' rule, which is more than _hidden: an edit actions
+        // column is also left out while rows are not edited as a whole. Testing _hidden alone
+        // consumed a slot for it and ran past the end of visibleOrder.
+        var onScreen = visible.Select(c => c.Key).ToHashSet(StringComparer.Ordinal);
         var next = new List<string>(_effectiveColumns.Count);
         var v = 0;
         foreach (var column in _effectiveColumns)
-            next.Add(_hidden.Contains(column.Key) ? column.Key : visibleOrder[v++]);
+            next.Add(onScreen.Contains(column.Key) ? visibleOrder[v++] : column.Key);
         await _order.SetAsync(next, ColumnOrderChanged);
         if (!_order.IsControlled) RebuildColumns();
         StateHasChanged();

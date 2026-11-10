@@ -71,6 +71,10 @@ lockstep under one version.
 - **Color Picker**: a picked image keeps painting after you switch the picker to another surface
   or close the popover around it, and can be rotated and exported when you come back. Its
   object URL is now released when the picture is replaced, not when the surface goes away.
+- **Data Table**: `Virtualize` together with `ItemsProvider` (and no `PageSize`) now shows the
+  loaded rows. It used to show "No results.".
+- **Data Table**: moving a column no longer throws when the table has a `BzEditActionsColumn`
+  that is not showing (Cell edit mode, or nothing editable).
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
