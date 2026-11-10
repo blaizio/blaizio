@@ -131,6 +131,7 @@ lockstep under one version.
 - **Toolbar**: changing `Overflow` after the toolbar rendered now takes effect.
 - **Scroll Area**: the viewport takes keyboard focus, so a region with no focusable content can
   be scrolled with the keyboard.
+- **Table of Contents**: Ctrl, Cmd, Shift and Alt click on a link behave as the browser means them.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

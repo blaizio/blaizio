@@ -200,6 +200,8 @@ class TocSpy {
     if (!link || !this.nav.contains(link)) return;
     const target = document.getElementById(link.dataset.tocId ?? '');
     if (!target) return;
+    // Ctrl/⌘/Shift/Alt click means "open elsewhere" (new tab, new window, download): leave it.
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
     event.preventDefault();
     const behavior: ScrollBehavior = matchMedia('(prefers-reduced-motion: reduce)').matches
