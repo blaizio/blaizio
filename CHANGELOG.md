@@ -30,6 +30,9 @@ lockstep under one version.
   arguments.
 - **Accordion, Collapsible**: an open panel measures its height once per content change. After
   the first change it used to measure again on every frame for as long as it stayed open.
+- **Combobox**: in a multiple-selection combobox, a chip's remove button still removes that chip
+  after an earlier chip was removed. In a loop without `@key` it used to target the value the
+  chip held before.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

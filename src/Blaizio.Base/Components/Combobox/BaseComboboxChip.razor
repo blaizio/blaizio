@@ -5,7 +5,9 @@
     BaseComboboxChipRemove knows what to drop. Its content is the label plus (optionally) the remove button.
 *@
 
-<CascadingValue Value="@(new ComboboxChipContext(Value))" IsFixed="true">
+@* Not IsFixed: chips in an un-keyed loop are reused by position, so Value changes under a live
+   BaseComboboxChipRemove when an earlier chip is removed. *@
+<CascadingValue Value="@(new ComboboxChipContext(Value))">
     <div @attributes="BuildAttributes()">@ChildContent</div>
 </CascadingValue>
 
