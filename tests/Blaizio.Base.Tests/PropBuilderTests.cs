@@ -111,4 +111,30 @@ public class PropBuilderTests
 
         Assert.Equal(["primitive", "consumer"], order);
     }
+
+    // Primitives that ignore the event args wire pointer events untyped (tooltip and hover-card
+    // triggers), while a consumer's @onpointerenter always arrives typed. The consumer's handler
+    // must add to the primitive's, not replace it, and the result keeps the consumer's shape.
+    [Fact]
+    public async Task Untyped_primitive_handler_composes_with_a_typed_consumer_handler()
+    {
+        var order = new List<string>();
+        PointerEventArgs? seen = null;
+        var dict = new PropBuilder()
+            .On("onpointerenter", EventCallback.Factory.Create(this, () => order.Add("primitive")))
+            .Merge(new Dictionary<string, object>
+            {
+                ["onpointerenter"] = EventCallback.Factory.Create<PointerEventArgs>(this, e =>
+                {
+                    seen = e;
+                    order.Add("consumer");
+                }),
+            });
+
+        var args = new PointerEventArgs();
+        await Assert.IsType<EventCallback<PointerEventArgs>>(dict["onpointerenter"]).InvokeAsync(args);
+
+        Assert.Equal(["primitive", "consumer"], order);
+        Assert.Same(args, seen);
+    }
 }
