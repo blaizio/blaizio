@@ -135,6 +135,8 @@ lockstep under one version.
 - **Pagination, Breadcrumb**: the ellipsis label ("More pages", "More") is announced.
 - **Breadcrumb**: a link with `OnClick` and no `Href` renders a `<button>`, so the keyboard
   reaches it.
+- **Chart**: a series with one point, or with every point at the same x, draws. Charts whose
+  values are all negative include the zero line.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

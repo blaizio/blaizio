@@ -81,7 +81,11 @@ internal sealed class ChartLayout<TItem>
 
         if (_x is not null)
         {
-            (_xLo, _xHi, var xStep) = Nice(_x.Min(), _x.Max(), xTickCount);
+            // One point, or every point at the same x, is a zero-width domain: the tick step would be
+            // 0 and every coordinate NaN. Give it room on both sides so the point sits in the middle.
+            var (xMin, xMax) = (_x.Min(), _x.Max());
+            if (xMax <= xMin) (xMin, xMax) = (xMin - 0.5, xMax + 0.5);
+            (_xLo, _xHi, var xStep) = Nice(xMin, xMax, xTickCount);
             var xTicks = new List<double>();
             for (var t = _xLo; t <= _xHi + xStep / 2; t += xStep) xTicks.Add(Math.Round(t, 10));
             XTicks = xTicks;
@@ -90,7 +94,9 @@ internal sealed class ChartLayout<TItem>
 
     private (double Min, double Max) Domain()
     {
-        double min = 0, max = double.MinValue;
+        // Both ends start at 0: bars and areas grow from the zero line, so it has to be inside the
+        // domain when every value is negative, exactly as it is when every value is positive.
+        double min = 0, max = 0;
 
         for (var i = 0; i < Count; i++)
         {
