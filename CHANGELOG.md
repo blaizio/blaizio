@@ -144,6 +144,8 @@ lockstep under one version.
 - **Virtualizer**: leaving the page cancels an `ItemsProvider` request still in flight.
 - **Progress**: a null `Value` (without `Indeterminate`) is announced as 0, matching the empty
   track it draws.
+- **Theme**: after a failed first load of the theme script, the next call tries again. A stored
+  style, preset or overlay value containing whitespace is ignored instead of breaking startup.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

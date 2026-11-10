@@ -109,7 +109,18 @@ public sealed class ThemeService(IJSRuntime js) : IThemeService, IAsyncDisposabl
     // One import per scope, shared by every caller; the watcher is wired alongside so ThemeChanged
     // fires from the first use on. The task is cached (not the reference) so concurrent first calls
     // await the same import instead of racing a second one.
-    private Task<IJSObjectReference> Module() => _moduleTask ??= ImportAndWatch();
+    // A failed attempt is not cached: the next call imports again instead of rethrowing it.
+    private Task<IJSObjectReference> Module()
+    {
+        if (_moduleTask is { IsFaulted: true } or { IsCanceled: true })
+        {
+            _selfRef?.Dispose();
+            _selfRef = null;
+            _moduleTask = null;
+        }
+
+        return _moduleTask ??= ImportAndWatch();
+    }
 
     private async Task<IJSObjectReference> ImportAndWatch()
     {

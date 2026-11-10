@@ -25,12 +25,15 @@ try {
 // 'light' | 'dark' are explicit choices; anything else ('system', nothing persisted yet, or a
 // legacy value) resolves against the OS preference.
 el.classList.toggle('dark', theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches));
-if (style) {
+// A persisted value becomes a class name. One with whitespace in it would make classList.add
+// throw and take the rest of this script down with it, so such a value is ignored.
+const usable = (value: string | null): value is string => !!value && !/\s/.test(value);
+if (usable(style)) {
   for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
   el.classList.add('style-' + style);
 }
 // A persisted 'nova' (the default palette) strips any markup preset class rather than adding one.
-if (preset) {
+if (usable(preset)) {
   for (const c of [...el.classList]) if (c.startsWith('preset-')) el.classList.remove(c);
   if (preset !== 'nova') el.classList.add('preset-' + preset);
 }
@@ -51,7 +54,7 @@ for (const [key, prefix] of [
   } catch {
     // storage unavailable - keep the markup defaults
   }
-  if (!value) continue;
+  if (!usable(value)) continue;
   for (const c of [...el.classList]) if (c.startsWith(prefix)) el.classList.remove(c);
   if (value !== 'default') el.classList.add(prefix + value);
 }
