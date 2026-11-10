@@ -783,7 +783,9 @@ class Sortable {
     this.dragging = false;
 
     const el = this.dragEl!;
-    const drop = this.pending;
+    // A cancelled pointer (the browser took the touch, capture was lost) is not a drop: the
+    // order stays as it was and everything glides home.
+    const drop = e.type === 'pointercancel' ? null : this.pending;
     this.pending = null;
     this.removePlaceholder();
     el.removeAttribute('data-dragging');
