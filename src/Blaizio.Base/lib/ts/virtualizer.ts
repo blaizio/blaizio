@@ -255,6 +255,14 @@ class Virtualizer {
     this.measure();
   };
 
+  // Rows were appended: the rows already measured are the same rows, so their heights stay. Only
+  // the offsets past the old end and the reported range need working out again.
+  grow = (): void => {
+    this.offsetsDirty = true;
+    this.start = this.end = this.lastTop = this.lastBottom = -1;
+    this.measure();
+  };
+
   dispose = (): void => {
     if (this.frame) cancelAnimationFrame(this.frame);
     this.viewport.removeEventListener('scroll', this.onScroll);

@@ -22,7 +22,11 @@
 </BasePrimitive>
 
 @code {
-    /// <summary>Total number of rows being virtualized (before any windowing).</summary>
+    /// <summary>
+    /// Total number of rows being virtualized (before any windowing). A larger count is read as rows
+    /// appended at the end (infinite scroll): the window and the measured heights are kept, so the
+    /// view does not move. A smaller count starts over from the top, as a filter would need.
+    /// </summary>
     [Parameter, EditorRequired] public int Count { get; set; }
 
     /// <summary>
@@ -77,6 +81,7 @@
     private double _paddingBottom;
     private int _lastCount = -1;
     private bool _pendingRefresh;
+    private bool _pendingGrow;
     private bool _measured;
 
     /// <summary>The slice of rows currently requested, with its spacer heights.</summary>
@@ -90,6 +95,16 @@
         // the estimate-based spacers; the JS refines it on the next frame via OnRangeChanged.
         if (Count != _lastCount)
         {
+            // Rows added to a list that already had some: keep the window where it is. Resetting to
+            // the top slice here blanked the viewport for a frame and (in dynamic mode) dropped
+            // every measured height, so appending a page made the content under the reader jump.
+            if (_lastCount > 0 && Count > _lastCount)
+            {
+                _lastCount = Count;
+                _pendingGrow = true; // the script recomputes the bottom spacer for the new total
+                return;
+            }
+
             if (_lastCount >= 0) _pendingRefresh = true; // a real change, not the first render
             _lastCount = Count;
             _start = 0;
@@ -188,8 +203,13 @@
         }
         else if (_pendingRefresh && _instance.IsCreated)
         {
-            _pendingRefresh = false;
+            _pendingRefresh = _pendingGrow = false; // a full refresh covers a growth too
             await _instance.InvokeVoidAsync("refresh");
+        }
+        else if (_pendingGrow && _instance.IsCreated)
+        {
+            _pendingGrow = false;
+            await _instance.InvokeVoidAsync("grow");
         }
     }
 

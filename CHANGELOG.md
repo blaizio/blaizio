@@ -155,6 +155,8 @@ lockstep under one version.
 - **Combobox**: with server-side search (`ShouldFilter="false"` and `Items` replaced per query), a
   multiple selection keeps the items picked under earlier queries. For a value-type item, a value
   that matches nothing is dropped instead of arriving as `default`.
+- **Virtualizer, Data Table**: appending rows (infinite scroll) no longer blanks the list for a
+  frame or shifts the content under the reader. A smaller `Count` still restarts from the top.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
