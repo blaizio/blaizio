@@ -159,4 +159,15 @@ public class ToastStoreTests
 
         Assert.Empty(store.Toasts);
     }
+
+    [Fact]
+    public void A_throwing_OnDismiss_still_removes_the_toast()
+    {
+        var store = new ToastStore();
+        var id = store.Show(new ToastData { Title = "Saved", OnDismiss = () => throw new InvalidOperationException("boom") });
+
+        Assert.Throws<InvalidOperationException>(() => store.NotifyRemoved(id, autoClose: false));
+
+        Assert.Empty(store.Toasts);
+    }
 }

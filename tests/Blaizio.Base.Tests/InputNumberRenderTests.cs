@@ -229,4 +229,43 @@ public class InputNumberRenderTests : BunitContext
 
         Assert.Equal("6", Text(cut));
     }
+
+    [Fact]
+    public async Task Leaving_a_read_only_field_commits_nothing()
+    {
+        double? bound = 150;
+        var raised = 0;
+        var cut = Render<BaseInputNumber<double?>>(p => p
+            .Add(x => x.Value, bound)
+            .Add(x => x.ValueChanged, EventCallback.Factory.Create<double?>(this, v => { bound = v; raised++; }))
+            .Add(x => x.Max, 100d)
+            .Add(x => x.ReadOnly, true)
+            .Add(x => x.ChildContent, Field()));
+
+        await cut.Find("input").FocusAsync();
+        await cut.Find("input").BlurAsync();
+
+        // Out of range, but the field was only showing it: no clamp, no event.
+        Assert.Equal(0, raised);
+        Assert.Equal(150d, bound);
+    }
+
+    [Fact]
+    public async Task The_step_grid_starts_at_Min_and_keeps_its_decimals()
+    {
+        double? bound = 0.5;
+        var cut = Render<BaseInputNumber<double?>>(p => p
+            .Add(x => x.Value, bound)
+            .Add(x => x.ValueChanged, EventCallback.Factory.Create<double?>(this, v => bound = v))
+            .Add(x => x.Min, 0.5d)
+            .Add(x => x.Step, 1d)
+            .Add(x => x.ChildContent, Field()));
+
+        await cut.Find("input").FocusAsync();
+        await cut.Find("input").InputAsync("2.4");
+        await cut.Find("input").BlurAsync();
+
+        // Grid points are 0.5, 1.5, 2.5: rounding to the step's zero decimals would give 2.
+        Assert.Equal(2.5d, bound);
+    }
 }

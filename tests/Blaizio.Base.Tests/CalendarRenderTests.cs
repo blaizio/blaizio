@@ -397,4 +397,34 @@ public class CalendarRenderTests : BunitContext
         Assert.Equal("الشهر السابق", Assert.Single(cut.FindAll("[data-slot=calendar-button-previous]")).GetAttribute("aria-label"));
         Assert.Equal("الشهر التالي", Assert.Single(cut.FindAll("[data-slot=calendar-button-next]")).GetAttribute("aria-label"));
     }
+
+    [Fact]
+    public void Next_stops_at_the_month_Max_falls_in()
+    {
+        var cut = Render(p => p.Add(x => x.Max, new DateOnly(2026, 6, 20)));
+
+        // June is showing and Max is in June: July would be a month of disabled days.
+        Assert.Equal("true", cut.Find("[data-slot=calendar-button-next]").GetAttribute("aria-disabled"));
+    }
+
+    [Fact]
+    public void Next_is_available_while_Max_is_in_a_later_month()
+    {
+        var cut = Render(p => p.Add(x => x.Max, new DateOnly(2026, 7, 2)));
+
+        Assert.NotEqual("true", cut.Find("[data-slot=calendar-button-next]").GetAttribute("aria-disabled"));
+    }
+
+    [Fact]
+    public void The_grid_keeps_one_tab_stop_after_paging_away_from_the_focused_day()
+    {
+        var cut = Render();
+        Day(cut, new DateOnly(2026, 6, 10)).Click(); // the roving focus now sits on 10 June
+
+        cut.Find("[data-slot=calendar-button-next]").Click();
+        cut.Find("[data-slot=calendar-button-next]").Click(); // August: 10 June is off screen
+
+        var stops = cut.FindAll("[data-slot=calendar-day-button]").Count(b => b.GetAttribute("tabindex") == "0");
+        Assert.Equal(1, stops);
+    }
 }
