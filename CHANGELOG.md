@@ -403,6 +403,8 @@ lockstep under one version.
 - **`JsInstance`** (Blaizio.Base): owns one script-side instance created from a module factory.
   It releases an instance that lands after the component was disposed, and ignores calls made
   before the instance exists or after it is gone. For components that wire their own script.
+- **Chart**: `AriaLabel` on `BzChart`, `BzPieChart`, `BzRadarChart` and `BzRadialBarChart` exposes
+  the drawing to assistive tech as one labelled image. Without it the drawing stays hidden.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with

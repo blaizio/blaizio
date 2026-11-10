@@ -23,7 +23,8 @@
     <div class="relative mx-auto w-full max-w-full" style="max-width:@F(Size)px">
         @{ var slices = BuildSlices(); }
         <svg class="bz-chart-svg block w-full outline-none" tabindex="-1" viewBox="0 0 @F(Size) @F(Size)" xmlns="http://www.w3.org/2000/svg" fill="none"
-             aria-hidden="true" @onpointerleave="OnPointerLeave" @onfocusout="ClearActive">
+             aria-hidden="@(AriaLabel is null ? "true" : null)" role="@(AriaLabel is null ? null : "img")" aria-label="@AriaLabel"
+             @onpointerleave="OnPointerLeave" @onfocusout="ClearActive">
             @foreach (var slice in slices)
             {
                 var index = slice.Index;
@@ -109,6 +110,13 @@
 
     /// <summary>Chart options - <c>BzChartTooltip</c> and <c>BzChartLegend</c>; axes and grid are ignored.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// A name for the chart, read by assistive tech: say what it shows and the takeaway
+    /// ("Revenue by month, up 12% since January"). With it the drawing is exposed as one labelled
+    /// image; without it the drawing is hidden from assistive tech and only the legend is read.
+    /// </summary>
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }

@@ -39,7 +39,7 @@
              viewBox="0 0 @F(Width) @F(Height)"
              xmlns="http://www.w3.org/2000/svg"
              fill="none"
-             aria-hidden="true"
+             aria-hidden="@(AriaLabel is null ? "true" : null)" role="@(AriaLabel is null ? null : "img")" aria-label="@AriaLabel"
              @onpointerleave="OnPointerLeave" @onfocusout="ClearActive">
 
             @* Grid behind everything. *@
@@ -248,6 +248,13 @@
 
     /// <summary>Series and chart options - they register here and render nothing themselves.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// A name for the chart, read by assistive tech: say what it shows and the takeaway
+    /// ("Revenue by month, up 12% since January"). With it the drawing is exposed as one labelled
+    /// image; without it the drawing is hidden from assistive tech and only the legend is read.
+    /// </summary>
+    [Parameter] public string? AriaLabel { get; set; }
 
     /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
