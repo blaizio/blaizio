@@ -116,6 +116,8 @@ lockstep under one version.
   Next button now disables on the month `Max` falls in; it used to allow one more month.
 - **Color Picker**: dragging the hue to its far end (or pressing End) keeps the thumb there. A
   gradient angle written in `grad` is read. A swatch saved in HSB or CMYK shows its color.
+- **Hotkey, Kbd**: the `up`, `down`, `left`, `right` and `return` key names now trigger. They
+  rendered their glyph but never fired.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

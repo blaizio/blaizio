@@ -112,12 +112,23 @@ export function parseCombo(combo: string): ParsedCombo {
     else if (part === 'meta' || part === 'cmd' || part === 'win' || part === 'super') parsed.meta = true;
     else if (part === 'alt' || part === 'option') parsed.alt = true;
     else if (part === 'shift') parsed.shift = true;
-    else parsed.key = part;
+    else parsed.key = KEY_ALIASES[part] ?? part;
   }
   return parsed;
 }
 
-/** Exact-modifier combo match against a live keyboard event ("space" / "esc" aliases included). */
+// Short names a combo may use, mapped to the lower-cased KeyboardEvent.key they stand for.
+const KEY_ALIASES: Record<string, string> = {
+  up: 'arrowup',
+  down: 'arrowdown',
+  left: 'arrowleft',
+  right: 'arrowright',
+  return: 'enter',
+  esc: 'escape',
+  space: ' ',
+};
+
+/** Exact-modifier combo match against a live keyboard event (aliases are resolved by parseCombo). */
 export function matchesCombo(e: KeyboardEvent, combo: ParsedCombo): boolean {
   if (
     e.ctrlKey !== combo.ctrl ||
@@ -126,12 +137,7 @@ export function matchesCombo(e: KeyboardEvent, combo: ParsedCombo): boolean {
     e.shiftKey !== combo.shift
   )
     return false;
-  const key = e.key.toLowerCase();
-  return (
-    key === combo.key ||
-    (combo.key === 'space' && key === ' ') ||
-    (combo.key === 'esc' && key === 'escape')
-  );
+  return e.key.toLowerCase() === combo.key;
 }
 
 // ---------------------------------------------------------------------------------------------
