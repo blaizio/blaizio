@@ -1,4 +1,4 @@
-// Controller for BaseInputOtp - a port of the input-otp library's hidden-input technique.
+// Controller for BaseInputOtp - the hidden-input technique.
 //
 // A single transparent <input> is overlaid on the slot boxes; it owns all typing/paste/focus and its
 // text selection drives which slot is "active". This module wires that input and reports state to C#:
@@ -58,7 +58,7 @@ class InputOtp {
     if (document.activeElement === input) this.onFocus();
   }
 
-  // The slot height becomes the hidden input's font-size (the input-otp alignment trick).
+  // The slot height becomes the hidden input's font-size (keeps the caret aligned with the slots).
   private updateRootHeight = () => {
     this.input.parentElement?.style.setProperty('--bz-otp-root-height', `${this.input.clientHeight}px`);
   };
@@ -145,7 +145,7 @@ class InputOtp {
     void invokeDotNet(this.ref, 'OnBlur');
   };
 
-  // The selection-clamp algorithm (ported from input-otp): turn a single caret into the [i, i+1)
+  // The selection-clamp algorithm: turn a single caret into the [i, i+1)
   // range of the slot it sits in, so exactly one slot lights up (and the end caret selects the last).
   private onSelectionChange = () => {
     if (document.activeElement !== this.input) return; // onBlur clears the mirror

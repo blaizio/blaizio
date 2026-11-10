@@ -1,6 +1,6 @@
 // Window row virtualizer with NO height restriction: rows live in normal document flow (the PAGE
 // scrolls, not an inner fixed-height box), and only the rows whose vertical span intersects the
-// viewport are mounted - the rest are stood in for by two spacer rows the host renders above and
+// viewport are rendered - the rest are stood in for by two spacer rows the host renders above and
 // below. Two paths: a fast FIXED path where every row is the same estimated height (pure index math,
 // scales to millions of rows), and a DYNAMIC path that measures each rendered row, keeps a running
 // offset map, and anchors the viewport so a re-measure never makes the page jump. All geometry is

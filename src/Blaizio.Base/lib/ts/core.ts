@@ -143,7 +143,7 @@ export function matchesCombo(e: KeyboardEvent, combo: ParsedCombo): boolean {
 //                                        only preventDefault, never stopPropagation, so the event
 //                                        still reaches Blazor's root delegation)
 //   data-bz-autoselect                   select the field's content whenever it gains focus
-//   data-bz-autofocus                    focus the element when it MOUNTS (a MutationObserver, so
+//   data-bz-autofocus                    focus the element when it RENDERS (a MutationObserver, so
 //                                        content that appears later - a dialog's body - focuses
 //                                        when it appears, which native autofocus cannot do for
 //                                        Blazor-rendered markup)

@@ -7,9 +7,9 @@
     The popup surface of a combobox: the floating panel holding the empty state and the list. Anchored to
     the input (or chips/trigger) via ts/positioning.js (@floating-ui) - it publishes --bz-anchor-width and
     --bz-available-height so the styled layer can match the anchor's width and cap its height. Unlike a
-    select listbox, it does NOT take focus or mount its options while closed: focus stays in the input the
-    whole time (the highlight is virtual), so the panel is presence-managed like a popover - it mounts on
-    open and unmounts after the exit animation. Dismissed by an outside pointer-down
+    select listbox, it does NOT take focus or render its options while closed: focus stays in the input the
+    whole time (the highlight is virtual), so the panel is presence-managed like a popover - it renders on
+    open and is removed after the exit animation. Dismissed by an outside pointer-down
     (ts/dismissableLayer.js); Escape / Tab close from the input's own handler. Non-modal: no overlay, no
     scroll lock, the outside press passes through. data-side/data-align reflect the resolved placement.
 *@
@@ -45,7 +45,7 @@
     /// </summary>
     [Parameter] public bool Inline { get; set; }
 
-    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    /// <summary>Raised after the exit animation finishes and the content has been removed.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
@@ -180,7 +180,7 @@
         _present = false;
         _closing = false;
         // Drop the global pointer-down listener first, then stop the positioning loop, then presence;
-        // unmounting last keeps the list (and ts/combobox.js) alive until the animation is truly done.
+        // being removed last keeps the list (and ts/combobox.js) alive until the animation is truly done.
         await DisposeDismissAsync();
         await DisposePositioningAsync();
         await DisposePresenceAsync();

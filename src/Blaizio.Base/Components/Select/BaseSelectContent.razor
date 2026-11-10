@@ -10,7 +10,7 @@
     outside pointer-down (ts/dismissableLayer.js), or picking an option. Non-modal like the
     popover/dropdown: no overlay, no scroll lock, the outside press passes through.
 
-    Unlike a menu, the options stay MOUNTED while the listbox is closed (the surface is just
+    Unlike a menu, the options stay RENDERED while the listbox is closed (the surface is just
     `hidden`), so each option keeps its display content registered with the root - that is how the
     trigger shows a value chosen before the listbox has ever been opened. Only the open behaviour
     (positioning, navigation, dismissal) is attached on open and torn down on close.
@@ -225,7 +225,7 @@
         // listbox is open - the listbox portals to the body, so focus landing on an option is
         // OUTSIDE the dialog's subtree, and an unpaused trap yanks it straight back to the trigger,
         // leaving the keyboard dead (and Escape closing the dialog too). Menus get this from their
-        // BaseFocusScope wrapper; the select's surface stays mounted while closed (options register
+        // BaseFocusScope wrapper; the select's surface stays rendered while closed (options register
         // their display content), so its scope must follow the OPEN state instead - created here on
         // open, disposed with the rest of the open behaviour on close. Focus placement/restoration
         // stays with ts/menu.js (opens on the SELECTED option, restores the trigger).
@@ -279,7 +279,7 @@
         if (!_closing) return;
         _present = false;
         _closing = false;
-        // Hide the surface again (options stay mounted for registration), then return focus to the
+        // Hide the surface again (options stay rendered for registration), then return focus to the
         // trigger ourselves via ts/menu.js (a no-op if the trigger has left the DOM). Tear the JS down
         // last: pointer-down listener, positioning loop, menu + presence listeners.
         StateHasChanged();

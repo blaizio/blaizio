@@ -9,7 +9,7 @@ namespace Blaizio;
 /// <see cref="DropdownMenuContext"/> so selecting one closes the <i>whole</i> menu, not just this level.
 /// </summary>
 /// <param name="Open">Whether this submenu is open.</param>
-/// <param name="FocusIntent">Where the sub-content should place focus when it mounts.</param>
+/// <param name="FocusIntent">Where the sub-content should place focus when it renders.</param>
 /// <param name="ContentId">Id of the sub-content element (for the sub-trigger's <c>aria-controls</c>).</param>
 /// <param name="TriggerId">Id of the sub-trigger (for the sub-content's <c>aria-labelledby</c>).</param>
 /// <param name="AnchorId">Value of the sub-trigger's <c>data-bz-dropdown-menu-sub-anchor</c> hook; the sub-content positions against it.</param>

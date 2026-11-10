@@ -8,8 +8,8 @@
     by BaseDialogTitle / described by BaseDialogDescription, dismissed with Escape (the overlay
     handles pointer-down outside). Modal dialogs lock body scroll via ts/scrollLock.ts while open.
 
-    Presence-managed like BaseDialogOverlay: stays mounted with data-state="closed" while the
-    style's exit animation plays, unmounting on ts/presence.ts's animationend report. The focus
+    Presence-managed like BaseDialogOverlay: stays rendered with data-state="closed" while the
+    style's exit animation plays, removed on ts/presence.ts's animationend report. The focus
     scope element IS the content element - no extra wrapper.
 *@
 
@@ -49,7 +49,7 @@
     [Parameter] public EventCallback<FocusScopeEvent> OnCloseAutoFocus { get; set; }
 
     /// <summary>
-    /// Raised after the exit animation finishes and the content has unmounted. Hosts that render dialogs
+    /// Raised after the exit animation finishes and the content has been removed. Hosts that render dialogs
     /// dynamically (e.g. <see cref="BaseDialogProvider"/>) use this to drop a closed instance only once its
     /// close animation has played - the exit-animation-complete hook.
     /// </summary>
@@ -175,7 +175,7 @@
     }
 
     // Move the surface to <body> while open: an overlay surface has no positioning module to inherit
-    // the portal from, so it attaches ts/portal.js itself. Disposed (moved back) before the unmount
+    // the portal from, so it attaches ts/portal.js itself. Disposed (moved back) before the removal
     // render so Blazor removes the node from the tree it still owns.
     private async Task<IJSObjectReference> CreatePortalAsync()
     {
@@ -197,7 +197,7 @@
         _closing = false;
         await DisposePresenceAsync();
         await UnlockScrollAsync();
-        // Portal restore precedes the unmount render: the node must be back at its placeholder
+        // Portal restore precedes the removal render: the node must be back at its placeholder
         // before Blazor removes it.
         await DisposePortalAsync();
         StateHasChanged();

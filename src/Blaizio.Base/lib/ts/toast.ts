@@ -1,6 +1,6 @@
 /**
- * Toast - the stacking / animation / gesture engine for BzToaster, ported from sonner's index.tsx in
- * the same spirit as slider.ts and rovingFocus: wholly DOM-side, reading state live from the markup so
+ * Toast - the stacking / animation / gesture engine for BzToaster, in the same spirit as
+ * slider.ts and rovingFocus: wholly DOM-side, reading state live from the markup so
  * the C# side only owns the toast DATA (add / update / remove). Blazor renders the <ol>/<li> skeleton
  * with the static data contract; this module takes over everything that moves.
  *
@@ -40,7 +40,7 @@ interface ToastEntry {
   height: number;
   mounted: boolean;
   removing: boolean;
-  // Auto-close timing (mirrors sonner's remaining-time bookkeeping so hover pauses are exact).
+  // Auto-close timing (remaining-time bookkeeping, so hover pauses are exact).
   duration: number; // ms, or Infinity for persistent
   remaining: number;
   timer: number | null;
@@ -145,7 +145,7 @@ class Stack {
 
     entry.height = this.measure(el);
 
-    // Enter animation: the <li> starts in the unmounted CSS state (opacity 0, translated off-edge);
+    // Enter animation: the <li> starts in the pre-enter CSS state (opacity 0, translated off-edge);
     // flip data-mounted on the next frame so the transition runs. A setTimeout backstop flips it even
     // when rAF is starved (a backgrounded tab never paints), so the toast can't get stuck invisible.
     const flip = (): void => {
@@ -313,7 +313,7 @@ class Stack {
       entry.timer = null;
     }
     entry.el.setAttribute('data-removed', 'true');
-    // Re-flow the remaining toasts now (this one is excluded), then unmount after the exit plays.
+    // Re-flow the remaining toasts now (this one is excluded), then remove it after the exit plays.
     this.layout();
     window.setTimeout(() => {
       void invokeDotNet(this.ref, 'Remove', entry.id, autoClose);

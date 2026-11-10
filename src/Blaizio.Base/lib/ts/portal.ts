@@ -5,8 +5,8 @@
 // not by position:fixed. The fix is physical: move the element to document.body while it is shown.
 //
 // Blazor owns the element's lifetime, so the move must be reversible: a placeholder comment marks
-// the element's home, and restore() puts it back BEFORE Blazor unmounts it (Blazor removes nodes
-// by reference, so teardown is safe once the node is home). When the whole subtree unmounted first
+// the element's home, and restore() puts it back BEFORE Blazor removes it (Blazor removes nodes
+// by reference, so teardown is safe once the node is home). When the whole subtree was removed first
 // (navigation), the placeholder is gone - the element is simply removed instead.
 
 /**
@@ -84,7 +84,7 @@ const noop = { dispose() {} };
 /**
  * Interop entry for overlay surfaces (dialog content/overlay) that have no positioning module to
  * inherit the portal from: portals <code>el</code> on attach, restores on <code>dispose()</code>.
- * A no-op handle if <code>el</code> is not an element (already unmounted).
+ * A no-op handle if <code>el</code> is not an element (already removed).
  */
 export function createPortal(el: HTMLElement): { dispose(): void } {
   if (!(el instanceof HTMLElement)) return noop;

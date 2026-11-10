@@ -2,8 +2,7 @@ namespace Blaizio;
 
 /// <summary>
 /// How the month caption is rendered - a plain label, or dropdowns that let you jump months and/or
-/// years directly (handy for far-off dates like a birthday). Mirrors react-day-picker's
-/// <c>captionLayout</c>.
+/// years directly (handy for far-off dates like a birthday).
 /// </summary>
 public enum CalendarCaptionLayout
 {

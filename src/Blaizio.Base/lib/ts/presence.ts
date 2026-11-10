@@ -1,7 +1,7 @@
 // Exit-animation presence for overlay surfaces (dialog, sheet, popover) - the generic sibling of
-// collapse.ts (which also measures heights). The element stays mounted with data-state="closed"
+// collapse.ts (which also measures heights). The element stays rendered with data-state="closed"
 // while the style's exit animation plays; this module tells C# when it finished so the element can
-// unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
+// removal (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 import { invokeDotNet } from './core';
 
@@ -40,7 +40,7 @@ class Presence {
   /**
    * Called after the element re-rendered with data-state="closed". When no exit animation is
    * configured (a style without overlay animations, or prefers-reduced-motion), reports "done"
-   * immediately so C# unmounts at once; otherwise animationend does it - backed by a timer for
+   * immediately so C# removes it at once; otherwise animationend does it - backed by a timer for
    * the longest declared animation, because hidden pages (background tab, headless window) get
    * no rendering updates and never dispatch animation events.
    */
@@ -68,8 +68,8 @@ class Presence {
     clearTimeout(this.fallback);
     // Hide NOW, before the interop roundtrip. The exit animation has fill-mode none, so once it
     // finishes the surface snaps back to its fully-visible resting styles; on Blazor Server the
-    // unmount only lands a network roundtrip later, and that gap reads as a close-blink. The next
-    // open mounts a fresh element; a reopen that reuses this one is handled by the observer above.
+    // removal only lands a network roundtrip later, and that gap reads as a close-blink. The next
+    // open renders a fresh element; a reopen that reuses this one is handled by the observer above.
     if (this.el.dataset.state === 'closed') {
       this.el.style.visibility = 'hidden';
       this.hidden = true;

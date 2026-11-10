@@ -2,8 +2,8 @@ namespace Blaizio;
 
 /// <summary>
 /// Per-slot class names the styled layer threads through <see cref="BaseCalendar"/> to its
-/// <see cref="BaseCalendarMonth"/> / <see cref="BaseCalendarDay"/> parts - the analogue of
-/// react-day-picker's <c>classNames</c> map. Every slot is optional; the unstyled primitive leaves
+/// <see cref="BaseCalendarMonth"/> / <see cref="BaseCalendarDay"/> parts - one class
+/// per part. Every slot is optional; the unstyled primitive leaves
 /// them all <see langword="null"/>, so it renders structure with no look of its own.
 /// </summary>
 public sealed record CalendarClassNames

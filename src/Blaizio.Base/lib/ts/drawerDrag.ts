@@ -1,4 +1,4 @@
-// Drag-to-dismiss + snap points for the Drawer - the vaul-style gesture. The Drawer otherwise reuses
+// Drag-to-dismiss + snap points for the Drawer. The Drawer otherwise reuses
 // the Dialog machinery (presence exit-animation, focus trap, scroll lock, Escape, overlay
 // outside-click); this module adds the pointer drag: the content follows the pointer toward its edge,
 // the overlay fades with progress, and on release a past-threshold (or fast-flick) drag asks C# to
@@ -12,7 +12,7 @@
 //
 // The content keeps a `data-dragging` attribute while a gesture is live so the style disables its
 // enter/exit animation and transition (the JS transform owns the motion). On dismiss the attribute
-// stays set through unmount, so presence.ts sees no exit animation and tears down immediately - the
+// stays set through removal, so presence.ts sees no exit animation and tears down immediately - the
 // JS transform has already carried the panel off-screen.
 
 import { invokeDotNet, invokeDotNetResult } from './core';
@@ -102,7 +102,7 @@ class DrawerDrag {
   // Opens to the active snap (snapping only): slide from fully-hidden to the resting offset. Without
   // snap points the style's CSS enter animation owns the open, so this is a no-op.
   //
-  // Waits (via rAF) for the panel to have a real laid-out size before measuring: a just-mounted panel -
+  // Waits (via rAF) for the panel to have a real laid-out size before measuring: a just-rendered panel -
   // or one whose max-h-[Nvh] resolves against a not-yet-sized viewport - can briefly report ~0, which
   // would put the "65% snap" at ~0px (i.e. fully open).
   open(): void {

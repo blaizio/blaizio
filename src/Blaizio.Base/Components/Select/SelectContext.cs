@@ -11,8 +11,8 @@ namespace Blaizio;
 /// <remarks>
 /// The registry is what lets the trigger show the chosen option(s) even before the listbox has ever
 /// been opened (a value set programmatically, e.g. a pre-filled form): every option registers its
-/// display content keyed by value while it is mounted - and a <see cref="BaseSelect"/>'s options stay
-/// mounted (hidden) while closed, exactly so this registration is always available.
+/// display content keyed by value while it is rendered - and a <see cref="BaseSelect"/>'s options stay
+/// rendered (hidden) while closed, exactly so this registration is always available.
 /// </remarks>
 /// <param name="Value">The single selected value, or <see langword="null"/> when nothing is selected or when <see cref="Multiple"/>.</param>
 /// <param name="Selected">Every selected value, in selection order (0 or 1 when single, 0..n when <see cref="Multiple"/>).</param>

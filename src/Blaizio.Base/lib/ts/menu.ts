@@ -28,7 +28,7 @@ import { invokeDotNet } from './core';
 
 export interface MenuOptions {
   /**
-   * Where to place focus the instant the surface mounts (decided by how the menu was opened).
+   * Where to place focus the instant the surface renders (decided by how the menu was opened).
    * 'selected' (a select listbox) lands on the [aria-selected] option, scrolled into view, falling
    * back to the first option.
    */
@@ -242,7 +242,7 @@ class Menu {
           // animation and snapping it back - the same continuity the Escape path already gets. Skipped
           // for items that DON'T necessarily close on activation (a sub-trigger opens its submenu;
           // a checkbox/radio item may preventDefault to stay open), so we never pull focus out of a menu
-          // that stays open; and for a submenu level, whose whole stack unmounts so its parent restores.
+          // that stays open; and for a submenu level, whose whole stack is removed so its parent restores.
           // The C# close still restores focus too - a no-op once focus is already on the trigger here.
           const closesMenu =
             current.getAttribute('role') === 'menuitem' && !current.hasAttribute('aria-haspopup');
@@ -593,8 +593,8 @@ export function guardTrigger(selector: string): { dispose(): void } {
 
 /**
  * Return focus to a menu's trigger (matched by <code>selector</code>) when the menu closes. Used by
- * MenuContentBase instead of FocusScope's previouslyFocused, which is captured at mount and races
- * ts/menu.js's own opening focus - so it can latch onto an item that then unmounts, dropping focus
+ * MenuContentBase instead of FocusScope's previouslyFocused, which is captured at first render and races
+ * ts/menu.js's own opening focus - so it can latch onto an item that then is removed, dropping focus
  * to &lt;body&gt;. A no-op if the trigger has left the DOM (the whole menu tore down), so a parent's
  * own restore wins.
  *
@@ -604,7 +604,7 @@ export function guardTrigger(selector: string): { dispose(): void } {
  * only when focus was orphaned to &lt;body&gt;.
  *
  * <code>within</code>: also treat focus as stranded while it still sits INSIDE the closing surface
- * (a keyboard close runs before the surface unmounts). Focus the user already moved elsewhere -
+ * (a keyboard close runs before the surface is removed). Focus the user already moved elsewhere -
  * e.g. the dismissing click landed on a text input - is never stolen back to the trigger.
  */
 export function focusTrigger(

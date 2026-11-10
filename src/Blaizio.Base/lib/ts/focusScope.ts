@@ -1,13 +1,12 @@
 /**
  * FocusScope - manages keyboard focus for overlay surfaces (dialog, popover, menu).
  *
- * Ported and modernised from ArcBlazor's focusScope.ts:
- *  - Removed the dead/commented dismiss-layer + auto-focus stubs. Dismissal (Esc / outside
- *    pointer) is now its own primitive (DismissableLayer), a clean separation of concerns.
- *  - mount / unmount auto-focus now actually round-trip to .NET and honour preventDefault,
- *    so OnMountAutoFocus / OnUnmountAutoFocus are real extension points (they were no-ops).
- *  - Tabbable detection no longer discards <a> elements (the old `tagName !== "A"` bug).
- *  - Strict TypeScript, no `any`; the redundant C#-driven keydown path is gone.
+ * What it does beyond a plain focus trap:
+ *  - Focus only. Dismissal (Esc / outside pointer) is its own primitive (DismissableLayer).
+ *  - The auto-focus on first render and the focus restore on removal round-trip to .NET and
+ *    honour preventDefault, so OnMountAutoFocus / OnUnmountAutoFocus are real extension points.
+ *  - Links (<a>) count as tabbable.
+ *  - Tab handling is wholly DOM-side; C# sees no keydown.
  */
 
 import { invokeDotNetResult } from './core';
@@ -24,7 +23,7 @@ export interface FocusScopeOptions {
   /** A .NET OnUnmountAutoFocus handler is registered - round-trip before restoring focus. */
   hasUnmountAutoFocus: boolean;
   /**
-   * Claim the scope stack and nothing else: no auto-focus on mount, no focus restore on dispose.
+   * Claim the scope stack and nothing else: no auto-focus on first render, no focus restore on dispose.
    * For surfaces whose focus is driven elsewhere (ts/menu.js owns the select listbox - it opens on
    * the SELECTED option and restores the trigger itself). What the stack membership buys is an
    * enclosing dialog's trap standing down: the listbox portals to the body, so focus landing on an
@@ -66,7 +65,7 @@ export class FocusScope {
     if (!this.options.passive) void this.autoFocusOnMount();
   }
 
-  /** Focus the first tabbable on mount, unless .NET prevents it or focus is already inside. */
+  /** Focus the first tabbable on first render, unless .NET prevents it or focus is already inside. */
   private autoFocusOnMount = async (): Promise<void> => {
     if (this.container.contains(document.activeElement)) return;
 
@@ -230,7 +229,7 @@ export class FocusScope {
     // A passive scope only ever claimed the stack - whoever drives its focus restores it too.
     if (this.options.passive) return;
 
-    // Guarded: a navigation can dispose the scope's DotNetObjectReference while this unmount
+    // Guarded: a navigation can dispose the scope's DotNetObjectReference while this removal
     // round-trip is in flight (dialog closes, page moves on) - treat that as "not prevented".
     const prevented =
       this.options.hasUnmountAutoFocus &&

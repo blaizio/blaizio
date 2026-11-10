@@ -7,7 +7,7 @@ namespace Blaizio;
 /// <summary>
 /// Shared machinery for a dropdown-menu surface - the root <see cref="BaseDropdownMenuContent"/> and
 /// each submenu's <see cref="BaseDropdownMenuSubContent"/>. It owns the JS lifecycle: presence-managed
-/// mount/unmount with an exit animation (ts/presence.js), @floating-ui anchoring (ts/positioning.js),
+/// render / removal with an exit animation (ts/presence.js), @floating-ui anchoring (ts/positioning.js),
 /// menu keyboard + pointer navigation (ts/menu.js), and - for the root only - outside-pointer-down
 /// dismissal (ts/dismissableLayer.js). Focus is moved in by a wrapping <see cref="BaseFocusScope"/>
 /// that the concrete <c>.razor</c> renders; this base owns only the JS plumbing and the
@@ -21,7 +21,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// <summary>Whether the owning menu (root or submenu) is currently open.</summary>
     protected abstract bool IsOpen { get; }
 
-    /// <summary>Where to place focus the moment the surface mounts.</summary>
+    /// <summary>Where to place focus the moment the surface renders.</summary>
     protected abstract MenuFocusIntent FocusIntent { get; }
 
     /// <summary>
@@ -51,7 +51,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     protected virtual bool IsSubmenu => false;
 
     /// <summary>
-    /// <see langword="true"/> when an ancestor surface is being dismissed and will unmount this one
+    /// <see langword="true"/> when an ancestor surface is being dismissed and will remove this one
     /// with it (a submenu when the whole menu closes). The surface then drops SYNCHRONOUSLY, skipping
     /// its own exit animation - it is a <c>position:fixed</c> descendant of the closing ancestor, and
     /// that ancestor's exit-animation <c>transform</c> would otherwise become its containing block and
@@ -103,7 +103,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// <summary>Closes the owning menu - invoked by the base only for the outside-dismiss callback.</summary>
     protected abstract Task RequestCloseAsync();
 
-    /// <summary>Hook for the concrete surface to react after the exit animation has fully unmounted it.</summary>
+    /// <summary>Hook for the concrete surface to react after the exit animation has fully removed it.</summary>
     protected virtual ValueTask OnClosedAsync() => ValueTask.CompletedTask;
 
     /// <summary><see langword="true"/> while the surface should be in the DOM (open, or animating closed).</summary>
@@ -132,13 +132,13 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     protected void CaptureElement(ElementReference reference) => Element = reference;
 
     /// <summary>
-    /// Suppresses the wrapping <see cref="BaseFocusScope"/>'s own auto-focus, on mount and unmount
+    /// Suppresses the wrapping <see cref="BaseFocusScope"/>'s own auto-focus, on first render and on removal
     /// alike (wired to both <c>OnMountAutoFocus</c> and <c>OnUnmountAutoFocus</c>). Menus own their
     /// focus end to end: <c>ts/menu.js</c> places it when the surface opens, and
     /// <see cref="OnCloseFinished"/> returns it to the trigger on close. The focus scope is kept only
-    /// for its nested-scope stack management - its mount auto-focus would race <c>ts/menu.js</c> (a
-    /// cold-open flicker, an un-highlighted first item), and its unmount restore targets an element
-    /// captured at mount that the same race can leave pointing at a now-unmounted item.
+    /// for its nested-scope stack management - its first-render auto-focus would race <c>ts/menu.js</c> (a
+    /// cold-open flicker, an un-highlighted first item), and its removal restore targets an element
+    /// captured at first render that the same race can leave pointing at a now-removed item.
     /// </summary>
     protected static void SuppressAutoFocus(FocusScopeEvent e) => e.PreventDefault();
 
@@ -152,7 +152,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 
     protected override void OnParametersSet()
     {
-        // The whole menu is being dismissed and the root will unmount us. Leave the DOM now, in the
+        // The whole menu is being dismissed and the root will remove us. Leave the DOM now, in the
         // same render that turns the root to data-state="closed", so the root's exit-animation
         // transform never has a fixed-positioned submenu descendant to reparent (the close "shift").
         if (AncestorClosing)
@@ -299,11 +299,11 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         Present = false;
         Closing = false;
         // Positioning goes down FIRST: its dispose moves a portaled surface back to its placeholder,
-        // and that must precede the unmount render so Blazor removes the node from the tree it still
-        // owns. Then unmount and return focus to the trigger ourselves. We do this rather than lean
+        // and that must precede the removal render so Blazor removes the node from the tree it still
+        // owns. Then remove it and return focus to the trigger ourselves. We do this rather than lean
         // on BaseFocusScope's previouslyFocused (suppressed via SuppressAutoFocus): that target is
-        // captured at mount and races ts/menu.js's opening focus, so it can latch onto an item which,
-        // when it unmounts here, drops focus to <body> - the submenu-close-loses-parent-item bug.
+        // captured at first render and races ts/menu.js's opening focus, so it can latch onto an item which,
+        // when it is removed here, drops focus to <body> - the submenu-close-loses-parent-item bug.
         // focusTrigger is a no-op when the trigger is already gone (whole menu torn down), so a parent
         // menu's own restore wins. Then tear down the rest of the JS: pointer-down listener, menu
         // + presence listeners.

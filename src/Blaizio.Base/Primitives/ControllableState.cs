@@ -24,10 +24,10 @@ public sealed class ControllableState<T>
     private T _uncontrolled = default!;
     private bool _seeded;
 
-    /// <summary><see langword="true"/> when the consumer owns the value (a controlled prop was supplied).</summary>
+    /// <summary><see langword="true"/> when the consumer owns the value (a controlled parameter was supplied).</summary>
     public bool IsControlled { get; private set; }
 
-    /// <summary>The effective current value - the controlled prop when controlled, else the internal state.</summary>
+    /// <summary>The effective current value - the controlled parameter when controlled, else the internal state.</summary>
     public T Value { get; private set; } = default!;
 
     /// <summary>

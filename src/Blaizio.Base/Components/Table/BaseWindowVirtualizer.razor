@@ -5,7 +5,7 @@
 @using System.Diagnostics.CodeAnalysis
 @using System.Globalization
 @*
-    Headless window virtualizer: mounts only the rows whose vertical span intersects the viewport and
+    Headless window virtualizer: renders only the rows whose vertical span intersects the viewport and
     hands the host the current VirtualWindow (the [Start, End) slice + the two spacer heights) to
     render. There is NO height restriction - the page itself scrolls (or a container named by
     Viewport); the spacers keep the scroll height exact. ts/virtualizer.ts reads Count/ItemSize/
@@ -32,7 +32,7 @@
     /// </summary>
     [Parameter] public double ItemSize { get; set; } = 40;
 
-    /// <summary>Extra rows to mount above and below the viewport, to cover fast scrolls. Defaults to <c>4</c>.</summary>
+    /// <summary>Extra rows to render above and below the viewport, to cover fast scrolls. Defaults to <c>4</c>.</summary>
     [Parameter] public int Overscan { get; set; } = 4;
 
     /// <summary>
@@ -51,7 +51,7 @@
     [Parameter] public string Element { get; set; } = "div";
 
     /// <summary>
-    /// Rows to mount before the virtualizer's JS has measured the viewport (first paint / no-JS).
+    /// Rows to render before the virtualizer's JS has measured the viewport (first paint / no-JS).
     /// The JS corrects this on the first frame. Defaults to <c>30</c>.
     /// </summary>
     [Parameter] public int InitialCount { get; set; } = 30;

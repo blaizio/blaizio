@@ -9,9 +9,9 @@
     @bind-Value); set SelectionMode to Multiple for chips, controllable via Values/DefaultValues/ValuesChanged
     (@bind-Values). Open and Search (the input text) are likewise controllable.
 
-    Like the command palette, items stay MOUNTED while filtered out (they get a `hidden` attribute, NOT
-    an unmount) so their registrations survive a query that empties a whole group. Unlike it, the items
-    live in a popup that unmounts when closed - the registry is only consulted while open. Non-modal (the
+    Like the command palette, items stay RENDERED while filtered out (they get a `hidden` attribute, NOT
+    a removal) so their registrations survive a query that empties a whole group. Unlike it, the items
+    live in a popup that is removed when closed - the registry is only consulted while open. Non-modal (the
     floating tier): no overlay, no scroll lock; Escape, Tab, an outside press, or a single-select pick
     dismisses it.
 *@
@@ -240,7 +240,7 @@
 
     // Closing also ends the search and drops the abandoned query, so the input reverts to the chosen
     // label. Close FIRST, then drop the query: once closed the visibility memo is frozen (see
-    // EnsureComputed), so clearing the query can't visibly un-filter the still-mounted list as the popup
+    // EnsureComputed), so clearing the query can't visibly un-filter the still-rendered list as the popup
     // animates away after a pick (otherwise the whole unfiltered list flashes for a frame on select).
     private async Task CloseAsync()
     {
@@ -309,7 +309,7 @@
     private void EnsureComputed()
     {
         // While closed (including the exit animation) freeze the visible set at its last open-state value:
-        // dropping the query/typing on close must not visibly un-filter the still-mounted list as the
+        // dropping the query/typing on close must not visibly un-filter the still-rendered list as the
         // popup animates away. The next open recomputes. (_computedVersion < 0 = never computed yet.)
         if (!_open.Value && _computedVersion >= 0) return;
 

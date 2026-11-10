@@ -6,7 +6,7 @@ namespace Blaizio;
 /// <summary>
 /// Date arithmetic for a calendar grid carried out in a culture's own calendar system - Gregorian for
 /// most locales, but Persian (Jalali) for <c>fa-IR</c>, Hijri (Umm al-Qura) for <c>ar-SA</c>, and so
-/// on. This is the .NET analogue of react-day-picker's <c>/persian</c> entry point: the selectable
+/// on. One component, several calendars: the selectable
 /// value stays an absolute day (<see cref="DateOnly"/>), and every month/year decomposition routes
 /// through <see cref="CultureInfo.DateTimeFormat"/>'s <see cref="Calendar"/> so the grid lays out that
 /// locale's months and years. Day-of-week is universal (the same seven-day cycle), so it stays on

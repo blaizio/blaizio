@@ -1,6 +1,6 @@
 // Custom overlay scrollbars for the ScrollArea. The native scrollbar is hidden (the viewport carries
-// `scrollbar-none`); over it we draw a thumb sized and positioned from the live scroll metrics -
-// radix/vaul-style. The thumb is draggable, and each scrollbar is shown/hidden per the root's
+// `scrollbar-none`); over it we draw a thumb sized and positioned from the live scroll metrics.
+// The thumb is draggable, and each scrollbar is shown/hidden per the root's
 // `data-type` (auto | always | scroll | hover). Pure DOM: C# renders the structure and wires this on
 // first render; there are no .NET round-trips.
 //

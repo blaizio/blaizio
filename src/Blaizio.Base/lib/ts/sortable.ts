@@ -44,12 +44,12 @@ interface Options {
   group: string | null;
   animationMs: number;
   disabled: boolean;
-  sort: boolean; // reorder within this list (SortableJS `sort`)
-  transferOut: boolean; // items may leave for another list (SortableJS `group.pull`)
-  transferIn: boolean; // items may arrive from another list (SortableJS `group.put`)
-  delayMs: number; // hold this long before a drag can start (SortableJS `delay`)
-  lockAxis: boolean; // constrain the dragged item to the list's axis (Swapy `dragAxis`)
-  swapMode: SwapMode; // 'swap' previews the move live; 'drop' holds still until release (Swapy `swapMode`)
+  sort: boolean; // reorder within this list
+  transferOut: boolean; // items may leave for another list
+  transferIn: boolean; // items may arrive from another list
+  delayMs: number; // hold this long before a drag can start
+  lockAxis: boolean; // constrain the dragged item to the list's axis
+  swapMode: SwapMode; // 'swap' previews the move live; 'drop' holds still until release
   placeholder: boolean; // show a marker where the item will land
   placeholderClass: string | null; // classes for the marker (styled layer supplies them)
   animation: Animation; // motion preset; 'none' (and prefers-reduced-motion) disables all gliding

@@ -14,12 +14,12 @@
  *  - the open seed is value-driven: command.ts always seeds + resyncs the highlight to the first match
  *    (the palette is always showing a "current" command). A combobox instead seeds from the SELECTION -
  *    opening highlights the selected option (scrolled into view, like a Select), or nothing when nothing
- *    is selected. It is never an unconditional first item. autoHighlight (OFF by default, Base UI
+ *    is selected. It is never an unconditional first item. autoHighlight (OFF by default, the usual combobox
  *    semantics) governs only FILTERING: with it on, a query that is narrowing the list keeps the first
  *    match highlighted so Enter picks it; off, a refilter that drops the active option clears the
  *    highlight rather than jumping to the first match.
- *  - the list unmounts when the popup closes, so dispose() clears the input's aria-activedescendant -
- *    otherwise the (still-mounted) input would point at an option id that no longer exists.
+ *  - the list is removed when the popup closes, so dispose() clears the input's aria-activedescendant -
+ *    otherwise the (still-rendered) input would point at an option id that no longer exists.
  *
  * Selection flows through each option's own Blazor onclick, exactly like command.ts: Enter synthesizes
  * a click on the active option, and a mouse click is the same path. C# owns the query text and which
@@ -225,8 +225,8 @@ class Combobox {
     this.input.removeEventListener('keydown', this.onKeyDown);
     this.list.removeEventListener('pointermove', this.onPointerMove);
     this.list.removeEventListener('pointerleave', this.onPointerLeave);
-    // The input outlives this list (it is the anchor, mounted across opens): leave no dangling
-    // aria-activedescendant pointing at an option that just unmounted with the closing popup.
+    // The input outlives this list (it is the anchor, rendered across opens): leave no dangling
+    // aria-activedescendant pointing at an option that was just removed with the closing popup.
     this.input.removeAttribute('aria-activedescendant');
   }
 }

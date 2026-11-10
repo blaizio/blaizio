@@ -3,7 +3,7 @@
 @*
     The floating surface of a BaseDropdownMenu: a role="menu" panel wrapped in a (non-trapping) focus
     scope - focus moves in on open and returns to the trigger on close. Anchored to the trigger via
-    ts/positioning.js, presence-managed (stays mounted with data-state="closed" while the exit
+    ts/positioning.js, presence-managed (stays rendered with data-state="closed" while the exit
     animation plays), navigated by ts/menu.js (Arrow / Home / End / typeahead / Enter / Space), and
     dismissed by Escape, Tab, an outside pointer-down (ts/dismissableLayer.js), or selecting an item.
     The JS lifecycle lives in MenuContentBase; this file owns the markup + the dismissal keys.
@@ -52,7 +52,7 @@
     /// </summary>
     [Parameter] public bool Inline { get; set; }
 
-    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    /// <summary>Raised after the exit animation finishes and the content has been removed.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
     [CascadingParameter] private DropdownMenuContext? Menu { get; set; }
@@ -95,7 +95,7 @@
             .Merge(Attributes, Class, Style);
 
     // Escape and Tab both dismiss (Tab also lets focus leave; the focus scope restores it to the
-    // trigger). Vertical navigation + activation are handled in ts/menu.js. Closing the root unmounts
+    // trigger). Vertical navigation + activation are handled in ts/menu.js. Closing the root removes
     // any open submenus with it.
     private Task OnKeyDownAsync(KeyboardEventArgs e)
     {

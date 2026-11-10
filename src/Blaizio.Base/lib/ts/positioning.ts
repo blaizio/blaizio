@@ -131,12 +131,12 @@ class Positioning {
 
   dispose(): void {
     this.cleanup();
-    // Leave the element hidden. A surface that unmounts on close (tooltip/popover/dropdown) is about
-    // to be removed, so this is harmless; one that stays mounted and only toggles `hidden` (a select
+    // Leave the element hidden. A surface that is removed on close (tooltip/popover/dropdown) is about
+    // to be removed, so this is harmless; one that stays rendered and only toggles `hidden` (a select
     // listbox) must not flash at this stale position when it is shown again before the next
     // computePosition lands - the next createPositioning re-hides + repositions from scratch.
     this.floating.style.visibility = 'hidden';
-    // Home before Blazor's unmount render removes the node (callers dispose positioning first).
+    // Home before Blazor's removal render removes the node (callers dispose positioning first).
     this.portal?.restore();
   }
 }
@@ -256,7 +256,7 @@ class ItemAlignedPositioning {
     this.cleanup();
     // Match createPositioning: leave it hidden so a stale frame never flashes if the surface is reused.
     this.floating.style.visibility = 'hidden';
-    // Home before Blazor's unmount render removes the node (callers dispose positioning first).
+    // Home before Blazor's removal render removes the node (callers dispose positioning first).
     this.portal?.restore();
   }
 }

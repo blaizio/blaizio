@@ -5,8 +5,8 @@
 @*
     The floating tooltip surface: role="tooltip", anchored to the trigger via ts/positioning.ts
     (@floating-ui/dom) which keeps it on-screen and writes its left/top. Presence-managed like a
-    dialog - it stays mounted with data-state="closed" while the style's exit animation plays,
-    unmounting on ts/presence.ts's animationend report. data-side/data-align reflect the resolved
+    dialog - it stays rendered with data-state="closed" while the style's exit animation plays,
+    removed on ts/presence.ts's animationend report. data-side/data-align reflect the resolved
     placement (JS reports them back when they flip, so Blazor owns those attributes).
 *@
 
@@ -42,7 +42,7 @@
     /// </summary>
     [Parameter] public bool Inline { get; set; }
 
-    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    /// <summary>Raised after the exit animation finishes and the content has been removed.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
     [CascadingParameter] private TooltipContext? Tooltip { get; set; }

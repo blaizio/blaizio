@@ -10,7 +10,7 @@
     within the panel (Loop) so keyboard focus is gated to the popover's own controls instead of
     escaping to the page behind it - Escape or an outside click is how you leave. Anchored to the
     trigger via ts/positioning.ts (@floating-ui), presence-managed like a tooltip/dialog (stays
-    mounted with data-state="closed" while the exit animation plays, unmounting on ts/presence.ts's
+    rendered with data-state="closed" while the exit animation plays, removed on ts/presence.ts's
     animationend report), and dismissed by Escape (onkeydown) or an outside pointer-down
     (ts/dismissableLayer.ts). No overlay, no scroll lock. data-side/data-align reflect the resolved
     placement (JS reports flips back, so Blazor owns those attributes).
@@ -68,7 +68,7 @@
     /// </summary>
     [Parameter] public bool Inline { get; set; }
 
-    /// <summary>Raised after the exit animation finishes and the content has unmounted.</summary>
+    /// <summary>Raised after the exit animation finishes and the content has been removed.</summary>
     [Parameter] public EventCallback OnExitComplete { get; set; }
 
     [CascadingParameter] private PopoverContext? Popover { get; set; }
@@ -249,7 +249,7 @@
         _present = false;
         _closing = false;
         // Order matters: drop the global pointer-down listener first, then stop the positioning loop,
-        // then the presence listeners; unmounting last lets BaseFocusScope return focus to the trigger.
+        // then the presence listeners; being removed last lets BaseFocusScope return focus to the trigger.
         await DisposeDismissAsync();
         await DisposePositioningAsync();
         await DisposePresenceAsync();

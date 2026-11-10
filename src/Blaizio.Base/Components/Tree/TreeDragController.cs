@@ -15,7 +15,7 @@ internal sealed class TreeDragController<TItem>(BaseTree<TItem> tree)
 
     public bool IsGrabbed(string value) => GrabbedValue == value;
 
-    /// <summary>Called when a node unmounts: a grabbed node that left the tree is released silently.</summary>
+    /// <summary>Called when a node is removed: a grabbed node that left the tree is released silently.</summary>
     public void OnNodeGone(string value)
     {
         if (GrabbedValue == value) GrabbedValue = null;

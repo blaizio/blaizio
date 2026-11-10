@@ -66,7 +66,7 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
 
             if (tree.Virtualize != _virtualized)
             {
-                // Virtualization was toggled after mount: attach or detach the scroll observer.
+                // Virtualization was toggled after first render: attach or detach the scroll observer.
                 _virtualized = tree.Virtualize;
                 if (tree.Virtualize)
                 {

@@ -5,7 +5,7 @@
 // reference). This module owns the variable: it measures the content's natural height
 // when it opens, keeps it fresh while the panel stays open (content rendered on demand, async
 // loads, window resizes), and during close it tells C# when the exit animation finished so the
-// element can unmount (the exit-animation presence equivalent). Callback interop, like FocusScope.
+// element can be removed (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 import { invokeDotNet } from './core';
 
@@ -82,7 +82,7 @@ class Collapse {
   /**
    * Called after the element re-rendered with data-state="closed". When no exit animation is
    * configured (e.g. a style without accordion animations), reports "done" immediately so C#
-   * unmounts at once; otherwise animationend does it - backed by a timer for the longest
+   * is removed at once; otherwise animationend does it - backed by a timer for the longest
    * declared animation, because hidden pages (background tab, headless window) get no rendering
    * updates and never dispatch animation events. Same pattern as presence.ts.
    */

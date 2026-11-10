@@ -3,7 +3,7 @@
 // The provider swaps its desktop fixed panel for a Sheet below a breakpoint, so it needs to know
 // when the viewport crosses that width - observeMobile sets up a matchMedia listener that round-trips
 // each change to C# (OnMobileChanged), and matchesMobile reads the current value once on first render.
-// getCookie/setCookie persist the open/collapsed state across reloads (the vaul-style cookie).
+// getCookie/setCookie persist the open/collapsed state across reloads.
 
 import { invokeDotNet } from './core';
 

@@ -3,9 +3,8 @@
  * toggle groups, toolbars, tabs). Arrow keys move focus between items; only one item is in the tab
  * sequence at a time.
  *
- * Ported and modernised from ArcBlazor's roverFocus.ts:
- *  - No .NET interop. The original round-tripped every focus move to C# (`UpdateCurrentIndex`); here
- *    the behaviour is wholly DOM-side. Selection/activation still flows through the items' own Blazor
+ * What it does:
+ *  - No .NET interop: the behaviour is wholly DOM-side, so a focus move costs no round-trip. Selection/activation still flows through the items' own Blazor
  *    click handlers, so C# never needs a focus callback.
  *  - Items are found by the `[data-bz-roving-item]` marker, not a hard-coded `button` tag, so any
  *    element type (radio, tab, toggle) participates; disabled items are skipped.

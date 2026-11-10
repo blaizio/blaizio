@@ -8,7 +8,7 @@ namespace Blaizio;
 /// content positions + dismisses against, and the open/close requests.
 /// </summary>
 /// <param name="Open">Whether the menu is open.</param>
-/// <param name="FocusIntent">Where the content should place focus when it mounts.</param>
+/// <param name="FocusIntent">Where the content should place focus when it renders.</param>
 /// <param name="ContentId">Id of the content element (for the trigger's <c>aria-controls</c> and the content's <c>id</c>).</param>
 /// <param name="TriggerId">Id of the trigger (for the content's <c>aria-labelledby</c>).</param>
 /// <param name="AnchorId">Value of the trigger's <c>data-bz-dropdown-menu-anchor</c> hook; the content resolves it to position against the trigger.</param>

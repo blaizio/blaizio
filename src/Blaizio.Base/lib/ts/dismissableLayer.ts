@@ -25,7 +25,7 @@ export interface DismissableLayerOptions {
 }
 
 class DismissableLayer {
-  /** Active layers in mount order; the last entry is topmost. */
+  /** Active layers in render order; the last entry is topmost. */
   private static stack: DismissableLayer[] = [];
 
   constructor(
