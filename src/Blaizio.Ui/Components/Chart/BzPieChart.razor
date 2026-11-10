@@ -40,9 +40,10 @@
             </div>
         }
 
-        @if (_tooltip && _active is int activeIndex && activeIndex < slices.Count)
+        @* _active is the DATA index; zero/negative items draw no slice, so list position differs. *@
+        @if (_tooltip && _active is int activeIndex && slices.FindIndex(s => s.Index == activeIndex) is >= 0 and var at)
         {
-            var slice = slices[activeIndex];
+            var slice = slices[at];
             var data = new ChartTooltipData(slice.Label, [new ChartTooltipRow(slice.Label, slice.Color, slice.Value, FormatValue(slice.Value))]);
             var leftPct = slice.AnchorX / Size * 100;
             var topPct = slice.AnchorY / Size * 100;

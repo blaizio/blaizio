@@ -20,6 +20,8 @@ lockstep under one version.
   day or month.
 - **Input Color**: the picker button no longer submits a surrounding form. It is now
   `type="button"`.
+- **Chart**: a pie chart's tooltip shows the hovered slice when the data has zero or negative
+  items. It used to show a neighbouring slice, or nothing.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
