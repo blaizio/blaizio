@@ -146,6 +146,8 @@ lockstep under one version.
   track it draws.
 - **Theme**: after a failed first load of the theme script, the next call tries again. A stored
   style, preset or overlay value containing whitespace is ignored instead of breaking startup.
+- **Item, Attachment**: the group no longer claims `role="list"` (its children are not list
+  items), which assistive tech read as a list with nothing in it.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
