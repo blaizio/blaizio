@@ -18,6 +18,8 @@ lockstep under one version.
 - **Input Date**: typing `0` as the first digit of the day or month (the start of `05`) no longer
   throws when the other segments are filled. The value stays empty until the segment holds a real
   day or month.
+- **Input Color**: the picker button no longer submits a surrounding form. It is now
+  `type="button"`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
