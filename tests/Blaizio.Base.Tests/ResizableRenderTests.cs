@@ -153,4 +153,41 @@ public class ResizableRenderTests : BunitContext
             Assert.Equal("55", firstPanel().GetAttribute("data-panel-size"));
         });
     }
+
+    [Fact]
+    public void A_panel_that_appears_later_takes_its_size_out_of_the_others()
+    {
+        var cut = RenderGroup(Orientation.Horizontal, (50, 10, 100, false), (25, 10, 100, false), (25, 10, 100, false));
+        var late = new PanelInfo { Id = "late", DefaultSize = 20 };
+
+        cut.InvokeAsync(() => cut.Instance.RegisterPanel(late)).GetAwaiter().GetResult();
+
+        // 20 for the newcomer; the rest keep their proportions inside the remaining 80.
+        Assert.Equal([40, 20, 20, 20], Sizes(cut, 4));
+    }
+
+    [Fact]
+    public void A_panel_that_leaves_gives_its_space_back()
+    {
+        var cut = RenderGroup(Orientation.Horizontal, (50, 10, 100, false), (25, 10, 100, false), (25, 10, 100, false));
+        var late = new PanelInfo { Id = "late", DefaultSize = 20 };
+        cut.InvokeAsync(() => cut.Instance.RegisterPanel(late)).GetAwaiter().GetResult();
+
+        cut.InvokeAsync(() => cut.Instance.UnregisterPanel(late)).GetAwaiter().GetResult();
+
+        Assert.Equal([50, 25, 25], Sizes(cut, 3));
+        Assert.Equal(0, (int)cut.Instance.GetPanelSize(3)); // no ghost left behind
+    }
+
+    [Fact]
+    public void A_handle_keeps_its_panel_when_another_handle_leaves()
+    {
+        var cut = RenderGroup(Orientation.Horizontal, (50, 10, 100, false), (25, 10, 100, false), (25, 10, 100, false));
+
+        cut.InvokeAsync(() => cut.Instance.UnregisterHandle(0)).GetAwaiter().GetResult();
+
+        // Handle 1 still sits after the second panel; the freed slot reports nothing.
+        Assert.Equal(25, (int)cut.Instance.GetHandleValueNow(1));
+        Assert.Equal(0, (int)cut.Instance.GetHandleValueNow(0));
+    }
 }

@@ -145,4 +145,18 @@ public class WindowVirtualizerTests : BunitContext
         Assert.Equal(0, window.End);
         Assert.Equal(0, window.PaddingBottom);
     }
+
+    [Fact]
+    public void A_larger_count_keeps_the_window_where_it_is()
+    {
+        var cut = Render(count: 1000, rowHeight: 40, initial: 20);
+        cut.InvokeAsync(() => cut.Instance.OnRangeChanged(500, 520, -1, -1));
+
+        // A page of rows appended while the reader is at row 500: nothing moves.
+        cut.Render(p => p.Add(x => x.Count, 1050));
+
+        var window = cut.Instance.Window;
+        Assert.Equal(500, window.Start);
+        Assert.Equal(520, window.End);
+    }
 }
