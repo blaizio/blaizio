@@ -142,6 +142,8 @@ lockstep under one version.
 - **Data Table**: buttons and links in `FooterContent` or `Caption` of an editable table can be
   reached with Tab again.
 - **Virtualizer**: leaving the page cancels an `ItemsProvider` request still in flight.
+- **Progress**: a null `Value` (without `Indeterminate`) is announced as 0, matching the empty
+  track it draws.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
