@@ -108,15 +108,21 @@
     // a tag and the tail (after the last delimiter) stays as the in-progress text. Delimiter KEYSTROKES
     // never get here (inputTags.js swallows them; the input raises Commit instead) - this path is for
     // paste and for IME/autocorrect insertions.
+    // A named key (KeyboardEvent.key): more than one character, letters only, capitalised.
+    private static bool IsKeyName(string delimiter) =>
+        delimiter.Length > 1 && char.IsUpper(delimiter[0]) && delimiter.All(char.IsLetter);
+
     private async Task OnQueryChangedAsync(string? text)
     {
         if (Disabled || ReadOnly) return;
 
         var value = text ?? "";
-        var delimiters = EffectiveDelimiters;
-        if (delimiters.Count > 0 && delimiters.Any(value.Contains))
+        // Only delimiters that are text split text. A key name ("Enter", "Tab") is matched against
+        // keystrokes instead, and as a substring it would cut "Tablet" in two.
+        string[] delimiters = [.. EffectiveDelimiters.Where(d => !IsKeyName(d))];
+        if (delimiters.Length > 0 && delimiters.Any(value.Contains))
         {
-            var parts = value.Split([.. delimiters], StringSplitOptions.None);
+            var parts = value.Split(delimiters, StringSplitOptions.None);
             for (var i = 0; i < parts.Length - 1; i++) await AddAsync(parts[i]);
             value = parts[^1];
         }

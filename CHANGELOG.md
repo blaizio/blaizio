@@ -107,6 +107,8 @@ lockstep under one version.
   a fractional `Min` the step grid keeps that fraction (`Min="0.5" Step="1"` gives 0.5, 1.5, 2.5).
 - **Slider**: with a fractional `Min` the thumb lands on the real grid (`Min="0.5" Step="1"` gives
   0.5, 1.5, 2.5) and Home no longer goes below `Min`.
+- **Input Tags**: with `Tab` (or another named key) as a delimiter, typing or pasting text that
+  contains the word, such as "Tablet", no longer splits it.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
