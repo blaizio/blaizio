@@ -132,6 +132,9 @@ lockstep under one version.
 - **Scroll Area**: the viewport takes keyboard focus, so a region with no focusable content can
   be scrolled with the keyboard.
 - **Table of Contents**: Ctrl, Cmd, Shift and Alt click on a link behave as the browser means them.
+- **Pagination, Breadcrumb**: the ellipsis label ("More pages", "More") is announced.
+- **Breadcrumb**: a link with `OnClick` and no `Href` renders a `<button>`, so the keyboard
+  reaches it.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
