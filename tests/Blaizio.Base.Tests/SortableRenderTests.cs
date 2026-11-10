@@ -293,6 +293,45 @@ public class SortableRenderTests : BunitContext
 
     // ---- helpers ------------------------------------------------------------------------------
 
+    // A disabled item renders tabindex -1, so it cannot hold the tab stop. With the first item
+    // disabled the list used to have no tab stop at all and Tab skipped it whole.
+    [Fact]
+    public void A_disabled_first_item_hands_the_tab_stop_to_the_next_enabled_item()
+    {
+        var cut = RenderWithDisabled(disabled: [0]);
+
+        Assert.Equal("-1", Item(cut, 0).GetAttribute("tabindex"));
+        Assert.Equal("0", Item(cut, 1).GetAttribute("tabindex"));
+        Assert.Equal("-1", Item(cut, 2).GetAttribute("tabindex"));
+    }
+
+    // Focus landing on a disabled item would strand the keyboard there: it ignores every key.
+    [Fact]
+    public async Task Arrow_focus_steps_over_a_disabled_item()
+    {
+        var cut = RenderWithDisabled(disabled: [1]);
+
+        await PressOnItem(cut, 0, "ArrowDown");
+
+        Assert.Equal("-1", Item(cut, 1).GetAttribute("tabindex"));
+        Assert.Equal("0", Item(cut, 2).GetAttribute("tabindex"));
+    }
+
+    private IRenderedComponent<BaseSortable> RenderWithDisabled(int[] disabled) =>
+        Render<BaseSortable>(ps => ps.AddChildContent(builder =>
+        {
+            for (var i = 0; i < 3; i++)
+            {
+                builder.OpenComponent<BaseSortableItem>(0);
+                builder.SetKey(i);
+                builder.AddAttribute(1, nameof(BaseSortableItem.Index), i);
+                builder.AddAttribute(2, nameof(BaseSortableItem.Disabled), disabled.Contains(i));
+                // Content, as real items have: it is also what makes an item re-render with its group.
+                builder.AddAttribute(3, nameof(BaseSortableItem.ChildContent), (RenderFragment)(b => b.AddContent(0, "item")));
+                builder.CloseComponent();
+            }
+        }));
+
     private static AngleSharp.Dom.IElement Item(IRenderedComponent<BaseSortable> cut, int index) =>
         cut.FindAll("[data-sortable-item]")[index];
 
