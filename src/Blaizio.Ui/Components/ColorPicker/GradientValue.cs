@@ -109,7 +109,7 @@ public sealed record GradientValue(
     /// <summary>The CSS paint for this gradient - what the picker's <c>Value</c> holds in gradient mode.</summary>
     public string ToCss()
     {
-        var stops = string.Join(", ", Sorted.Select(stop => $"{stop.Color} {Percent(stop.Position)}"));
+        var stops = string.Join(", ", Sorted.Select(stop => $"{Paintable(stop.Color)} {Percent(stop.Position)}"));
         return Type switch
         {
             GradientType.Radial => $"radial-gradient(circle at center, {stops})",
@@ -122,7 +122,17 @@ public sealed record GradientValue(
 
     /// <summary>A paint that previews the ramp itself, ignoring shape and angle - for the stop bar.</summary>
     public string ToRampCss() =>
-        $"linear-gradient(to right, {string.Join(", ", Sorted.Select(stop => $"{stop.Color} {Percent(stop.Position)}"))})";
+        $"linear-gradient(to right, {string.Join(", ", Sorted.Select(stop => $"{Paintable(stop.Color)} {Percent(stop.Position)}"))})";
+
+    // A stop keeps the picker's format, and two of the formats are not CSS a browser paints:
+    // hsb() is not a CSS function at all and device-cmyk() has no browser support. One such stop
+    // makes the whole gradient invalid, so those are written as rgb() in the paint. The stop
+    // itself is untouched, so the picker still shows it in its own format.
+    private static string Paintable(string color) =>
+        (color.StartsWith("hsb", StringComparison.OrdinalIgnoreCase) || color.StartsWith("device-cmyk", StringComparison.OrdinalIgnoreCase))
+        && ColorMath.TryParse(color, out var h, out var s, out var v, out var a)
+            ? ColorMath.Format(h, s, v, a, ColorFormat.Rgb)
+            : color;
 
     /// <inheritdoc cref="ToCss"/>
     public override string ToString() => ToCss();

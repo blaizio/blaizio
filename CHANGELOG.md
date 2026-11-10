@@ -66,6 +66,8 @@ lockstep under one version.
   `1.234` there now means 1.234, not 1234.
 - **Input OTP**: after the bound value is cleared from code, a character the `Pattern` rejects no
   longer brings the previous code back into the field.
+- **Color Picker**: a gradient edited with the format set to HSB or CMYK now produces valid CSS.
+  Those stops are written as `rgb()` in `Value`; the gradient model keeps them as picked.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
