@@ -11,6 +11,8 @@ interface DotNetObjectReference {
 
 class Presence {
   private fallback?: number;
+  private hidden = false;
+  private readonly reopened: MutationObserver;
 
   constructor(
     private readonly el: HTMLElement,
@@ -18,6 +20,21 @@ class Presence {
   ) {
     el.addEventListener('animationend', this.onAnimationEnd);
     el.addEventListener('animationcancel', this.onAnimationEnd);
+
+    // A surface can be reopened while its close is still in flight: finish() has hidden it and
+    // reported "done", but the open reached C# first, so C# ignores the report and keeps the SAME
+    // element, now data-state="open". Nothing re-renders the inline style, so without this the
+    // surface would stay invisible while trapping focus. Undo our own hide (and only ours) the
+    // moment the state leaves "closed".
+    this.reopened = new MutationObserver(() => {
+      if (this.el.dataset.state === 'closed') return;
+      clearTimeout(this.fallback);
+      if (this.hidden) {
+        this.hidden = false;
+        this.el.style.removeProperty('visibility');
+      }
+    });
+    this.reopened.observe(el, { attributes: true, attributeFilter: ['data-state'] });
   }
 
   /**
@@ -36,6 +53,9 @@ class Presence {
 
     const longest = (list: string) => Math.max(...list.split(',').map((v) => parseFloat(v) || 0));
     const total = longest(style.animationDuration) + longest(style.animationDelay);
+    // Called on every render while closing: keep one timer, or a stale one from an interrupted
+    // close would cut a later exit animation short.
+    clearTimeout(this.fallback);
     this.fallback = window.setTimeout(this.finish, total * 1000 + 100);
   }
 
@@ -49,13 +69,17 @@ class Presence {
     // Hide NOW, before the interop roundtrip. The exit animation has fill-mode none, so once it
     // finishes the surface snaps back to its fully-visible resting styles; on Blazor Server the
     // unmount only lands a network roundtrip later, and that gap reads as a close-blink. The next
-    // open re-renders the element (or repositions it), which restores visibility.
-    if (this.el.dataset.state === 'closed') this.el.style.visibility = 'hidden';
+    // open mounts a fresh element; a reopen that reuses this one is handled by the observer above.
+    if (this.el.dataset.state === 'closed') {
+      this.el.style.visibility = 'hidden';
+      this.hidden = true;
+    }
     void invokeDotNet(this.ref, 'OnCloseFinished');
   };
 
   dispose() {
     clearTimeout(this.fallback);
+    this.reopened.disconnect();
     this.el.removeEventListener('animationend', this.onAnimationEnd);
     this.el.removeEventListener('animationcancel', this.onAnimationEnd);
   }

@@ -45,6 +45,8 @@ lockstep under one version.
 - **Dropdown Menu, Context Menu, Menubar, Select**: moving through a long, scrolling list with the
   arrow keys, Home, End or by typing now scrolls the focused item into view. Focus used to move
   out of sight.
+- **Dialog, Sheet, Popover, Hover Card, Tooltip**: a surface reopened while its close animation
+  is finishing no longer stays invisible (and, for a dialog, focus-trapped with the page locked).
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
