@@ -56,8 +56,13 @@ export const loadImage = async (host: HTMLElement, image: HTMLImageElement): Pro
  * Point the decoding image at a URL it is not holding yet - for a surface re-entered with a
  * picture already in the model, so rotating it still has a bitmap to redraw.
  */
-export const showImage = async (image: HTMLImageElement, url: string): Promise<boolean> =>
-  image.src === url ? image.naturalWidth > 0 : show(image, url);
+export const showImage = async (image: HTMLImageElement, url: string): Promise<boolean> => {
+  // Take the URL over for this preview: a fresh element knows nothing of a picture loaded through
+  // an earlier one, so without this the next replacement would not revoke it and exportImage
+  // would find nothing to export.
+  objectUrls.set(image, url);
+  return image.src === url ? image.naturalWidth > 0 : show(image, url);
+};
 
 /** Rotate the preview a quarter turn clockwise, baked into a new bitmap. Returns its URL. */
 export const rotateImage = async (image: HTMLImageElement): Promise<string | null> => {

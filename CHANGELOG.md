@@ -68,6 +68,9 @@ lockstep under one version.
   longer brings the previous code back into the field.
 - **Color Picker**: a gradient edited with the format set to HSB or CMYK now produces valid CSS.
   Those stops are written as `rgb()` in `Value`; the gradient model keeps them as picked.
+- **Color Picker**: a picked image keeps painting after you switch the picker to another surface
+  or close the popover around it, and can be rotated and exported when you come back. Its
+  object URL is now released when the picture is replaced, not when the surface goes away.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
