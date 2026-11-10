@@ -181,6 +181,7 @@ class Carousel {
     try { this.vp.setPointerCapture(e.pointerId); } catch { /* no capture */ }
     this.vp.addEventListener('pointermove', this.onPointerMove);
     this.vp.addEventListener('pointerup', this.onPointerUp);
+    this.vp.addEventListener('pointercancel', this.onPointerUp);
     // Taking hold of the viewport is the user claiming control: stop rotation for good.
     this.pause();
   };
@@ -200,6 +201,9 @@ class Carousel {
     try { this.vp.releasePointerCapture(e.pointerId); } catch { /* already released */ }
     this.vp.removeEventListener('pointermove', this.onPointerMove);
     this.vp.removeEventListener('pointerup', this.onPointerUp);
+    this.vp.removeEventListener('pointercancel', this.onPointerUp);
+    // A cancelled drag is followed by no click, so the swallow would eat the next real one.
+    if (e.type === 'pointercancel') this.moved = false;
     this.vp.style.scrollSnapType = ''; // restore snap, then settle onto the nearest slide
     this.vp.style.scrollBehavior = ''; // hand smooth scrolling back to the CSS (scrollTo asks for smooth explicitly)
     this.scrollTo(this.selected());
@@ -286,6 +290,7 @@ class Carousel {
     this.vp.removeEventListener('click', this.onClickCapture, true);
     this.vp.removeEventListener('pointermove', this.onPointerMove);
     this.vp.removeEventListener('pointerup', this.onPointerUp);
+    this.vp.removeEventListener('pointercancel', this.onPointerUp);
     this.vp.removeEventListener('pointerenter', this.suspend);
     this.vp.removeEventListener('pointerleave', this.resume);
     this.vp.removeEventListener('focusin', this.hardPause);

@@ -82,6 +82,8 @@ lockstep under one version.
   and keep resizing on later pointer moves.
 - **Panel**: dragging the resize handle by touch now resizes the panel instead of scrolling the
   page, and an interrupted drag ends cleanly and commits the size it reached.
+- **Carousel**: a mouse drag the browser interrupts now settles on the nearest slide, and the
+  next click on a slide is no longer swallowed.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
