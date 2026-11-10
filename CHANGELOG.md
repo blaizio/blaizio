@@ -141,6 +141,7 @@ lockstep under one version.
   and discard what was typed.
 - **Data Table**: buttons and links in `FooterContent` or `Caption` of an editable table can be
   reached with Tab again.
+- **Virtualizer**: leaving the page cancels an `ItemsProvider` request still in flight.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

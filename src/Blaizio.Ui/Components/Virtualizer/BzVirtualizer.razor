@@ -1,4 +1,5 @@
 @namespace Blaizio.Ui
+@implements IDisposable
 @typeparam TItem
 @using System.Globalization
 @*
@@ -445,4 +446,9 @@ else
     }
 
     private static string Px(double value) => value.ToString("0.###", CultureInfo.InvariantCulture) + "px";
+
+    // A provider request still in flight when the list goes away is cancelled, so the fetch stops
+    // and its result is not written into a component that is gone. Cancelled, not disposed: the
+    // request reads its token again when it returns.
+    public void Dispose() => _fetchCts?.Cancel();
 }
