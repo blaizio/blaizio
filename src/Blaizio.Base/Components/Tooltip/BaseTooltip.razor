@@ -114,7 +114,12 @@
     {
         await SetOpenAsync(true);
         Provider?.NotifyOpen();
+        _reportedOpen = true;
     }
+
+    // Whether the provider currently counts this tooltip as open. A flag, not the open state: a
+    // controlled tooltip reports an open its parent may never accept.
+    private bool _reportedOpen;
 
     private async Task CloseAsync()
     {
@@ -122,6 +127,7 @@
         if (!_state.Value) return;
         await SetOpenAsync(false);
         Provider?.NotifyClose();
+        _reportedOpen = false;
     }
 
     private Task SetOpenAsync(bool open) => _state.SetAsync(open, OpenChanged);
@@ -133,5 +139,12 @@
         _delayCts = null;
     }
 
-    public void Dispose() => CancelPending();
+    public void Dispose()
+    {
+        CancelPending();
+        // Removed while open (its row was deleted): no pointerleave will close it, and the provider
+        // would count it as open for good, opening every later tooltip with no delay.
+        if (_reportedOpen) Provider?.NotifyClose();
+        _reportedOpen = false;
+    }
 }

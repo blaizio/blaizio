@@ -119,6 +119,8 @@ lockstep under one version.
 - **Hotkey, Kbd**: the `up`, `down`, `left`, `right` and `return` key names now trigger. They
   rendered their glyph but never fired.
 - **Toast**: a toast whose `OnDismiss` or `OnAutoClose` handler throws is still removed.
+- **Tooltip**: removing an element while its tooltip is open no longer makes every later tooltip
+  in the group open instantly.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
