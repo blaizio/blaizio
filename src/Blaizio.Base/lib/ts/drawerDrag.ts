@@ -188,6 +188,13 @@ class DrawerDrag {
     this.down = false;
     if (!this.dragging) return;
 
+    // A cancelled pointer is not a release: never dismiss on it, go back to where the drag began.
+    if (e.type === 'pointercancel') {
+      if (this.snapping) this.snapTo(Math.max(this.snapIndex, 0));
+      else this.springBack();
+      return;
+    }
+
     if (this.snapping) { this.releaseToSnap(e); return; }
 
     const along = Math.max(this.toward(e), 0);

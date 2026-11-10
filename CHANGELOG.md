@@ -87,6 +87,8 @@ lockstep under one version.
 - **Tree**: a drag the browser interrupts no longer moves the node to the row it last hovered.
 - **Sortable**: a drag the browser interrupts no longer reorders or transfers the item. The list
   goes back to the order it had.
+- **Drawer**: a drag the browser interrupts no longer closes the drawer or changes its snap
+  point.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
