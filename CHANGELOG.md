@@ -64,6 +64,8 @@ lockstep under one version.
 - **Input Number**: in cultures that group thousands with `.` (German, Spanish, and others),
   typing `1.5` now gives 1.5. It used to give 15. Typed text is no longer read as grouped, so
   `1.234` there now means 1.234, not 1234.
+- **Input OTP**: after the bound value is cleared from code, a character the `Pattern` rejects no
+  longer brings the previous code back into the field.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

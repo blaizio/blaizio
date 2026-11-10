@@ -43,6 +43,7 @@ class InputOtp {
     this.lastValue = input.value;
     injectStyle();
 
+    input.addEventListener('beforeinput', this.onBeforeInput);
     input.addEventListener('input', this.onInput);
     input.addEventListener('paste', this.onPaste);
     input.addEventListener('keydown', this.onKeyDown);
@@ -60,6 +61,14 @@ class InputOtp {
   // The slot height becomes the hidden input's font-size (the input-otp alignment trick).
   private updateRootHeight = () => {
     this.input.parentElement?.style.setProperty('--bz-otp-root-height', `${this.input.clientHeight}px`);
+  };
+
+  // lastValue is what a rejected edit is rolled back to. Only our own handlers write it, so after
+  // the value changed from outside (the parent cleared a controlled Value) it is stale: a rejected
+  // keystroke would then restore the old code into the field while C# holds "". Re-read the field
+  // just before every edit.
+  private onBeforeInput = () => {
+    this.lastValue = this.input.value;
   };
 
   private onInput = () => {
@@ -186,6 +195,7 @@ class InputOtp {
   }
 
   dispose() {
+    this.input.removeEventListener('beforeinput', this.onBeforeInput);
     this.input.removeEventListener('input', this.onInput);
     this.input.removeEventListener('paste', this.onPaste);
     this.input.removeEventListener('keydown', this.onKeyDown);
