@@ -141,7 +141,7 @@
 
     private ElementReference _root;
     private ElementReference _handle;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BzPanel>? _selfRef;
 
     private bool _open;            // uncontrolled backing store
@@ -295,8 +295,7 @@
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/panel.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>(
-                "createPanelResize", _root, _handle, _selfRef, Side.GetDescription(), AsLength(MinSize), AsLength(MaxSize), DragCursor);
+            await _instance.CreateAsync(module, "createPanelResize", _root, _handle, _selfRef, Side.GetDescription(), AsLength(MinSize), AsLength(MaxSize), DragCursor);
         }
         catch (JSDisconnectedException)
         {
@@ -317,7 +316,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
