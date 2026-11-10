@@ -71,7 +71,6 @@ class Stack {
     ol.addEventListener('mousemove', this.onExpand);
     ol.addEventListener('mouseleave', this.onCollapse);
     ol.addEventListener('pointerdown', this.onListPointerDown);
-    ol.addEventListener('pointerup', this.onListPointerUp);
   }
 
   private numAttr(el: Element, name: string, fallback: number): number {
@@ -142,6 +141,7 @@ class Stack {
     el.addEventListener('pointerdown', (e) => this.onTilePointerDown(e, entry));
     el.addEventListener('pointermove', (e) => this.onTilePointerMove(e, entry));
     el.addEventListener('pointerup', () => this.onTilePointerUp(entry));
+    el.addEventListener('pointercancel', () => this.onTilePointerCancel(entry));
 
     entry.height = this.measure(el);
 
@@ -255,10 +255,20 @@ class Stack {
     const target = event.target as HTMLElement | null;
     if (target?.dataset.dismissible === 'false') return;
     this.interacting = true;
+    // The release is heard on the window: a press that starts on a button is not captured, so
+    // letting go outside the stack (or a cancelled touch) never reaches the list, and the stack
+    // would stay "interacting" - expanded, with every auto-close timer paused - for good.
+    window.addEventListener('pointerup', this.onListPointerUp);
+    window.addEventListener('pointercancel', this.onListPointerUp);
   };
 
   private onListPointerUp = (): void => {
+    window.removeEventListener('pointerup', this.onListPointerUp);
+    window.removeEventListener('pointercancel', this.onListPointerUp);
+    if (!this.interacting) return;
     this.interacting = false;
+    // The pointer left during the press: that mouseleave was ignored, so collapse now.
+    if (!this.ol.matches(':hover')) this.onCollapse();
   };
 
   // --- auto-close timers (paused while expanded, interacting, or the tab is hidden) ---
@@ -406,6 +416,17 @@ class Stack {
     entry.swipeDirection = null;
   };
 
+  // The browser took the pointer away (no pointerup follows): the swipe is off, not a dismissal.
+  private onTilePointerCancel = (entry: ToastEntry): void => {
+    if (!entry.pointerStart || entry.removing) return;
+    entry.pointerStart = null;
+    entry.swipeDirection = null;
+    entry.el.removeAttribute('data-swiping');
+    entry.el.removeAttribute('data-swiped');
+    entry.el.style.setProperty('--swipe-amount-x', '0px');
+    entry.el.style.setProperty('--swipe-amount-y', '0px');
+  };
+
   dispose(): void {
     for (const entry of this.entries.values()) {
       if (entry.timer !== null) clearTimeout(entry.timer);
@@ -415,7 +436,8 @@ class Stack {
     this.ol.removeEventListener('mousemove', this.onExpand);
     this.ol.removeEventListener('mouseleave', this.onCollapse);
     this.ol.removeEventListener('pointerdown', this.onListPointerDown);
-    this.ol.removeEventListener('pointerup', this.onListPointerUp);
+    window.removeEventListener('pointerup', this.onListPointerUp);
+    window.removeEventListener('pointercancel', this.onListPointerUp);
   }
 }
 

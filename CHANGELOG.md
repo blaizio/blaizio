@@ -89,6 +89,9 @@ lockstep under one version.
   goes back to the order it had.
 - **Drawer**: a drag the browser interrupts no longer closes the drawer or changes its snap
   point.
+- **Toast**: pressing a toast button and letting go outside the stack no longer leaves the stack
+  expanded with its toasts never closing on their own.
+- **Toast**: a swipe the browser interrupts puts the toast back instead of leaving it shifted.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
