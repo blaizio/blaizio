@@ -200,4 +200,22 @@ public class InputNumberTypeTests : BunitContext
         Assert.Contains("is not a supported numeric type",
             (ex.InnerException ?? ex).InnerException?.Message ?? (ex.InnerException ?? ex).Message);
     }
+
+    // The edit text never carries grouping (the script guard admits one separator, and "." in any
+    // culture because keypads emit it), so "." is always the decimal point. Parsed with the culture
+    // as-is, "1.5" read as 15 wherever "." groups thousands.
+    [Theory]
+    [InlineData("de-DE", "1.5", 1.5)]
+    [InlineData("de-DE", "1,5", 1.5)]
+    [InlineData("fr-FR", "0.25", 0.25)]
+    [InlineData("en-US", "1.5", 1.5)]
+    public void A_dot_is_the_decimal_point_in_every_culture(string culture, string text, double expected)
+    {
+        Assert.True(InputNumberValue<double>.TryParse(text, System.Globalization.CultureInfo.GetCultureInfo(culture), out var value));
+        Assert.Equal((decimal)expected, value);
+    }
+
+    [Fact]
+    public void An_integer_field_still_rejects_a_fraction_where_dot_groups_thousands() =>
+        Assert.False(InputNumberValue<int>.TryParse("1.5", System.Globalization.CultureInfo.GetCultureInfo("de-DE"), out _));
 }
