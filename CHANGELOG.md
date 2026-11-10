@@ -121,6 +121,9 @@ lockstep under one version.
   replaces a component's `ps-*` and `pe-*`, `mx-*` its `ms-*` and `me-*`, `inset-x-*` its `start-*`
   and `end-*`, and `min-h-lh` replaces another `min-h-*`. Check a `Class` that relied on both
   surviving. The components' own class merges come out the same on both versions.
+- **Registry**: `panel`, `drawer`, `select`, `sidebar`, `toolbar` and `dialog` now require
+  Blaizio.Base 0.3.6 or newer. `blaizio add` and `blaizio update` stop with a message on an
+  older Base instead of installing source that does not compile.
 
 ### Added
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in

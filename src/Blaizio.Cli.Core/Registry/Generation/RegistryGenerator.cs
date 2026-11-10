@@ -57,9 +57,15 @@ public sealed class GeneratorOptions
     public IReadOnlyDictionary<string, string> FamilyMinBase { get; init; } =
         new Dictionary<string, string>
         {
-            // panel.ts (the drag-resize module) shipped in alpha.24; alpha.25 added the drag-cursor
-            // argument the component now passes, which an older module would silently ignore.
-            ["panel"] = "0.1.0-alpha.25",
+            // JsInstance (the owner these hold their script instance in) arrived in 0.3.6; they do
+            // not compile against an older Base. Panel was at alpha.25 for its drag-cursor argument.
+            ["panel"] = "0.3.6",
+            ["drawer"] = "0.3.6",
+            ["select"] = "0.3.6",
+            ["sidebar"] = "0.3.6",
+            ["toolbar"] = "0.3.6",
+            // IDialogService.Defaults, which ConfirmAsync and ShowSheetAsync read, arrived in 0.3.6.
+            ["dialog"] = "0.3.6",
             // BaseCopyButton (dist/clipboard.js) and AnsiText arrived in 0.3.6; the copy button and
             // terminal colors do not compile against an older Base.
             ["code-block"] = "0.3.6",
