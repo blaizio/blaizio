@@ -71,12 +71,20 @@
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
-        var size = _info?.Size ?? DefaultSize ?? 0;
+        // The group seeds sizes after its first render, so the first frame - and a statically
+        // rendered page, which never gets a second one - has no size yet. Lay out from the
+        // declaration instead: a declared size as a shrinkable percentage basis, an undeclared
+        // one as an equal share of what is left.
+        var seeded = _info is not null && Group?.IsSeeded == true;
+        var size = seeded ? _info!.Size : DefaultSize ?? 0;
         var sizeText = size.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+        var flex = seeded ? $"{sizeText} 1 0px"
+            : DefaultSize is not null ? $"0 1 {sizeText}%"
+            : "1 1 0px";
         var props = new PropBuilder(this)
             .Data("slot", "resizable-panel")
             .Data("panel-size", ((int)System.Math.Round(size)).ToString(System.Globalization.CultureInfo.InvariantCulture))
             .Data("collapsed", _info?.IsCollapsed == true ? "true" : null);
-        return props.Merge(Attributes, Class, $"flex:{sizeText} 1 0px;overflow:hidden;{Style}");
+        return props.Merge(Attributes, Class, $"flex:{flex};overflow:hidden;{Style}");
     }
 }

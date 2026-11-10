@@ -33,6 +33,9 @@ lockstep under one version.
 - **Combobox**: in a multiple-selection combobox, a chip's remove button still removes that chip
   after an earlier chip was removed. In a loop without `@key` it used to target the value the
   chip held before.
+- **Resizable**: panels are laid out from `DefaultSize` on the first frame and on statically
+  rendered pages. They used to collapse to zero until the first interactive render.
+  `data-panel-size` carries the declared size there too, where it used to read `0`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
