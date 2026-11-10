@@ -2886,17 +2886,10 @@
         _loadCts?.Cancel();
         _loadCts?.Dispose();
 
-        try
-        {
-            // The row-clicks and grid INSTANCES are ours; the module is the shared JsModules proxy.
-            await _rowClicks.DisposeAsync();
-            await _grid.DisposeAsync();
-            await _columns.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
+        // The row-clicks and grid INSTANCES are ours; the module is the shared JsModules proxy.
+        await _rowClicks.DisposeAsync();
+        await _grid.DisposeAsync();
+        await _columns.DisposeAsync();
 
         _selfRef?.Dispose();
     }

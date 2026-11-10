@@ -240,14 +240,7 @@
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instance only - the module is shared via JsModules and outlives this component.
-            await _scroller.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone (navigation / refresh) - nothing to clean up.
-        }
+        // Instance only - the module is shared via JsModules and outlives this component.
+        await _scroller.DisposeAsync();
     }
 }

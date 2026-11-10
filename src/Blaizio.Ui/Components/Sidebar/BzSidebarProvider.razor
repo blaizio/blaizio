@@ -153,13 +153,9 @@
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instances are ours; the modules are shared JsModules proxies and stay alive.
-            await _watcher.DisposeAsync();
-            await _hotkey.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
+        // Instances are ours; the modules are shared JsModules proxies and stay alive.
+        await _watcher.DisposeAsync();
+        await _hotkey.DisposeAsync();
         _selfRef?.Dispose();
     }
 }

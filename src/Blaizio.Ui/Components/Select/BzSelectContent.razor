@@ -144,12 +144,8 @@
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // The scroll INSTANCE is ours; the module is the shared JsModules proxy.
-            await _scroll.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
+        // The scroll INSTANCE is ours; the module is the shared JsModules proxy.
+        await _scroll.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }
