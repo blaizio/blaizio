@@ -123,6 +123,7 @@ lockstep under one version.
   in the group open instantly.
 - **Popover, Hover Card, Tooltip**: a surface with a non-default `Side` or `Align` no longer plays
   its first frame, entry slide and arrow for the default side.
+- **Select**: a multiple select's listbox now has `aria-multiselectable="true"`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
