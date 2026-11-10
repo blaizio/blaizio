@@ -58,6 +58,9 @@ lockstep under one version.
 - **Tree**: a node dragged to another tree is moved only when both trees' `CanDrop` allow it.
   When just one refused, the node used to disappear or appear twice. `CanDrop` now runs more
   than once for such a drop, so keep it free of side effects.
+- **Carousel**: dragging or wheeling during a Previous / Next / dot scroll no longer freezes the
+  selected slide, the dots and `SelectedIndexChanged`. The carousel now takes the slide it came
+  to rest on, and raises `SelectedIndexChanged` for it.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

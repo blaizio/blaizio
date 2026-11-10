@@ -217,7 +217,7 @@
 
     /// <summary>Pushed from the scroll engine on init, scroll and resize.</summary>
     [JSInvokable]
-    public async Task OnScrollState(int index, bool canPrev, bool canNext, int count)
+    public async Task OnScrollState(int index, bool canPrev, bool canNext, int count, bool settled = false)
     {
         var moved = index != _engineIndex;
         _engineIndex = index;
@@ -231,7 +231,18 @@
         // intermediate positions aren't user selections - swallow them until we arrive.
         if (_pendingScroll)
         {
-            if (index == _index.Value) _pendingScroll = false;
+            if (index == _index.Value)
+            {
+                _pendingScroll = false;
+            }
+            else if (settled)
+            {
+                // The viewport came to rest somewhere else: the scroll we asked for was interrupted
+                // (a drag, the wheel, a resize). Stop waiting for an arrival that will not come -
+                // that swallowed every later scroll - and take where it rested as the selection.
+                _pendingScroll = false;
+                await _index.SetAsync(index, SelectedIndexChanged);
+            }
         }
         else if (moved && index != _index.Value)
         {

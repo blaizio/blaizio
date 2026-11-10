@@ -29,6 +29,7 @@ interface CarouselOptions {
 class Carousel {
   private readonly resizeObs: ResizeObserver;
   private reportTimer = 0;
+  private settleTimer = 0;
   private autoplayTimer = 0;
   private playing = false;
 
@@ -46,6 +47,7 @@ class Carousel {
     private readonly opts: CarouselOptions,
   ) {
     vp.addEventListener('scroll', this.scheduleReport, { passive: true });
+    vp.addEventListener('scroll', this.scheduleSettle, { passive: true });
     vp.addEventListener('pointerdown', this.onPointerDown);
     vp.addEventListener('click', this.onClickCapture, true);
     this.resizeObs = new ResizeObserver(this.scheduleReport);
@@ -96,7 +98,7 @@ class Carousel {
     return Math.abs(this.opts.horizontal ? this.vp.scrollLeft : this.vp.scrollTop);
   }
 
-  private report = (): void => {
+  private report = (settled = false): void => {
     const count = this.items().length;
     const max = this.maxScroll();
     const p = this.pos();
@@ -104,7 +106,20 @@ class Carousel {
     const atEnd = p >= max - 1;
     const canPrev = this.opts.loop ? count > 1 : !atStart;
     const canNext = this.opts.loop ? count > 1 : !atEnd;
-    void invokeDotNet(this.ref, 'OnScrollState', this.selected(), canPrev, canNext, count);
+    void invokeDotNet(this.ref, 'OnScrollState', this.selected(), canPrev, canNext, count, settled);
+  };
+
+  // "The viewport has come to rest": one report, flagged settled, once scroll events stop. C#
+  // swallows the positions passed on the way to an index it asked for, and needs this to learn
+  // that a scroll ended somewhere else (a drag, wheel or resize interrupted it) - otherwise it
+  // would wait for an arrival that never comes and ignore every later scroll. Held back while
+  // the mouse drags, since a still pointer is not the end of the gesture.
+  private scheduleSettle = (): void => {
+    clearTimeout(this.settleTimer);
+    this.settleTimer = window.setTimeout(() => {
+      this.settleTimer = 0;
+      if (!this.dragging) this.report(true);
+    }, 150);
   };
 
   // Coalesce bursts of scroll/resize events into one report. setTimeout (not requestAnimationFrame) so a
@@ -122,6 +137,9 @@ class Carousel {
     if (!items.length) return;
     const i = Math.max(0, Math.min(index, items.length - 1));
     const delta = this.startDelta(items[i]);
+    // A new scroll supersedes a rest that was about to be reported from the previous one.
+    clearTimeout(this.settleTimer);
+    this.settleTimer = 0;
     this.vp.scrollBy({
       left: this.opts.horizontal ? delta : 0,
       top: this.opts.horizontal ? 0 : delta,
@@ -185,6 +203,7 @@ class Carousel {
     this.vp.style.scrollSnapType = ''; // restore snap, then settle onto the nearest slide
     this.vp.style.scrollBehavior = ''; // hand smooth scrolling back to the CSS (scrollTo asks for smooth explicitly)
     this.scrollTo(this.selected());
+    this.scheduleSettle(); // a release that needs no snap scroll fires no scroll event
     // No re-arm: a drag stopped rotation permanently; only an explicit play() restarts it.
   };
 
@@ -259,8 +278,10 @@ class Carousel {
   dispose(): void {
     this.disarm();
     if (this.reportTimer) clearTimeout(this.reportTimer);
+    clearTimeout(this.settleTimer);
     this.resizeObs.disconnect();
     this.vp.removeEventListener('scroll', this.scheduleReport);
+    this.vp.removeEventListener('scroll', this.scheduleSettle);
     this.vp.removeEventListener('pointerdown', this.onPointerDown);
     this.vp.removeEventListener('click', this.onClickCapture, true);
     this.vp.removeEventListener('pointermove', this.onPointerMove);
