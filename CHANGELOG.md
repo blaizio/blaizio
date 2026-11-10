@@ -121,6 +121,8 @@ lockstep under one version.
 - **Toast**: a toast whose `OnDismiss` or `OnAutoClose` handler throws is still removed.
 - **Tooltip**: removing an element while its tooltip is open no longer makes every later tooltip
   in the group open instantly.
+- **Popover, Hover Card, Tooltip**: a surface with a non-default `Side` or `Align` no longer plays
+  its first frame, entry slide and arrow for the default side.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
