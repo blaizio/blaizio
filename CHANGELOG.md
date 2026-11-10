@@ -129,6 +129,8 @@ lockstep under one version.
 - **Sidebar**: Ctrl/Cmd+B inside a rich-text editor is left to the editor. `Class` applies to
   the mobile sheet too. An `Active` menu button or sub-button has `aria-current="page"`.
 - **Toolbar**: changing `Overflow` after the toolbar rendered now takes effect.
+- **Scroll Area**: the viewport takes keyboard focus, so a region with no focusable content can
+  be scrolled with the keyboard.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
