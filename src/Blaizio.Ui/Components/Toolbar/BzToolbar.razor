@@ -135,7 +135,7 @@
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private ElementReference _viewport;
-    private IJSObjectReference? _scroller;
+    private readonly JsInstance _scroller = new();
     // Controlled/uncontrolled like BzToggle.Pressed: a consumer can open the bar from code
     // (@bind-Expanded) or let the toggle own it.
     private readonly ControllableState<bool> _expanded = new();
@@ -216,7 +216,7 @@
 
     private async Task ScrollAsync(string direction)
     {
-        if (_scroller is not null) await _scroller.InvokeVoidAsync("scroll", direction);
+        if (_scroller.IsCreated) await _scroller.InvokeVoidAsync("scroll", direction);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -227,7 +227,7 @@
         // ElementReference has to thread through BaseToolbar. Expand only needs the overflow
         // watcher (its clip is CSS); Scroll also gets the paging and the per-direction state.
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toolbar.js");
-        _scroller = await module.InvokeAsync<IJSObjectReference>("createScrollerFromViewport", _viewport, Scrolls ? "scroll" : "expand");
+        await _scroller.CreateAsync(module, "createScrollerFromViewport", _viewport, Scrolls ? "scroll" : "expand");
     }
 
     public async ValueTask DisposeAsync()
@@ -235,11 +235,7 @@
         try
         {
             // Instance only - the module is shared via JsModules and outlives this component.
-            if (_scroller is not null)
-            {
-                await _scroller.InvokeVoidAsync("dispose");
-                await _scroller.DisposeAsync();
-            }
+            await _scroller.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
