@@ -186,6 +186,8 @@ lockstep under one version.
 - **Registry**: `panel`, `drawer`, `select`, `sidebar`, `toolbar` and `dialog` now require
   Blaizio.Base 0.3.6 or newer. `blaizio add` and `blaizio update` stop with a message on an
   older Base instead of installing source that does not compile.
+- **Performance**: the enum-to-class-name lookup components use while rendering is cached. It used
+  to reflect over the enum on every render of every component.
 
 ### Added
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Reflection;
 
@@ -11,10 +12,16 @@ namespace Blaizio.Ui;
 public static class EnumExtensions
 {
     /// <summary>The member's <see cref="DescriptionAttribute"/> value, or its name when unannotated.</summary>
-    public static string GetDescription(this Enum value)
+    public static string GetDescription(this Enum value) => s_descriptions.GetOrAdd(value, Describe);
+
+    // Components call this on every render (class suffixes, data-* values). The answer for a member
+    // never changes, so the reflection runs once per member instead of once per call.
+    private static readonly ConcurrentDictionary<Enum, string> s_descriptions = new();
+
+    private static string Describe(Enum value)
     {
-        var enumMember = value.GetType().GetMember(value.ToString()).FirstOrDefault();
-        var descriptionAttribute = enumMember?.GetCustomAttribute<DescriptionAttribute>();
-        return descriptionAttribute is null ? value.ToString() : descriptionAttribute.Description;
+        var name = value.ToString();
+        var member = value.GetType().GetMember(name).FirstOrDefault();
+        return member?.GetCustomAttribute<DescriptionAttribute>()?.Description ?? name;
     }
 }
