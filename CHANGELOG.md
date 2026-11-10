@@ -15,6 +15,9 @@ lockstep under one version.
 - **Resizable**: a resize handle's `aria-valuenow`, `aria-valuemin` and `aria-valuemax` now follow
   the layout. They used to stay at their first-render values (`0`, then never updated on drag or
   keyboard resize). Panels with no content now resize too.
+- **Input Date**: typing `0` as the first digit of the day or month (the start of `05`) no longer
+  throws when the other segments are filled. The value stays empty until the segment holds a real
+  day or month.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

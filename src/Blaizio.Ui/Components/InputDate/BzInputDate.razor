@@ -388,7 +388,9 @@
     private Task EmitAsync()
     {
         DateOnly? next = null;
-        if (_day is { } d && _month is { } m && _year is { } y and >= 1)
+        // A lone "0" is a legal keystroke (the start of "05") but not a date part yet - treat the
+        // value as incomplete until the segment holds a real day/month.
+        if (_day is { } d and >= 1 && _month is { } m and >= 1 && _year is { } y and >= 1)
         {
             var day = Math.Min(d, DateTime.DaysInMonth(y, m));
             next = new DateOnly(y, m, day);
