@@ -31,7 +31,7 @@
     private readonly ControllableState<bool> _state = new();
     private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
     private bool _preloaded;
-    private IJSObjectReference? _triggerGuard;
+    private readonly JsInstance _triggerGuard = new();
 
     private DropdownMenuContext Context => new(
         _state.Value,
@@ -81,8 +81,7 @@
             // first scroll the page (a splatted Blazor onkeydown can't preventDefault the native
             // scroll in time - it round-trips to .NET first).
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
-            _triggerGuard = await module.InvokeAsync<IJSObjectReference>(
-                "guardTrigger", $"[data-bz-dropdown-menu-anchor='{_baseId}']");
+            await _triggerGuard.CreateAsync(module, "guardTrigger", $"[data-bz-dropdown-menu-anchor='{_baseId}']");
         }
         catch (JSDisconnectedException)
         {
@@ -95,11 +94,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_triggerGuard is not null)
-            {
-                await _triggerGuard.InvokeVoidAsync("dispose");
-                await _triggerGuard.DisposeAsync();
-            }
+            await _triggerGuard.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

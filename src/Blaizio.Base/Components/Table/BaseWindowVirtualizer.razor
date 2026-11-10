@@ -67,7 +67,7 @@
     [Parameter] public RenderFragment<VirtualWindow>? ChildContent { get; set; }
 
     private ElementReference _root;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseWindowVirtualizer>? _selfRef;
     private int? _pendingScrollIndex;
 
@@ -162,7 +162,7 @@
     [ExcludeFromCodeCoverage] // JS-interop seam.
     public async ValueTask ScrollToIndexAsync(int index)
     {
-        if (_instance is null)
+        if (!_instance.IsCreated)
         {
             _pendingScrollIndex = index;
             return;
@@ -177,7 +177,7 @@
         {
             _selfRef = DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/virtualizer.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createVirtualizer", _root, _selfRef);
+            await _instance.CreateAsync(module, "createVirtualizer", _root, _selfRef);
 
             // A pre-attach ScrollToIndexAsync call wins over the one-shot InitialItemIndex.
             if ((_pendingScrollIndex ?? InitialItemIndex) is { } initial)
@@ -186,7 +186,7 @@
                 await _instance.InvokeVoidAsync("scrollToIndex", initial);
             }
         }
-        else if (_pendingRefresh && _instance is not null)
+        else if (_pendingRefresh && _instance.IsCreated)
         {
             _pendingRefresh = false;
             await _instance.InvokeVoidAsync("refresh");
@@ -199,11 +199,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

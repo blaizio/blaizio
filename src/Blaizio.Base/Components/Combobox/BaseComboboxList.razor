@@ -22,7 +22,7 @@
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _handle;
+    private readonly JsInstance _handle = new();
     private bool _attached;
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
@@ -43,8 +43,7 @@
         try
         {
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/combobox.js");
-            _handle = await module.InvokeAsync<IJSObjectReference>(
-                "createCombobox",
+            await _handle.CreateAsync(module, "createCombobox",
                 _element,
                 new { inputId = Combobox.InputId, loop = Combobox.Loop, autoHighlight = Combobox.AutoHighlight });
         }
@@ -60,11 +59,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_handle is not null)
-            {
-                await _handle.InvokeVoidAsync("dispose");
-                await _handle.DisposeAsync();
-            }
+            await _handle.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

@@ -42,12 +42,10 @@
 
     private ElementReference _element;
     private int _index = -1;
-    private IJSObjectReference? _instance;
+    // The first-render init awaits twice (diagnostics, module import) before it hands _selfRef to
+    // JS; a fast navigation can dispose the handle in between. JsInstance covers that gap.
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseResizeHandle>? _selfRef;
-    // Set by DisposeAsync. The first-render init awaits twice (diagnostics, module import) before it
-    // hands _selfRef to JS; a fast navigation can dispose the handle in between, and passing the
-    // disposed reference throws ObjectDisposedException out of OnAfterRenderAsync.
-    private bool _disposed;
 
     private bool Horizontal => Group?.IsHorizontal ?? true;
 
@@ -61,7 +59,7 @@
     // Sizes live on the group; re-render so aria-valuenow/min/max follow them.
     private void OnLayoutChanged()
     {
-        if (!_disposed) StateHasChanged();
+        if (!_instance.IsDisposed) StateHasChanged();
     }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
@@ -107,26 +105,10 @@
         if (!firstRender || Disabled) return;
         if (!AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
             await AriaDiagnostics.WarnUnnamedAsync(Js, "ResizeHandle");
-        if (_disposed) return;
-        try
-        {
-            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/resizable.js");
-            if (_disposed) return;
-            _selfRef ??= DotNetObjectReference.Create(this);
-            var instance = await module.InvokeAsync<IJSObjectReference>("createResizeHandle", _element, _selfRef, Horizontal, DragCursor);
-            if (_disposed)
-            {
-                // Disposed while createResizeHandle was in flight: DisposeAsync saw no instance, so
-                // tear this one down here or its pointer listeners outlive the component.
-                await DisposeInstanceAsync(instance);
-                return;
-            }
-            _instance = instance;
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit gone.
-        }
+        if (_instance.IsDisposed) return;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        await _instance.CreateAsync(Js, "./_content/blaizio.base/dist/resizable.js",
+            "createResizeHandle", _element, _selfRef, Horizontal, DragCursor);
     }
 
     [JSInvokable] public void OnDragStart() => Group?.BeginResize();
@@ -135,25 +117,9 @@
 
     public async ValueTask DisposeAsync()
     {
-        _disposed = true;
         if (Group is not null) Group.LayoutChanged -= OnLayoutChanged;
-        var instance = _instance;
-        _instance = null;
         // Instances only - the modules are shared via JsModules and outlive this component.
-        if (instance is not null) await DisposeInstanceAsync(instance);
+        await _instance.DisposeAsync();
         _selfRef?.Dispose();
-    }
-
-    private static async Task DisposeInstanceAsync(IJSObjectReference instance)
-    {
-        try
-        {
-            await instance.InvokeVoidAsync("dispose");
-            await instance.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit gone.
-        }
     }
 }

@@ -28,7 +28,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private ElementReference _container;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
 
     // `dir` is emitted only when an explicit Dir is set (DirAttribute) - it pins the reading direction
     // on the container so the live getComputedStyle read in rovingFocus.ts and the group's CSS follow
@@ -41,7 +41,7 @@
         if (!firstRender) return;
 
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/rovingFocus.js");
-        _instance = await module.InvokeAsync<IJSObjectReference>("createRovingFocus", _container, new
+        await _instance.CreateAsync(module, "createRovingFocus", _container, new
         {
             orientation = Orientation == Orientation.Vertical ? "vertical" : "horizontal",
             dir = ResolvedDirection.ToAttribute(),
@@ -55,11 +55,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

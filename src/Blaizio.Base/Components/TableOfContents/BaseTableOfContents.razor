@@ -69,7 +69,7 @@
     private IReadOnlyList<TocHeading> _headings = [];
     private bool _scanQueued = true;
     private bool _spyStale;
-    private IJSObjectReference? _spy;
+    private readonly JsInstance _spy = new();
 
     protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
 
@@ -107,50 +107,18 @@
             if (_headings.Count > 0)
             {
                 var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toc.js");
-                _spy = await module.InvokeAsync<IJSObjectReference>(
-                    "createSpy", _nav, ContentSelector, HeadingSelector, TopOffset, RootSelector, UpdateHash);
+                await _spy.CreateAsync(module, "createSpy", _nav, ContentSelector, HeadingSelector, TopOffset, RootSelector, UpdateHash);
             }
         }
     }
 
-    private async Task DisposeSpyAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var reference = _spy;
-        _spy = null;
-        if (reference is null) return;
-        try
-        {
-            await reference.InvokeVoidAsync("dispose");
-            await reference.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
+    // The headings changed: drop the spy (and any creation still in flight) before a new one attaches.
+    private ValueTask DisposeSpyAsync() => _spy.ReleaseAsync();
 
     public async ValueTask DisposeAsync()
     {
         Navigation.LocationChanged -= OnLocationChanged;
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposeSpyAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the racing close-finish callback.
-        }
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        await _spy.DisposeAsync();
     }
 }

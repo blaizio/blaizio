@@ -15,9 +15,9 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
 {
     private const string TreeModule = "./_content/blaizio.base/dist/tree.js";
 
-    private IJSObjectReference? _instance;
-    private IJSObjectReference? _scrollObserver;
-    private IJSObjectReference? _marqueeInstance;
+    private readonly JsInstance _instance = new();
+    private readonly JsInstance _scrollObserver = new();
+    private readonly JsInstance _marqueeInstance = new();
     private DotNetObjectReference<BaseTree<TItem>>? _selfRef;
     private bool _attached;
     private bool _disabled;
@@ -41,7 +41,7 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
                 var module = await JsModules.ImportAsync(js, TreeModule);
                 _disabled = tree.Disabled;
                 _draggable = tree.Draggable;
-                _instance = await module.InvokeAsync<IJSObjectReference>("createTree", element, _selfRef, new
+                await _instance.CreateAsync(module, "createTree", element, _selfRef, new
                 {
                     id = tree.ResolvedId,
                     group = tree.Group,
@@ -56,13 +56,13 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
 
                 _virtualized = tree.Virtualize;
                 if (tree.Virtualize)
-                    _scrollObserver = await module.InvokeAsync<IJSObjectReference>("observeScroll", element, _selfRef);
+                    await _scrollObserver.CreateAsync(module, "observeScroll", element, _selfRef);
 
                 await SyncMarqueeAsync(element);
                 return;
             }
 
-            if (_instance is null) return;
+            if (!_instance.IsCreated) return;
 
             if (tree.Virtualize != _virtualized)
             {
@@ -71,13 +71,11 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
                 if (tree.Virtualize)
                 {
                     var module = await JsModules.ImportAsync(js, TreeModule);
-                    _scrollObserver = await module.InvokeAsync<IJSObjectReference>("observeScroll", element, _selfRef);
+                    await _scrollObserver.CreateAsync(module, "observeScroll", element, _selfRef);
                 }
-                else if (_scrollObserver is not null)
+                else
                 {
-                    await _scrollObserver.InvokeVoidAsync("dispose");
-                    await _scrollObserver.DisposeAsync();
-                    _scrollObserver = null;
+                    await _scrollObserver.ReleaseAsync();
                 }
             }
             else if (tree.Disabled != _disabled || tree.Draggable != _draggable)
@@ -101,16 +99,14 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
     private async Task SyncMarqueeAsync(ElementReference element)
     {
         _marquee = tree.MarqueeLabels;
-        if (tree.MarqueeLabels && _marqueeInstance is null)
+        if (tree.MarqueeLabels && !_marqueeInstance.IsCreated)
         {
             var module = await JsModules.ImportAsync(js, "./_content/blaizio.base/dist/marquee.js");
-            _marqueeInstance = await module.InvokeAsync<IJSObjectReference>("createMarquee", element);
+            await _marqueeInstance.CreateAsync(module, "createMarquee", element);
         }
-        else if (!tree.MarqueeLabels && _marqueeInstance is not null)
+        else if (!tree.MarqueeLabels)
         {
-            await _marqueeInstance.InvokeVoidAsync("dispose");
-            await _marqueeInstance.DisposeAsync();
-            _marqueeInstance = null;
+            await _marqueeInstance.ReleaseAsync();
         }
     }
 
@@ -119,9 +115,9 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_scrollObserver is not null) { await _scrollObserver.InvokeVoidAsync("dispose"); await _scrollObserver.DisposeAsync(); }
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
-            if (_marqueeInstance is not null) { await _marqueeInstance.InvokeVoidAsync("dispose"); await _marqueeInstance.DisposeAsync(); }
+            await _scrollObserver.DisposeAsync();
+            await _instance.DisposeAsync();
+            await _marqueeInstance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

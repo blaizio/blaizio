@@ -92,6 +92,12 @@ lockstep under one version.
 - **Toast**: pressing a toast button and letting go outside the stack no longer leaves the stack
   expanded with its toasts never closing on their own.
 - **Toast**: a swipe the browser interrupts puts the toast back instead of leaving it shifted.
+- **Calendar, Carousel, Collapsible, Accordion, Color Area, Combobox, Command, Dropdown Menu,
+  Menubar, Select, Input OTP, Input Tags, Message Scroller, Navigation Menu, Scroll Area, Slider,
+  Sortable, Table virtualizer, Table of Contents, Toast, Tree, Resizable, Focus Scope, Hotkey,
+  Roving Focus**: a component removed while it is still wiring up (leaving a page quickly, an
+  item removed right after it rendered) no longer leaves its listeners and observers running
+  on the page.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

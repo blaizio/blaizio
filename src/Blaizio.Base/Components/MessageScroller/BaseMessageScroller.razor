@@ -36,7 +36,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this).Data("slot", "message-scroller").Merge(Attributes, Class, Style);
@@ -58,7 +58,7 @@
 
     private async ValueTask InvokeOnInstanceAsync(string method, params object[] args)
     {
-        if (_instance is null) return;
+        if (!_instance.IsCreated) return;
         try
         {
             await _instance.InvokeVoidAsync(method, args);
@@ -75,7 +75,7 @@
         try
         {
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/messageScroller.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createMessageScroller", _element, new
+            await _instance.CreateAsync(module, "createMessageScroller", _element, new
             {
                 autoScroll = AutoScroll,
                 defaultPosition = DefaultPosition == MessageScrollerEdge.Start ? "start" : "end",
@@ -94,11 +94,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

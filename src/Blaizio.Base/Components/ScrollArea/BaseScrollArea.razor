@@ -24,7 +24,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
 
     private string BehaviorAttr => Behavior switch
     {
@@ -43,7 +43,7 @@
         try
         {
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/scrollArea.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createScrollArea", _element);
+            await _instance.CreateAsync(module, "createScrollArea", _element);
         }
         catch (JSDisconnectedException)
         {
@@ -56,11 +56,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

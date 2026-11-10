@@ -71,7 +71,7 @@
     [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseInputOtp>? _selfRef;
 
     private bool _focused;
@@ -129,7 +129,7 @@
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputOtp.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createInputOtp", _element, _selfRef, MaxLength, Pattern);
+            await _instance.CreateAsync(module, "createInputOtp", _element, _selfRef, MaxLength, Pattern);
         }
         catch (JSDisconnectedException)
         {
@@ -183,7 +183,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

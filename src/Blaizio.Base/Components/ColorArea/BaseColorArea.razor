@@ -39,7 +39,7 @@
 
     private readonly ControllableState<ColorAreaPoint> _state = new();
     private ElementReference _root;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseColorArea>? _selfRef;
 
     private ColorAreaContext Context => new(_state.Value.X, _state.Value.Y, Disabled);
@@ -79,7 +79,7 @@
 
         _selfRef = DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/colorArea.js");
-        _instance = await module.InvokeAsync<IJSObjectReference>("createColorArea", _root, _selfRef);
+        await _instance.CreateAsync(module, "createColorArea", _root, _selfRef);
     }
 
     public async ValueTask DisposeAsync()
@@ -87,11 +87,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

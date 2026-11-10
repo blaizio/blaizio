@@ -65,7 +65,7 @@
     private readonly Dictionary<string, RenderFragment> _items = [];
     private SelectPosition _position = SelectPosition.Popper;
     private bool _preloaded;
-    private IJSObjectReference? _triggerGuard;
+    private readonly JsInstance _triggerGuard = new();
 
     private SelectContext Context => new(
         Multiple ? null : _value.Value,
@@ -192,8 +192,7 @@
             await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
-            _triggerGuard = await module.InvokeAsync<IJSObjectReference>(
-                "guardTrigger", $"[data-bz-select-anchor='{_baseId}']");
+            await _triggerGuard.CreateAsync(module, "guardTrigger", $"[data-bz-select-anchor='{_baseId}']");
         }
         catch (JSDisconnectedException)
         {
@@ -206,11 +205,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_triggerGuard is not null)
-            {
-                await _triggerGuard.InvokeVoidAsync("dispose");
-                await _triggerGuard.DisposeAsync();
-            }
+            await _triggerGuard.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

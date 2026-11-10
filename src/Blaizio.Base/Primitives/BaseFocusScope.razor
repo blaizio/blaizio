@@ -34,7 +34,7 @@
     [Parameter] public EventCallback<FocusScopeEvent> OnUnmountAutoFocus { get; set; }
 
     private ElementReference _container;
-    private IJSObjectReference? _scope;
+    private readonly JsInstance _scope = new();
     private DotNetObjectReference<BaseFocusScope>? _selfRef;
 
     // tabindex="-1" lets the container itself hold focus when nothing inside is tabbable.
@@ -53,7 +53,7 @@
 
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/focusScope.js");
         _selfRef = DotNetObjectReference.Create(this);
-        _scope = await module.InvokeAsync<IJSObjectReference>("createFocusScope", _container, _selfRef, new
+        await _scope.CreateAsync(module, "createFocusScope", _container, _selfRef, new
         {
             loop = Loop,
             trapped = Trapped,
@@ -83,11 +83,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_scope is not null)
-            {
-                await _scope.InvokeVoidAsync("dispose");
-                await _scope.DisposeAsync();
-            }
+            await _scope.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

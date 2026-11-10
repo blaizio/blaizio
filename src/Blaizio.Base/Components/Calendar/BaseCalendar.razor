@@ -151,7 +151,7 @@
     private readonly Dictionary<DateOnly, ElementReference> _days = new();
 
     private ElementReference _root;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseCalendar>? _selfRef;
     private CalendarContext _context = default!;
 
@@ -391,7 +391,7 @@
         {
             _selfRef = DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/calendar.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createCalendar", _root, _selfRef);
+            await _instance.CreateAsync(module, "createCalendar", _root, _selfRef);
         }
 
         if (_focusPending)
@@ -410,11 +410,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

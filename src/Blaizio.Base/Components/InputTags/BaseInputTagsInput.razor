@@ -23,7 +23,7 @@
     [Parameter] public Action<ElementReference>? ElementRefCaptured { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private string? _attachedDelimiters;
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
@@ -74,15 +74,14 @@
     {
         if (firstRender) ElementRefCaptured?.Invoke(_element);
         var delimiters = string.Join(" ", Tags?.Delimiters ?? []);
-        if (_instance is not null && _attachedDelimiters == delimiters) return;
+        if (_instance.IsCreated && _attachedDelimiters == delimiters) return;
 
         try
         {
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputTags.js");
 
-            if (_instance is not null) await _instance.InvokeVoidAsync("dispose");
-            _instance = await module.InvokeAsync<IJSObjectReference>(
-                "createInputTags", _element, new { delimiters = Tags?.Delimiters ?? [] });
+            await _instance.ReleaseAsync(); // the delimiter set changed: replace the old guard
+            await _instance.CreateAsync(module, "createInputTags", _element, new { delimiters = Tags?.Delimiters ?? [] });
             _attachedDelimiters = delimiters;
         }
         catch (JSDisconnectedException)
@@ -96,8 +95,8 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null) await _instance.InvokeVoidAsync("dispose");
-            if (_instance is not null) await _instance.DisposeAsync();
+            if (_instance.IsCreated) await _instance.InvokeVoidAsync("dispose");
+            if (_instance.IsCreated) await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

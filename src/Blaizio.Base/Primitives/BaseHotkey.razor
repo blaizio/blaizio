@@ -21,7 +21,7 @@
     /// <summary>Temporarily ignore presses without unregistering.</summary>
     [Parameter] public bool Disabled { get; set; }
 
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseHotkey>? _selfRef;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -30,8 +30,7 @@
 
         _selfRef = DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/hotkeys.js");
-        _instance = await module.InvokeAsync<IJSObjectReference>(
-            "createHotkey", Combo, _selfRef, PreventDefault);
+        await _instance.CreateAsync(module, "createHotkey", Combo, _selfRef, PreventDefault);
     }
 
     [JSInvokable]
@@ -42,11 +41,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

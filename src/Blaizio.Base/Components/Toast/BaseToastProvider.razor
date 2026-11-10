@@ -102,7 +102,7 @@
     [Parameter] public RenderFragment<ToastRenderContext> ChildContent { get; set; } = default!;
 
     private ElementReference _root;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseToastProvider>? _selfRef;
 
     protected override void OnInitialized() => Store.Changed += OnStoreChanged;
@@ -155,12 +155,12 @@
         {
             _selfRef = DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toast.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>("createToaster", _root, _selfRef);
+            await _instance.CreateAsync(module, "createToaster", _root, _selfRef);
         }
 
         // Every render reconciles the engine with the toasts Blazor just rendered (adds run their
         // enter animation, C#-requested dismissals start their exit, content/duration changes apply).
-        if (_instance is not null) await _instance.InvokeVoidAsync("sync");
+        if (_instance.IsCreated) await _instance.InvokeVoidAsync("sync");
     }
 
     public void Dispose() => Store.Changed -= OnStoreChanged;
@@ -174,11 +174,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

@@ -91,7 +91,7 @@
     /// wouldn't refresh them).</summary>
     public event Action? StateChanged;
 
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseCarousel>? _selfRef;
     private bool _attached;
     private bool _ariaChecked;
@@ -154,8 +154,7 @@
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/carousel.js");
-            _instance = await module.InvokeAsync<IJSObjectReference>(
-                "createCarousel", viewport, _selfRef,
+            await _instance.CreateAsync(module, "createCarousel", viewport, _selfRef,
                 new { horizontal = IsHorizontal, loop = Loop, autoplayMs = AutoplayInterval });
         }
         catch (JSDisconnectedException)
@@ -176,32 +175,32 @@
     /// <summary>Scroll to the previous slide (wraps to the last if <see cref="Loop"/> and at the start).</summary>
     public async Task ScrollPrev()
     {
-        if (_instance is not null) await _instance.InvokeVoidAsync("scrollPrev");
+        if (_instance.IsCreated) await _instance.InvokeVoidAsync("scrollPrev");
     }
 
     /// <summary>Scroll to the next slide (wraps to the first if <see cref="Loop"/> and at the end).</summary>
     public async Task ScrollNext()
     {
-        if (_instance is not null) await _instance.InvokeVoidAsync("scrollNext");
+        if (_instance.IsCreated) await _instance.InvokeVoidAsync("scrollNext");
     }
 
     /// <summary>Scroll a specific slide (by zero-based index) into view.</summary>
     public async Task ScrollTo(int index)
     {
-        if (_instance is not null) await _instance.InvokeVoidAsync("scrollTo", index);
+        if (_instance.IsCreated) await _instance.InvokeVoidAsync("scrollTo", index);
     }
 
     /// <summary>Stop autoplay rotation until <see cref="ResumeAsync"/> is called.</summary>
     public async Task PauseAsync()
     {
-        if (_instance is not null) await _instance.InvokeVoidAsync("pause");
+        if (_instance.IsCreated) await _instance.InvokeVoidAsync("pause");
     }
 
     /// <summary>Start (or restart) autoplay rotation. An explicit user request, so it also works under
     /// prefers-reduced-motion (which only blocks the automatic start).</summary>
     public async Task ResumeAsync()
     {
-        if (_instance is not null) await _instance.InvokeVoidAsync("play");
+        if (_instance.IsCreated) await _instance.InvokeVoidAsync("play");
     }
 
     /// <summary>Pushed from the scroll engine whenever rotation starts or stops.</summary>
@@ -266,7 +265,7 @@
                 await AriaDiagnostics.WarnUnnamedAsync(Js, "Carousel");
         }
 
-        if (_instance is null) return;
+        if (!_instance.IsCreated) return;
         var target = _index.Value;
         if (target == _engineIndex || target < 0 || target >= SlideCount) return;
         if (_pendingScroll && target == _pendingTarget) return;
@@ -280,7 +279,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

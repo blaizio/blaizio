@@ -103,7 +103,7 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private ElementReference _element;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseSortable>? _selfRef;
     private bool _needsSettle;
 
@@ -337,7 +337,7 @@
             {
                 _selfRef ??= DotNetObjectReference.Create(this);
                 var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/sortable.js");
-                _instance = await module.InvokeAsync<IJSObjectReference>("createSortable", _element, _selfRef, new
+                await _instance.CreateAsync(module, "createSortable", _element, _selfRef, new
                 {
                     id = ResolvedId,
                     strategy = Strategy.ToString().ToLowerInvariant(),
@@ -364,7 +364,7 @@
 
         // The options above are sent once; Disabled is the one that must follow the parameter, or
         // a list disabled after it rendered keeps dragging by pointer.
-        if (_instance is not null && _sentDisabled != Disabled)
+        if (_instance.IsCreated && _sentDisabled != Disabled)
         {
             var wasSent = _sentDisabled is not null;
             _sentDisabled = Disabled;
@@ -375,7 +375,7 @@
             }
         }
 
-        if (_needsSettle && _instance is not null)
+        if (_needsSettle && _instance.IsCreated)
         {
             _needsSettle = false;
             try { await _instance.InvokeVoidAsync("settle"); }
@@ -434,7 +434,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null) { await _instance.InvokeVoidAsync("dispose"); await _instance.DisposeAsync(); }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

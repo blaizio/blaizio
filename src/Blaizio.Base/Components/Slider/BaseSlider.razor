@@ -59,7 +59,7 @@
 
     private readonly ControllableState<IReadOnlyList<double>> _state = new();
     private ElementReference _root;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseSlider>? _selfRef;
 
     private double EffectiveStep => Step > 0 ? Step : 1;
@@ -147,7 +147,7 @@
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/slider.js");
         // The module reads Min/Max/Step/orientation/inverted live off the root's data-attributes and
         // `dir` off computed style, so a runtime change needs no re-init - only the ref is passed.
-        _instance = await module.InvokeAsync<IJSObjectReference>("createSlider", _root, _selfRef);
+        await _instance.CreateAsync(module, "createSlider", _root, _selfRef);
     }
 
     public async ValueTask DisposeAsync()
@@ -155,11 +155,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance is not null)
-            {
-                await _instance.InvokeVoidAsync("dispose");
-                await _instance.DisposeAsync();
-            }
+            await _instance.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {

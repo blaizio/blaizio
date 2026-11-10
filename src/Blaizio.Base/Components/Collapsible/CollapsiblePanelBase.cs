@@ -33,7 +33,7 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
     private bool _hidden;
     private bool _justOpened;
     private ElementReference _element;
-    private IJSObjectReference? _instance;
+    private readonly JsInstance _instance = new();
     private DotNetObjectReference<CollapsiblePanelBase>? _selfRef;
 
     /// <summary>
@@ -108,12 +108,12 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
             return;
         }
 
-        if (_instance is null)
+        if (!_instance.IsCreated)
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/collapse.js");
             // createCollapse measures the (open) panel, setting the height variable.
-            _instance = await module.InvokeAsync<IJSObjectReference>("createCollapse", _element, _selfRef);
+            await _instance.CreateAsync(module, "createCollapse", _element, _selfRef);
             _justOpened = false;
         }
         else if (_justOpened)
@@ -152,45 +152,16 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
         StateHasChanged();
     }
 
-    private async Task DisposeInstanceAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var reference = _instance;
-        _instance = null;
-        if (reference is null) return;
-        try
-        {
-            await reference.InvokeVoidAsync("dispose");
-            await reference.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
+    // The panel left the render tree but the component lives on: drop the instance (and any
+    // creation still in flight) so the next opening attaches a fresh one to the new element. The
+    // close-finish callback and DisposeAsync can both get here (a navigation disposes the
+    // component mid close-animation); the handle hands the reference to one of them only.
+    private ValueTask DisposeInstanceAsync() => _instance.ReleaseAsync();
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposeInstanceAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the racing close-finish callback.
-        }
-
+        // Instances only - the modules are shared via JsModules and outlive this component.
+        await _instance.DisposeAsync();
         _selfRef?.Dispose();
         GC.SuppressFinalize(this);
     }
