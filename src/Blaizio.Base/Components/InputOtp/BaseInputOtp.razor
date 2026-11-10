@@ -23,6 +23,7 @@
            spellcheck="false"
            disabled="@Disabled"
            aria-label="@AriaLabel"
+           @attributes="InputAttributes"
            class="@InputClass"
            style="@InputStyle" />
     <CascadingValue Value="@Context" IsFixed="false">
@@ -60,6 +61,13 @@
 
     /// <summary>Accessible label for the hidden input.</summary>
     [Parameter] public string? AriaLabel { get; set; }
+
+    /// <summary>
+    /// Attributes for the hidden input itself rather than the container: the ones that name or
+    /// describe the control (<c>id</c>, <c>name</c>, <c>aria-describedby</c>, <c>aria-invalid</c>),
+    /// which mean nothing on a <c>div</c>.
+    /// </summary>
+    [Parameter] public IReadOnlyDictionary<string, object>? InputAttributes { get; set; }
 
     /// <summary>Classes for the hidden input element (the styled layer passes its cursor rules here).</summary>
     [Parameter] public string? InputClass { get; set; }

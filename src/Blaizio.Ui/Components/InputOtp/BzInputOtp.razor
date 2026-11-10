@@ -19,6 +19,7 @@
               Class="@Tw.Merge("bz-input-otp group/input-otp flex items-center gap-2 has-[:disabled]:opacity-50", Class)"
               InputClass="@Tw.Merge("disabled:cursor-not-allowed", InputClass)"
               Attributes="ContainerAttributes()"
+              InputAttributes="InputAttributes()"
               ElementRefCaptured="@(reference => _element = reference)">
     <CascadingValue Value="@(Mask ? MaskChar : null)" Name="BzInputOtpMaskChar">
         @ChildContent
@@ -74,7 +75,11 @@
     /// <summary>Focus the field (its overlay input) when it appears - works for Blazor-rendered markup, including markup that appears later, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>.</summary>
     [Parameter] public bool AutoFocus { get; set; }
 
-    /// <summary>Any other attributes, forwarded to the container.</summary>
+    /// <summary>
+    /// Any other attributes, forwarded to the container - except the ones that name or describe
+    /// the control (<c>id</c>, <c>name</c>, <c>required</c> and the <c>aria-*</c> a field sets),
+    /// which go to the input so a label and a field's description and error reach it.
+    /// </summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private ElementReference _element;
@@ -86,12 +91,31 @@
     /// </summary>
     public ValueTask<bool> FocusAsync(FocusOptions? options = null) => Core.FocusAsync(_element, options);
 
+    // Attributes that belong to the control, not to the row around it. A label's `for` only
+    // reaches a labelable element, and a description or an invalid state on a div is not announced.
+    private static readonly HashSet<string> s_inputAttributes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "id", "name", "required", "aria-describedby", "aria-invalid", "aria-label", "aria-labelledby", "aria-required",
+    };
+
+    private IReadOnlyDictionary<string, object>? InputAttributes()
+    {
+        if (Attributes is null) return null;
+        Dictionary<string, object>? input = null;
+        foreach (var (key, value) in Attributes)
+            if (s_inputAttributes.Contains(key)) (input ??= [])[key] = value;
+        return input;
+    }
+
     // The autofocus guard descends from the container to the overlay input.
     private IReadOnlyDictionary<string, object> ContainerAttributes()
     {
         var props = new PropBuilder();
         if (AutoFocus) props.Data("bz-autofocus", "");
-        return props.Merge(Attributes);
+        var rest = Attributes is null
+            ? null
+            : Attributes.Where(pair => !s_inputAttributes.Contains(pair.Key)).ToDictionary(pair => pair.Key, pair => pair.Value);
+        return props.Merge(rest);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

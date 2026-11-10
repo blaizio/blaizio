@@ -109,6 +109,9 @@ lockstep under one version.
   0.5, 1.5, 2.5) and Home no longer goes below `Min`.
 - **Input Tags**: with `Tab` (or another named key) as a delimiter, typing or pasting text that
   contains the word, such as "Tablet", no longer splits it.
+- **Input OTP**: inside a field, the label, description and error now reach the input. `id`,
+  `name`, `required` and the naming `aria-*` attributes go to the `<input>`; the rest stay on the
+  container. `input-otp` now requires Blaizio.Base 0.3.6.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

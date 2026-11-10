@@ -64,6 +64,8 @@ public sealed class GeneratorOptions
             ["select"] = "0.3.6",
             ["sidebar"] = "0.3.6",
             ["toolbar"] = "0.3.6",
+            // BaseInputOtp.InputAttributes (the field's id and aria-* reach the input) arrived in 0.3.6.
+            ["input-otp"] = "0.3.6",
             // IDialogService.Defaults, which ConfirmAsync and ShowSheetAsync read, arrived in 0.3.6.
             ["dialog"] = "0.3.6",
             // BaseCopyButton (dist/clipboard.js) and AnsiText arrived in 0.3.6; the copy button and
