@@ -349,7 +349,9 @@
     {
         if (Disabled) return;
 
-        _h = ((h % 360) + 360) % 360;
+        // 360 is the end of the hue slider, not 0: wrapping it would throw the thumb back to the
+        // start. The conversions treat the two as the same hue.
+        _h = h >= 360 ? 360 : ((h % 360) + 360) % 360;
         _s = Math.Clamp(s, 0, 1);
         _v = Math.Clamp(v, 0, 1);
         _a = Math.Clamp(a, 0, 1);

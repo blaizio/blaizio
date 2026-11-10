@@ -47,8 +47,13 @@
     }
 
     // The checkerboard shows through translucent presets, same as the preview well.
+    // Painted as rgb(): a swatch saved while the format was HSB or CMYK holds a color the browser
+    // cannot paint, and the whole declaration would be dropped.
+    private string Paint =>
+        ColorMath.TryParse(Color, out var h, out var s, out var v, out var a) ? ColorMath.Format(h, s, v, a, ColorFormat.Rgb) : Color;
+
     private string SwatchStyle =>
-        $"background-image:linear-gradient({Color}, {Color}), {BzColorAlphaSlider.Checkerboard};" +
+        $"background-image:linear-gradient({Paint}, {Paint}), {BzColorAlphaSlider.Checkerboard};" +
         "background-size:auto, 8px 8px;background-color:#fff";
 
     private const string SwatchClasses =

@@ -114,6 +114,8 @@ lockstep under one version.
   container. `input-otp` now requires Blaizio.Base 0.3.6.
 - **Calendar**: after paging away from the day that had focus, Tab still reaches the grid. The
   Next button now disables on the month `Max` falls in; it used to allow one more month.
+- **Color Picker**: dragging the hue to its far end (or pressing End) keeps the thumb there. A
+  gradient angle written in `grad` is read. A swatch saved in HSB or CMYK shows its color.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

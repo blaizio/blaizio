@@ -308,8 +308,9 @@ public sealed record GradientValue(
         {
             _ when text.EndsWith("deg", StringComparison.OrdinalIgnoreCase) => ("deg", 1d),
             _ when text.EndsWith("turn", StringComparison.OrdinalIgnoreCase) => ("turn", 360d),
-            _ when text.EndsWith("rad", StringComparison.OrdinalIgnoreCase) => ("rad", 180 / Math.PI),
+            // "grad" before "rad": every grad value also ends in "rad".
             _ when text.EndsWith("grad", StringComparison.OrdinalIgnoreCase) => ("grad", 0.9),
+            _ when text.EndsWith("rad", StringComparison.OrdinalIgnoreCase) => ("rad", 180 / Math.PI),
             _ => ("", 0d),
         };
         if (suffix.Length == 0) return false;
