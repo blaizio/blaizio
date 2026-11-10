@@ -144,13 +144,18 @@
     internal void Register(BaseSortableItem item)
     {
         if (!_items.Contains(item)) _items.Add(item);
+        _tabStop = null;
     }
 
     internal void Unregister(BaseSortableItem item)
     {
         _items.Remove(item);
         if (_grabbed == item) _grabbed = null;
+        _tabStop = null;
     }
+
+    /// <summary>An item's Index or Disabled changed, so the tab stop has to be worked out again.</summary>
+    internal void InvalidateTabStop() => _tabStop = null;
 
     /// <summary>True while <paramref name="item"/> is the one held by a keyboard grab.</summary>
     internal bool IsGrabbed(BaseSortableItem item) => _grabbed == item;
@@ -159,8 +164,29 @@
     internal bool IsDisabled => Disabled;
 
     /// <summary>The item that should carry the roving tab stop (tabindex 0).</summary>
-    internal bool IsActive(BaseSortableItem item) =>
-        _items.Count > 0 && item.Index == System.Math.Clamp(_activeIndex, 0, _items.Count - 1);
+    internal bool IsActive(BaseSortableItem item) => !item.Disabled && item.Index == (_tabStop ??= ResolveTabStop());
+
+    // Index of the item that holds the tab stop; cached because every item asks on every render.
+    private int? _tabStop;
+    private bool? _sentDisabled;
+
+    // A disabled item cannot hold the tab stop (it renders tabindex -1), so when the active index
+    // points at one the stop moves to the nearest enabled item, the following one on a tie.
+    // Without this a list whose active item is disabled has no tab stop and Tab skips it whole.
+    private int ResolveTabStop()
+    {
+        if (_items.Count == 0) return -1;
+        var wanted = System.Math.Clamp(_activeIndex, 0, _items.Count - 1);
+        var best = -1;
+        var bestDistance = int.MaxValue;
+        foreach (var item in _items)
+        {
+            if (item.Disabled) continue;
+            var distance = System.Math.Abs(item.Index - wanted) * 2 + (item.Index < wanted ? 1 : 0);
+            if (distance < bestDistance) { bestDistance = distance; best = item.Index; }
+        }
+        return best;
+    }
 
     // ---- keyboard reordering ------------------------------------------------------------------
 
@@ -217,10 +243,10 @@
                 break;
 
             case "Home":
-                if (grabbed) await MoveTo(item, 0); else FocusIndex(0);
+                if (grabbed) await MoveTo(item, 0); else FocusIndex(0, +1);
                 break;
             case "End":
-                if (grabbed) await MoveTo(item, count - 1); else FocusIndex(count - 1);
+                if (grabbed) await MoveTo(item, count - 1); else FocusIndex(count - 1, -1);
                 break;
         }
     }
@@ -228,7 +254,7 @@
     private async Task Step(BaseSortableItem item, bool grabbed, int delta)
     {
         if (grabbed) await MoveTo(item, item.Index + delta);
-        else FocusIndex(item.Index + delta);
+        else FocusIndex(item.Index + delta, delta);
     }
 
     private async Task Grab(BaseSortableItem item)
@@ -236,6 +262,7 @@
         _grabbed = item;
         _grabOrigin = item.Index;
         _activeIndex = item.Index;
+        _tabStop = null;
         Announce(SortableAnnouncementKind.Grabbed, item.Index, _items.Count);
         await OnDragStart.InvokeAsync(item.Index);
         StateHasChanged();
@@ -264,6 +291,7 @@
         target = System.Math.Clamp(target, 0, count - 1);
         if (target == item.Index) return;
         _activeIndex = target;
+        _tabStop = null;
         _refocus = item;
         Announce(SortableAnnouncementKind.Moved, target, count);
         await OnReorder.InvokeAsync(new SortableChange
@@ -283,12 +311,19 @@
         _liveMessage = Announcement?.Invoke(announcement) is { Length: > 0 } text ? text : announcement.Message;
     }
 
-    // Move the roving tab stop (no reorder) and focus that item.
-    private void FocusIndex(int index)
+    // Move the roving tab stop (no reorder) and focus that item. Disabled items are stepped over
+    // in the direction of travel: focus landing on one would strand the keyboard there, since a
+    // disabled item ignores every key. With nothing enabled that way, focus stays put.
+    private void FocusIndex(int index, int direction)
     {
         index = System.Math.Clamp(index, 0, _items.Count - 1);
+        var step = direction < 0 ? -1 : 1;
+        BaseSortableItem? target;
+        while ((target = _items.FirstOrDefault(i => i.Index == index)) is { Disabled: true }) index += step;
+        if (target is null) return;
         _activeIndex = index;
-        _refocus = _items.FirstOrDefault(i => i.Index == index);
+        _tabStop = null;
+        _refocus = target;
         StateHasChanged();
     }
 
@@ -324,6 +359,19 @@
             catch (JSDisconnectedException)
             {
                 // Circuit gone.
+            }
+        }
+
+        // The options above are sent once; Disabled is the one that must follow the parameter, or
+        // a list disabled after it rendered keeps dragging by pointer.
+        if (_instance is not null && _sentDisabled != Disabled)
+        {
+            var wasSent = _sentDisabled is not null;
+            _sentDisabled = Disabled;
+            if (wasSent)
+            {
+                try { await _instance.InvokeVoidAsync("setDisabled", Disabled); }
+                catch (JSDisconnectedException) { /* Circuit gone. */ }
             }
         }
 

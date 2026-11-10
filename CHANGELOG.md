@@ -51,6 +51,10 @@ lockstep under one version.
   component that owns the drawer re-renders. It used to show the state from when it opened.
 - **Drawer**: dragging a drawer shut after `PreventDismiss` was turned on while it was open slides
   it back. It used to slide off screen and leave the modal open and invisible.
+- **Sortable**: setting `Disabled` on a list after it rendered now stops pointer dragging too.
+- **Sortable**: a list whose first item is disabled can be reached with Tab again, and the arrow
+  keys step over disabled items instead of stopping on one. A disabled item can still be shifted
+  by items dropped around it; its `Disabled` summary no longer says otherwise.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

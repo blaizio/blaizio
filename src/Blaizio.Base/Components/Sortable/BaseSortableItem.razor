@@ -20,7 +20,10 @@
     /// <summary>The item's position in the consumer's list. Required so keyboard moves and focus track the data.</summary>
     [Parameter, EditorRequired] public int Index { get; set; }
 
-    /// <summary>Pins the item: it can't be dragged or grabbed, and other items can't displace it.</summary>
+    /// <summary>
+    /// The item can't be dragged or grabbed, and keyboard focus steps over it. Other items can
+    /// still be dropped around it, which shifts its position.
+    /// </summary>
     [Parameter] public bool Disabled { get; set; }
 
     /// <summary>The item content.</summary>
@@ -34,6 +37,9 @@
     internal string ItemId { get; } = Identifier.Create("bz-sortable-item");
 
     protected override void OnInitialized() => Group?.Register(this);
+
+    // Index and Disabled decide which item holds the group's tab stop.
+    protected override void OnParametersSet() => Group?.InvalidateTabStop();
 
     private bool Grabbed => Group?.IsGrabbed(this) ?? false;
 
