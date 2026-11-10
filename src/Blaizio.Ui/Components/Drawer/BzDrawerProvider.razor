@@ -1,6 +1,6 @@
 @namespace Blaizio.Ui
 @*
-    Scales the app behind a drawer - the vaul-style "indent" effect. Wrap the content you want to
+    Scales the app behind a drawer - the "indent" effect. Wrap the content you want to
     recede (a page, a panel, the whole app) in a BzDrawerProvider; when a descendant drawer with
     ScaleBackground="true" opens, the wrapped content scales down and rounds while the drawer slides in.
 
@@ -13,7 +13,7 @@
     @* h-full so the wrapped content fills its container (e.g. the viewport): otherwise it is only
        content-height and the surface behind it is exposed below the page instead of only as the inset.
        When a scaling drawer opens the page shrinks (scale) and slides down a touch (translate) from the
-       top edge - the vaul indent - so the recede reads as the page settling back onto the surface
+       top edge - the indent - so the recede reads as the page settling back onto the surface
        behind it. That surface is whatever the wrapped content sits on; it is NOT painted here, so it
        takes your app's own background, not a forced colour. *@
     <div class="bz-drawer-scale-bg h-full origin-top transition-[transform,translate,border-radius,scale] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] data-[scaled=on]:scale-[0.965] data-[scaled=on]:translate-y-3 data-[scaled=on]:overflow-hidden data-[scaled=on]:rounded-2xl"
@@ -76,6 +76,7 @@
     // Hosts one relayed surface so it can re-render independently of the provider (see Refresh).
     private sealed class Outlet : ComponentBase
     {
+        /// <summary>The drawer surface this outlet renders.</summary>
         [Parameter] public RenderFragment? Surface { get; set; }
 
         public void Refresh() => _ = InvokeAsync(StateHasChanged);

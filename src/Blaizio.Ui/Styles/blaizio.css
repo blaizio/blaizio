@@ -9,7 +9,7 @@
 @theme inline {
   /* These redefine tw-animate's vars (same names, our --bz-* height keyframes), so they must keep
      the --tw-animation-fill-mode hook: shared.css pins it to `forwards` on [data-state='closed'] to
-     hold the exit's last frame (height 0) while the unmount roundtrip is in flight. A plain
+     hold the exit's last frame (height 0) while the removal roundtrip is in flight. A plain
      shorthand here silently drops that hook - the panel snaps back to full height for a frame
      (or ~1s on a cold circuit): the close blink. */
   --animate-accordion-down: accordion-down 0.2s ease-out var(--tw-animation-fill-mode, none);
@@ -98,7 +98,7 @@
   /* The tree's children containers: the collapsible height pair with a fade folded in, so sub
      items dissolve in and out as the branch opens instead of being guillotined by the height clip.
      Same measured height var, same fill-mode hook (the global [data-state='closed'] pin keeps the
-     exit's last frame - height 0, opacity 0 - painted until the unmount lands). */
+     exit's last frame - height 0, opacity 0 - painted until the removal lands). */
   @keyframes tree-down {
     from {
       height: 0;
@@ -125,10 +125,10 @@
 
 /*
   Reduced motion (OS/browser setting): collapse every animation and transition to a near-zero
-  duration. The styles are ported verbatim from upstream (which doesn't gate its animate-in/out
-  utilities), so the gate lives here once instead of on every utility. Near-zero rather than
+  duration. The animate-in/out utilities are not gated one by one, so the gate lives here
+  once instead of on every utility. Near-zero rather than
   `none` so animation events still fire - the presence machinery (ts/presence.ts, ts/collapse.ts)
-  unmounts overlays and accordion panels on animationend.
+  removes overlays and accordion panels on animationend.
 */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -145,10 +145,10 @@
 
 /* MARK: Exit animations
    Hold the exit animation's final frame (tw-animate's fill-mode default is none). Presence-managed
-   surfaces stay mounted at data-state="closed" until C# unmounts them a SignalR roundtrip after
+   surfaces stay rendered at data-state="closed" until C# removes them a SignalR roundtrip after
    animationend - with fill-mode none the surface snaps back to its fully-visible resting styles
    for that whole gap (a cold circuit stretches it to ~1s): the close-blink ghost. Forwards keeps
-   the last keyframe (opacity 0) painted no matter how late the unmount lands. */
+   the last keyframe (opacity 0) painted no matter how late the removal lands. */
 [data-state='closed'] {
   --tw-animation-fill-mode: forwards;
 }
@@ -337,7 +337,7 @@
 }
 
 /*
-  Virtualization owns the scroll position. BzWindowVirtualizer (DataTable Virtualize) mounts only the
+  Virtualization owns the scroll position. BzWindowVirtualizer (DataTable Virtualize) renders only the
   visible rows and resizes the spacer rows above/below as you scroll - so the browser's own scroll
   anchoring must NOT also adjust the scroll to "keep content stable", or the two compound into a
   runaway that keeps scrolling on its own. Opt the virtualized body (window mode) and any
@@ -1044,7 +1044,7 @@
 }
 
 /*
-  Toast layout engine - converted from sonner's styles.css. The stacking, enter / exit,
+  Toast layout engine. The stacking, enter / exit,
   hover-to-expand and swipe-to-dismiss are driven entirely by custom properties that ts/toast.ts
   writes on each <li data-bz-toast> and its <ol data-bz-toaster> stack (--index, --offset,
   --front-toast-height, --swipe-amount-*, …). This is the preset-agnostic ENGINE: positioning,
@@ -1295,7 +1295,7 @@
   }
 }
 
-/* Loading spinner - sonner's 12-bar loader, painted in the toast's current colour. The inner element
+/* Loading spinner - a 12-bar loader, painted in the toast's current colour. The inner element
    is offset to the box centre (top/left 50%) so the bars rotate around the middle, not the corner. */
 .bz-toast-spinner {
   position: relative;

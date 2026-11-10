@@ -46,7 +46,7 @@
     [Parameter] public EventCallback<double> SnapPointChanged { get; set; }
 
     /// <summary>
-    /// Scale the page behind the drawer (the vaul "indent" effect) while it is open. Requires an
+    /// Scale the page behind the drawer (the "indent" effect) while it is open. Requires an
     /// ancestor <see cref="BzDrawerProvider"/> wrapping the content that should recede; without one this
     /// is a no-op and the drawer renders normally.
     /// </summary>
@@ -111,7 +111,7 @@
         "bz-drawer-content group/drawer-content fixed z-50 flex h-auto flex-col gap-4 outline-none transition ease-in-out " +
         "data-open:animate-in data-closed:animate-out data-open:duration-500 data-closed:duration-300 " +
         // Suppress the slide animation ONLY on a drag-dismiss (closing + dragging), so the JS transform
-        // owns that motion and presence unmounts at once. Scoping to data-closed is what fixes the
+        // owns that motion and presence removes it at once. Scoping to data-closed is what fixes the
         // "small drag closes then springs open" bug: suppressing during an OPEN drag meant removing
         // data-dragging on spring-back flipped animation none->enter and replayed the entrance.
         "data-closed:data-[dragging]:!animate-none " +
@@ -182,7 +182,7 @@
         // Relay mode: keep the provider's copy of the surface (and its scale state) in step. Each call
         // into the provider re-renders it (an ancestor) and so re-runs THIS OnParametersSet, so guard
         // every call behind a transition flag - otherwise the re-render loops forever. The surface stays
-        // registered through the close animation; HandleExitComplete drops it once it has unmounted.
+        // registered through the close animation; HandleExitComplete drops it once it has been removed.
         if (Relayed)
         {
             if (open)
@@ -256,7 +256,7 @@
                 activeSnap = _snapIndex,
             };
             await _drag.CreateAsync(_dragModule, "createDrawerDrag", contentId, _selfRef, options);
-            // In relay (scaling) mode the surface mounts a beat later under the provider; if the element
+            // In relay (scaling) mode the surface renders a beat later under the provider; if the element
             // isn't in the DOM yet, re-arm and retry on the next render rather than giving up.
             if (!_drag.IsCreated && !_drag.IsDisposed && _open && _wireTries++ < 20)
             {

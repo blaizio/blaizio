@@ -4,7 +4,7 @@ namespace Blaizio.Ui;
 
 /// <summary>
 /// Where a <see cref="BzToolbar"/> sits. <see cref="Inline"/> leaves it in the layout flow; every
-/// other value floats it against an edge of the viewport, sliding in from that edge on mount. The
+/// other value floats it against an edge of the viewport, sliding in from that edge on first render. The
 /// edges are logical, so a <c>Start*</c> bar sits on the left in LTR and on the right in RTL. Pass
 /// <c>absolute</c> in <c>Class</c> to anchor a floating bar inside the nearest positioned ancestor
 /// instead of the viewport - the usual shape for a contextual toolbar that appears over a region.

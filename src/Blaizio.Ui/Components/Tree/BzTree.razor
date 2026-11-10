@@ -461,9 +461,9 @@
     // Every children container animates open/closed through the tree keyframes - the collapsible
     // height pair with a fade folded in, so sub items dissolve in and out instead of being
     // guillotined by the height clip (collapse.js measures --bz-collapsible-content-height;
-    // BaseTreePanel keeps the container mounted with data-state=closed while the up animation
+    // BaseTreePanel keeps the container rendered with data-state=closed while the up animation
     // plays). Reduced motion is handled globally in blaizio.css: animations run at ~0ms, so the
-    // panel still unmounts on animationend.
+    // panel is still removed on animationend.
     private const string ContentBaseClasses =
         "bz-tree-content overflow-hidden " +
         "data-[state=open]:animate-tree-down data-[state=closed]:animate-tree-up " +
@@ -510,7 +510,7 @@
         "[&>[data-part=branch]:last-child>[data-part=branch-control]]:before:rounded-es-[6px]";
 
     // Leaves shrink the chevron placeholder from 16px to 6px (data-[leaf]:w-1.5) so their content
-    // sits just past the parent's text instead of a full slot away - a compact, VS Code-like indent.
+    // sits just past the parent's text instead of a full slot away - a compact, editor-like indent.
     // Restore the full slot with IndicatorClass="data-[leaf]:w-4" if a template draws leaf icons there.
     private const string IndicatorClasses =
         "bz-tree-indicator flex size-4 shrink-0 items-center justify-center text-muted-foreground " +

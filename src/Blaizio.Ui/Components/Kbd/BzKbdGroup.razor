@@ -1,11 +1,14 @@
 @namespace Blaizio.Ui
-@* A row of Kbd chips (upstream renders the group as a <kbd> too - kept verbatim). *@
+@* A row of Kbd chips (the group is a <kbd> too). *@
 
 <BasePrimitive Element="kbd" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
 
 @code {
+    /// <summary>Extra classes, merged over the defaults.</summary>
     [Parameter] public string? Class { get; set; }
+    /// <summary>The grouped items.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>

@@ -80,6 +80,7 @@ internal sealed class DataTableEditorHost<TItem, TValue> : ComponentBase, IHandl
 {
     private static readonly Type s_type = Nullable.GetUnderlyingType(typeof(TValue)) ?? typeof(TValue);
 
+    /// <summary>What the table asks this editor to render: the open edit, the placement and the labels.</summary>
     [Parameter, EditorRequired] public DataTableEditorRequest Request { get; set; } = default!;
 
     /// <summary>The resolved control (never <see cref="DataTableEditor.Auto"/>).</summary>

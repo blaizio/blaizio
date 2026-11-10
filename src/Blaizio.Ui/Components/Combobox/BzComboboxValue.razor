@@ -3,7 +3,7 @@
 @*
     Styled ComboboxValue - the display of the current selection, over the headless BaseComboboxValue.
     Single-select with no children shows the selected item's text (inside a ComboboxTrigger, for the popup
-    pattern). Multi-select takes a Selection render-prop that hands you the selected ITEMS (recovered from
+    pattern). Multi-select takes a Selection template that hands you the selected ITEMS (recovered from
     the engine's string selection via the root's ComboboxData) to map to ComboboxChips.
 *@
 
@@ -27,7 +27,7 @@
 
     [CascadingParameter] private ComboboxData<TItem>? Data { get; set; }
 
-    // Adapt the engine's string selection to the typed render-prop: recover each item from its string key.
+    // Adapt the engine's string selection to the typed template: recover each item from its string key.
     private RenderFragment<IReadOnlyList<string>>? BaseSelection =>
         Selection is null ? null : values => Selection(MapToItems(values));
 
