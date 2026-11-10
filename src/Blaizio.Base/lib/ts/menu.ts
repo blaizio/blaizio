@@ -488,13 +488,24 @@ class Menu {
     const next = this.options.loop
       ? (index + delta + items.length) % items.length
       : Math.min(Math.max(index + delta, 0), items.length - 1);
-    items[next]?.focus({ preventScroll: true });
+    this.focusItem(items[next]);
   }
 
   private focusEdge(edge: 'first' | 'last'): void {
     const items = this.getItems();
     const target = edge === 'first' ? items[0] : items[items.length - 1];
-    target?.focus({ preventScroll: true });
+    this.focusItem(target);
+  }
+
+  /**
+   * Keyboard focus for an item. preventScroll keeps the PAGE from jumping to a portaled surface;
+   * the item is then brought into view inside its own scrolling list (a long menu, a select's
+   * listbox), which preventScroll would otherwise leave behind. A no-op when already visible.
+   */
+  private focusItem(item: HTMLElement | undefined): void {
+    if (!item) return;
+    item.focus({ preventScroll: true });
+    item.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
   private typeahead(char: string): void {
@@ -515,7 +526,7 @@ class Menu {
     for (let i = 0; i < items.length; i++) {
       const probe = (start + offset + i) % items.length;
       if (labels[probe]!.startsWith(needle)) {
-        items[probe]!.focus({ preventScroll: true });
+        this.focusItem(items[probe]);
         return;
       }
     }

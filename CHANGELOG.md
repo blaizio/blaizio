@@ -42,6 +42,9 @@ lockstep under one version.
   `BlaizioOptions.DialogDefaults`, as `ShowAsync` does. `IDialogService` gains a `Defaults`
   property with a default implementation, so the updated `DialogServiceExtensions.cs` needs this
   version of Blaizio.Base.
+- **Dropdown Menu, Context Menu, Menubar, Select**: moving through a long, scrolling list with the
+  arrow keys, Home, End or by typing now scrolls the focused item into view. Focus used to move
+  out of sight.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
