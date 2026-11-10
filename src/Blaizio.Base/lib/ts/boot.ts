@@ -55,7 +55,10 @@ for (const [key, prefix] of [
     // storage unavailable - keep the markup defaults
   }
   if (!usable(value)) continue;
-  for (const c of [...el.classList]) if (c.startsWith(prefix)) el.classList.remove(c);
+  // font- is also Tailwind's prefix (font-sans, font-medium, ...): those classes on <html> are the
+  // app's own and stay. Keep this pattern in sync with ts/theme.ts.
+  const tailwind = /^font-(sans|serif|mono|thin|extralight|light|normal|medium|semibold|bold|extrabold|black|stretch-.+|\[.+|\(.+)$/;
+  for (const c of [...el.classList]) if (c.startsWith(prefix) && !(prefix === 'font-' && tailwind.test(c))) el.classList.remove(c);
   if (value !== 'default') el.classList.add(prefix + value);
 }
 

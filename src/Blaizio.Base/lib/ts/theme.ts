@@ -147,11 +147,18 @@ export function setDir(dir: string): void {
 // `blaizio-<prefix>`. 'default' (or '') = no class - the :root tokens win. Same shape as
 // preset/nova above; the CSS behind each class ships with the consumer's stylesheet.
 
+// The font overlay's marker class is `font-<name>`, a prefix Tailwind also uses (font-sans,
+// font-medium, font-[...]). Those are the app's own classes on <html>: never read one as the
+// overlay, never remove one. No overlay is named like a Tailwind utility.
+const TAILWIND_FONT = /^font-(sans|serif|mono|thin|extralight|light|normal|medium|semibold|bold|extrabold|black|stretch-.+|\[.+|\(.+)$/;
+const isOverlayClass = (name: string, prefix: string): boolean =>
+  name.startsWith(prefix) && !(prefix === 'font-' && TAILWIND_FONT.test(name));
+
 function getOverlay(key: string, prefix: string): string {
   const persisted = read(key);
   if (persisted) return persisted;
   for (const c of document.documentElement.classList) {
-    if (c.startsWith(prefix)) return c.slice(prefix.length);
+    if (isOverlayClass(c, prefix)) return c.slice(prefix.length);
   }
   return 'default';
 }
@@ -160,7 +167,7 @@ function setOverlay(key: string, prefix: string, value: string): void {
   const normalized = value || 'default';
   write(key, normalized);
   const el = document.documentElement;
-  for (const c of [...el.classList]) if (c.startsWith(prefix)) el.classList.remove(c);
+  for (const c of [...el.classList]) if (isOverlayClass(c, prefix)) el.classList.remove(c);
   if (normalized !== 'default') el.classList.add(prefix + normalized);
 }
 

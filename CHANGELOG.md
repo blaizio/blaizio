@@ -150,6 +150,8 @@ lockstep under one version.
   items), which assistive tech read as a list with nothing in it.
 - **Tree**: searching a tree that loads children on demand no longer shows the "no results" text
   beside a match found in a loaded branch.
+- **Theme**: setting or reading the font no longer removes or misreads Tailwind `font-*` classes
+  (`font-sans`, `font-medium`, ...) that an app put on `<html>`.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
