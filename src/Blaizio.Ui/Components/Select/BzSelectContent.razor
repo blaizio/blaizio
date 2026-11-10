@@ -84,7 +84,7 @@
     private ElementReference _viewport;
     private ElementReference _up;
     private ElementReference _down;
-    private IJSObjectReference? _scroll;
+    private readonly JsInstance _scroll = new();
     private bool _scrollAttached;
 
     // Set by the surrounding modal surface (dialog/sheet/drawer) so this popup, which portals to
@@ -137,8 +137,7 @@
         try
         {
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/selectScroll.js");
-            _scroll = await module.InvokeAsync<IJSObjectReference>(
-                "createSelectScroll", _viewport, _up, _down);
+            await _scroll.CreateAsync(module, "createSelectScroll", _viewport, _up, _down);
         }
         catch (JSDisconnectedException) { }
     }
@@ -148,11 +147,7 @@
         try
         {
             // The scroll INSTANCE is ours; the module is the shared JsModules proxy.
-            if (_scroll is not null)
-            {
-                await _scroll.InvokeVoidAsync("dispose");
-                await _scroll.DisposeAsync();
-            }
+            await _scroll.DisposeAsync();
         }
         catch (JSDisconnectedException) { }
         GC.SuppressFinalize(this);

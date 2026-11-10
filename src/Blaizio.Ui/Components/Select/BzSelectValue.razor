@@ -96,7 +96,7 @@ else
 
     private ElementReference _tokensEl;
     private IJSObjectReference? _overflowModule;
-    private IJSObjectReference? _overflow;
+    private readonly JsInstance _overflow = new();
 
     // The "+N" counter needs DOM measurement; only the Count mode with the default badges uses it. The
     // Wrap mode is pure CSS, and a custom Tokens template owns its own overflow.
@@ -110,16 +110,16 @@ else
     {
         if (!UseOverflowJs)
         {
-            if (_overflow is not null) await DisposeOverflowAsync();
+            await DisposeOverflowAsync();
             return;
         }
 
         try
         {
-            if (_overflow is null)
+            if (!_overflow.IsCreated)
             {
                 _overflowModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tokenOverflow.js");
-                _overflow = await _overflowModule.InvokeAsync<IJSObjectReference>("createTokenOverflow", _tokensEl);
+                await _overflow.CreateAsync(_overflowModule, "createTokenOverflow", _tokensEl);
             }
             else
             {
@@ -130,19 +130,9 @@ else
         catch (JSDisconnectedException) { }
     }
 
-    private async Task DisposeOverflowAsync()
-    {
-        try
-        {
-            if (_overflow is not null)
-            {
-                await _overflow.InvokeVoidAsync("dispose");
-                await _overflow.DisposeAsync();
-            }
-        }
-        catch (JSDisconnectedException) { }
-        _overflow = null;
-    }
+    // The counter is no longer needed but the component stays: drop the watcher (and a creation
+    // still in flight) so switching back to Count attaches a fresh one.
+    private ValueTask DisposeOverflowAsync() => _overflow.ReleaseAsync();
 
     public async ValueTask DisposeAsync()
     {
