@@ -1,7 +1,7 @@
 namespace Blaizio;
 
 /// <summary>
-/// Programmatic access to the four app-wide appearance knobs Blaizio persists in localStorage and
+/// Programmatic access to the app-wide appearance knobs Blaizio persists in localStorage and
 /// applies to <c>&lt;html&gt;</c>: the <b>theme</b> (<c>"light"</c> / <c>"dark"</c> / <c>"system"</c>,
 /// the <c>dark</c> class), the <b>style</b> (the <c>style-*</c> class), the
 /// <b>preset</b> (the active color palette, the <c>preset-*</c> class) and the <b>direction</b>

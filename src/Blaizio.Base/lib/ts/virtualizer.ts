@@ -3,7 +3,7 @@
 // viewport are rendered - the rest are stood in for by two spacer rows the host renders above and
 // below. Two paths: a fast FIXED path where every row is the same estimated height (pure index math,
 // scales to millions of rows), and a DYNAMIC path that measures each rendered row, keeps a running
-// offset map, and anchors the viewport so a re-measure never makes the page jump. All geometry is
+// offset map (the scroll position itself is never written). All geometry is
 // read live off the root's data-attributes (like slider.ts), so a count / height / filter change
 // needs no re-init - only a `refresh()`. Reports the visible [start, end) range back to C#; in
 // fixed mode it passes -1 spacer sentinels and lets C# own the (testable) spacer math, in dynamic
@@ -143,8 +143,8 @@ class Virtualizer {
     this.report(start, end, -1, -1);
   }
 
-  // Measured-height path: fold in any new row measurements, rebuild the offset map (anchoring the
-  // viewport so the shift never shows), then resolve the range and its real spacer pixels.
+  // Measured-height path: fold in any new row measurements, rebuild the offset map, then resolve
+  // the range and its real spacer pixels.
   private measureDynamic(count: number): void {
     this.syncMeasurements();
     this.rebuildOffsets(count);
