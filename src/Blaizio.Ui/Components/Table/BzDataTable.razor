@@ -2912,24 +2912,6 @@
         return Tw.Merge(align, header ? col.HeaderClass : col.CellClass);
     }
 
-    private IReadOnlyDictionary<string, object>? RowAttributes(TItem item, int index)
-    {
-        if (!Virtualize && !RowsClickable) return null;
-
-        var props = new PropBuilder(this);
-        if (Virtualize)
-        {
-            props.Data("bz-virtual-index", index.ToString(CultureInfo.InvariantCulture));
-            if (!DynamicRowHeight) props.Set("style", $"height:{Px(ItemSize)}");
-        }
-        // Row clicks are delegated in JS (ts/dataTable.ts), not a Blazor @onclick: only JS can see
-        // the event target, and a click inside an interactive cell control (the selection checkbox,
-        // a row-actions trigger, a link) must stay that control's click.
-        if (RowsClickable) props.Data("bz-row-index", index.ToString(CultureInfo.InvariantCulture));
-
-        return props.Merge(null);
-    }
-
     private bool RowsClickable => Selectable || OnRowClick.HasDelegate;
 
     /// <summary>Called by the row-click module with the clicked row's index. Toggles selection and raises <see cref="OnRowClick"/>.</summary>

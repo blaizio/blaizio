@@ -139,6 +139,8 @@ lockstep under one version.
   values are all negative include the zero line.
 - **Tree**: double-clicking a word in the rename input selects it. It used to restart the rename
   and discard what was typed.
+- **Data Table**: buttons and links in `FooterContent` or `Caption` of an editable table can be
+  reached with Tab again.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

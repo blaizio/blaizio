@@ -1765,6 +1765,9 @@ class DataTableGrid {
         return;
       }
       if (el.closest(EDITOR)) return;
+      // The cursor only walks the header row and the body. A control in the footer or the caption
+      // keeps its own tab stop, or nothing could reach it.
+      if (el.closest('tfoot, caption')) return;
       if (el.getAttribute('tabindex') !== '-1') el.setAttribute('tabindex', '-1');
     };
     if (root.matches(FOCUSABLE)) mark(root);
