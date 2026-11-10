@@ -159,6 +159,9 @@ lockstep under one version.
   frame or shifts the content under the reader. A smaller `Count` still restarts from the top.
 - **Avatar**: on a statically rendered page the image now shows once it loads. It used to stay
   hidden behind the fallback.
+- **Resizable**: a panel rendered conditionally gives its space back when it is removed and gets
+  a real size when it returns. It used to leave a ghost entry and come back zero-sized. A panel
+  added after the first render joins at the end of the order.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

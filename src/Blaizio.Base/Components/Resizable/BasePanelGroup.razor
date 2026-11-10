@@ -27,7 +27,10 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private readonly List<PanelInfo> _panels = new();
-    private readonly List<int> _handleBeforePanel = new(); // handle i sits between panel[h[i]] and panel[h[i]+1]
+    // Handle i sits just after this panel (and before the next one in _panels). Held by reference,
+    // not by index: panels can leave, and an index would then point at a different panel. A slot is
+    // null once its handle is gone - slots are never removed, so the index a handle holds stays its.
+    private readonly List<PanelInfo?> _handlePanel = new();
     private double[] _snapshot = System.Array.Empty<double>();
     private bool _initialized;
 
@@ -54,18 +57,81 @@
             .Data("direction", IsHorizontal ? "horizontal" : "vertical")
             .Merge(Attributes, Class, Style);
 
-    /// <summary>A panel registers itself (in document order) and gets its index.</summary>
+    /// <summary>
+    /// A panel registers itself (in document order) and gets its index. A panel that appears after
+    /// the sizes were seeded (it is rendered conditionally) takes its <c>DefaultSize</c>, or an equal
+    /// share, out of the others; it joins at the end of the order, whatever its place in the markup.
+    /// </summary>
     public int RegisterPanel(PanelInfo info)
     {
         _panels.Add(info);
+        if (_initialized) MakeRoomFor(info);
         return _panels.Count - 1;
+    }
+
+    /// <summary>
+    /// A panel that is going away hands its space to the ones that stay, in proportion to their
+    /// sizes. Without this it stayed registered: its share was never given back, and the handle
+    /// beside it kept moving space into a panel that was no longer on the page.
+    /// </summary>
+    public void UnregisterPanel(PanelInfo info)
+    {
+        var index = _panels.IndexOf(info);
+        if (index < 0) return;
+        _panels.RemoveAt(index);
+
+        // A handle that sat after the departed panel now sits after the one before it.
+        var previous = index > 0 ? _panels[index - 1] : null;
+        for (var i = 0; i < _handlePanel.Count; i++)
+            if (ReferenceEquals(_handlePanel[i], info)) _handlePanel[i] = previous;
+
+        if (!_initialized || _panels.Count == 0) return;
+        Normalize(_panels, 100);
+        NotifyLayout();
     }
 
     /// <summary>A handle registers itself; it sits just after the most recently registered panel.</summary>
     public int RegisterHandle()
     {
-        _handleBeforePanel.Add(_panels.Count - 1);
-        return _handleBeforePanel.Count - 1;
+        _handlePanel.Add(_panels.Count > 0 ? _panels[^1] : null);
+        return _handlePanel.Count - 1;
+    }
+
+    /// <summary>A handle that is going away gives up its slot (the other handles keep their indices).</summary>
+    public void UnregisterHandle(int handleIndex)
+    {
+        if (handleIndex >= 0 && handleIndex < _handlePanel.Count) _handlePanel[handleIndex] = null;
+    }
+
+    // The index in _panels of the panel just before a handle, or -1 when the handle has none.
+    private int PanelBefore(int handleIndex) =>
+        handleIndex >= 0 && handleIndex < _handlePanel.Count && _handlePanel[handleIndex] is { } panel
+            ? _panels.IndexOf(panel)
+            : -1;
+
+    // Size a late arrival and shrink the others to fit beside it.
+    private void MakeRoomFor(PanelInfo info)
+    {
+        var others = _panels.Where(p => !ReferenceEquals(p, info)).ToList();
+        var wanted = info.DefaultSize ?? 100.0 / _panels.Count;
+        info.Size = System.Math.Clamp(wanted, info.Collapsible ? info.CollapsedSize : info.MinSize, System.Math.Min(info.MaxSize, 100));
+        Normalize(others, 100 - info.Size);
+        NotifyLayout();
+    }
+
+    // Scale panels so their sizes add up to total, keeping their proportions.
+    private static void Normalize(IReadOnlyList<PanelInfo> panels, double total)
+    {
+        if (panels.Count == 0) return;
+        var sum = panels.Sum(p => p.Size);
+        foreach (var p in panels)
+            p.Size = sum > 0 ? p.Size / sum * total : total / panels.Count;
+    }
+
+    private void NotifyLayout()
+    {
+        StateHasChanged();
+        LayoutChanged?.Invoke();
     }
 
     /// <summary>The current size of a panel (for a handle's aria-valuenow).</summary>
@@ -74,15 +140,14 @@
     /// <summary>The min/max of the panel just before a handle (for aria-valuemin/max).</summary>
     public (double Min, double Max) GetHandleBounds(int handleIndex)
     {
-        var a = handleIndex >= 0 && handleIndex < _handleBeforePanel.Count ? _handleBeforePanel[handleIndex] : -1;
-        return a >= 0 && a < _panels.Count ? (_panels[a].MinSize, _panels[a].MaxSize) : (0, 100);
+        var a = PanelBefore(handleIndex);
+        return a >= 0 ? (_panels[a].MinSize, _panels[a].MaxSize) : (0, 100);
     }
 
     /// <summary>The size of the panel just before a handle (for aria-valuenow).</summary>
     public double GetHandleValueNow(int handleIndex)
     {
-        var a = handleIndex >= 0 && handleIndex < _handleBeforePanel.Count ? _handleBeforePanel[handleIndex] : -1;
-        return GetPanelSize(a);
+        return GetPanelSize(PanelBefore(handleIndex));
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -126,8 +191,7 @@
     /// <summary>Apply a drag: move <paramref name="totalDelta"/>% across the boundary at <paramref name="handleIndex"/> (from the snapshot).</summary>
     public Task DragResize(int handleIndex, double totalDelta)
     {
-        if (handleIndex < 0 || handleIndex >= _handleBeforePanel.Count) return Task.CompletedTask;
-        var a = _handleBeforePanel[handleIndex];
+        var a = PanelBefore(handleIndex);
         var b = a + 1;
         if (a < 0 || b >= _panels.Count || _snapshot.Length != _panels.Count) return Task.CompletedTask;
 

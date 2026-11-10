@@ -57,7 +57,9 @@
 
     public void Dispose()
     {
-        if (Group is not null && _info is not null) Group.LayoutChanged -= OnLayoutChanged;
+        if (Group is null || _info is null) return;
+        Group.LayoutChanged -= OnLayoutChanged;
+        Group.UnregisterPanel(_info);
     }
 
     protected override void OnParametersSet()
