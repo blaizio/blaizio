@@ -32,8 +32,9 @@ class Collapse {
     // that grew after opening (a thread loading in, a composer expanding) makes the panel snap
     // to the old height before animating - the "close blink". Re-measure whenever the panel's
     // subtree changes or the window resizes (text re-wraps inside the pinned inner wrapper
-    // without any DOM mutation). The style attribute writes in measure() are change-guarded, so
-    // the observer can't feed back into itself.
+    // without any DOM mutation). measure() itself writes style attributes inside the observed
+    // subtree (the pin lift/restore, the variables), so it drains the records it caused before
+    // returning - otherwise every measure would queue the next one, forever.
     this.observer = new MutationObserver(this.scheduleMeasure);
     this.observer.observe(el, { childList: true, subtree: true, characterData: true, attributes: true });
     window.addEventListener('resize', this.scheduleMeasure);
@@ -54,9 +55,14 @@ class Collapse {
     const natural = Math.max(this.el.scrollHeight, child ? child.getBoundingClientRect().height : 0);
     if (child) child.style.height = pinned;
     const height = `${Math.ceil(natural)}px`;
-    if (this.el.style.getPropertyValue('--bz-collapsible-content-height') === height) return;
-    this.el.style.setProperty('--bz-accordion-content-height', height);
-    this.el.style.setProperty('--bz-collapsible-content-height', height);
+    if (this.el.style.getPropertyValue('--bz-collapsible-content-height') !== height) {
+      this.el.style.setProperty('--bz-accordion-content-height', height);
+      this.el.style.setProperty('--bz-collapsible-content-height', height);
+    }
+    // Drop the mutation records the writes above produced (see the constructor). Anything else
+    // pending was already covered by this measurement. Optional: the first measure runs before
+    // the observer exists.
+    this.observer?.takeRecords();
   }
 
   /** Throttled re-measure; skipped while the close animation owns the height. rAF-aligned when

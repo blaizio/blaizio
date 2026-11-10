@@ -28,6 +28,8 @@ lockstep under one version.
   trigger no longer turns off hover-open. Your handler now runs after the component's instead of
   replacing it. The same holds for any event a Blaizio.Base component handles without reading its
   arguments.
+- **Accordion, Collapsible**: an open panel measures its height once per content change. After
+  the first change it used to measure again on every frame for as long as it stayed open.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
