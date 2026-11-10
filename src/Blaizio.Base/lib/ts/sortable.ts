@@ -27,10 +27,8 @@
 // resulting move carries both container ids.
 
 import { invokeDotNet } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
+import { edgeScrollStep, scrollableAncestor } from './dragScroll';
 
 type Strategy = 'sort' | 'swap';
 type Orientation = 'vertical' | 'horizontal' | 'grid';
@@ -91,8 +89,6 @@ const INTERACTIVE = 'a, button, input, textarea, select, [contenteditable], [dat
 const SORT_KEYS = new Set([' ', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
 const SCROLL_KEYS = new Set([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
 const START_THRESHOLD = 5; // px before a press becomes a drag
-const SCROLL_EDGE = 40; // px from a scrollable edge that triggers autoscroll
-const SCROLL_SPEED = 12; // px per frame
 const PATCH_TIMEOUT = 600; // ms to wait for the Blazor re-render before force-clearing
 
 // group name -> live instances, so a cross-list drag can find its siblings.
@@ -867,16 +863,7 @@ class Sortable {
       const p = this.lastPointer;
       const scroller = this.scrollable();
       if (scroller) {
-        const isRoot = scroller === document.scrollingElement;
-        const r = isRoot
-          ? { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight }
-          : (scroller as HTMLElement).getBoundingClientRect();
-        let dx = 0;
-        let dy = 0;
-        if (p.y - r.top < SCROLL_EDGE) dy = -SCROLL_SPEED;
-        else if (r.bottom - p.y < SCROLL_EDGE) dy = SCROLL_SPEED;
-        if (p.x - r.left < SCROLL_EDGE) dx = -SCROLL_SPEED;
-        else if (r.right - p.x < SCROLL_EDGE) dx = SCROLL_SPEED;
+        const { dx, dy } = edgeScrollStep(p, scroller);
         if (dx || dy) {
           const beforeX = scroller.scrollLeft;
           const beforeY = scroller.scrollTop;
@@ -907,15 +894,7 @@ class Sortable {
   }
 
   private scrollable(): Element | null {
-    let node: HTMLElement | null = this.container;
-    while (node) {
-      const style = getComputedStyle(node);
-      const scrollableY = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
-      const scrollableX = /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth;
-      if (scrollableY || scrollableX) return node;
-      node = node.parentElement;
-    }
-    return document.scrollingElement;
+    return scrollableAncestor(this.container);
   }
 
   // A press that turned out to be a scroll/tap (e.g. moved before the hold delay elapsed).

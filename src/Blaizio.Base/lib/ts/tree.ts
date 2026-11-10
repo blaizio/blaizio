@@ -22,10 +22,8 @@
 // also suppresses the browser's default scrolling for the keys C# drives the tree with.
 
 import { invokeDotNet, invokeDotNetResult } from './core';
-
-interface DotNetObjectReference {
-  invokeMethodAsync(method: string, ...args: unknown[]): Promise<unknown>;
-}
+import type { DotNetObjectReference } from './core';
+import { edgeScrollStep, scrollableAncestor } from './dragScroll';
 
 type DropPosition = 'before' | 'after' | 'inside';
 
@@ -58,8 +56,6 @@ const CONTAINER = '[data-slot=tree]';
 // Controls that own the pointer never start a drag.
 const INTERACTIVE = 'a, button, input, textarea, select, [contenteditable], [role=checkbox], [data-no-drag]';
 const START_THRESHOLD = 5; // px before a press becomes a drag
-const SCROLL_EDGE = 40; // px from a scrollable edge that triggers autoscroll
-const SCROLL_SPEED = 12; // px per frame
 const NAV_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' ', 'Spacebar'];
 
 // group name -> live instances (cross-tree drags), and container -> instance (hit-test resolution).
@@ -486,16 +482,7 @@ class Tree {
       const p = this.lastPointer;
       const scroller = this.scrollable();
       if (scroller) {
-        const isRoot = scroller === document.scrollingElement;
-        const r = isRoot
-          ? { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight }
-          : (scroller as HTMLElement).getBoundingClientRect();
-        let dx = 0;
-        let dy = 0;
-        if (p.y - r.top < SCROLL_EDGE) dy = -SCROLL_SPEED;
-        else if (r.bottom - p.y < SCROLL_EDGE) dy = SCROLL_SPEED;
-        if (p.x - r.left < SCROLL_EDGE) dx = -SCROLL_SPEED;
-        else if (r.right - p.x < SCROLL_EDGE) dx = SCROLL_SPEED;
+        const { dx, dy } = edgeScrollStep(p, scroller);
         if (dx || dy) {
           scroller.scrollBy(dx, dy);
           this.track(p); // live hit-testing: just re-resolve under the (stationary) pointer
@@ -508,15 +495,7 @@ class Tree {
 
   private scrollable(): Element | null {
     // Prefer the tree under the pointer (a cross-tree drag should scroll the destination).
-    let node: HTMLElement | null = this.pending?.tree.container ?? this.container;
-    while (node) {
-      const style = getComputedStyle(node);
-      const scrollableY = /(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight;
-      const scrollableX = /(auto|scroll)/.test(style.overflowX) && node.scrollWidth > node.clientWidth;
-      if (scrollableY || scrollableX) return node;
-      node = node.parentElement;
-    }
-    return document.scrollingElement;
+    return scrollableAncestor(this.pending?.tree.container ?? this.container);
   }
 
   // A press that turned out to be a scroll/tap (e.g. moved before the hold delay elapsed).
