@@ -84,6 +84,7 @@ lockstep under one version.
   page, and an interrupted drag ends cleanly and commits the size it reached.
 - **Carousel**: a mouse drag the browser interrupts now settles on the nearest slide, and the
   next click on a slide is no longer swallowed.
+- **Tree**: a drag the browser interrupts no longer moves the node to the row it last hovered.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

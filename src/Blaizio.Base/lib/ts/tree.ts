@@ -408,7 +408,8 @@ class Tree {
       return;
     }
 
-    this.finish(false);
+    // A cancelled pointer (the browser took the touch, capture was lost) is not a drop.
+    this.finish(e.type === 'pointercancel');
   };
 
   private finish(cancelled: boolean): void {
