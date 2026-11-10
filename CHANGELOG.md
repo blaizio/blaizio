@@ -112,6 +112,8 @@ lockstep under one version.
 - **Input OTP**: inside a field, the label, description and error now reach the input. `id`,
   `name`, `required` and the naming `aria-*` attributes go to the `<input>`; the rest stay on the
   container. `input-otp` now requires Blaizio.Base 0.3.6.
+- **Calendar**: after paging away from the day that had focus, Tab still reaches the grid. The
+  Next button now disables on the month `Max` falls in; it used to allow one more month.
 
 ### Changed
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled

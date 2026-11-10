@@ -204,7 +204,9 @@
             PreviousMonthAriaLabel = PreviousMonthAriaLabel,
             NextMonthAriaLabel = NextMonthAriaLabel,
             Today = EffectiveToday,
-            FocusedDate = _focused,
+            // A focused day that is no longer on screen (the month was paged, or a controlled Month
+            // moved) cannot hold the tab stop: fall back to the default day, or Tab skips the grid.
+            FocusedDate = _focused is { } focused && focused >= displayMonth && focused <= LastVisibleDay(displayMonth) ? focused : null,
             DefaultFocusable = ComputeDefaultFocusable(displayMonth),
             Culture = EffectiveCulture,
             NativeDigits = EffectiveNativeDigits,
@@ -365,7 +367,7 @@
         !Disabled && (Min is not { } min || displayMonth > System.FirstOfMonth(min));
 
     private bool CanGoNext(DateOnly displayMonth) =>
-        !Disabled && (Max is not { } max || LastVisibleDay(displayMonth) < System.AddMonths(System.FirstOfMonth(max), 1));
+        !Disabled && (Max is not { } max || LastVisibleDay(displayMonth) < System.FirstOfMonth(max));
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {
