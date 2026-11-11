@@ -10,7 +10,8 @@
 //     Blaizio only swaps the marker class and persists the choice.
 //
 // Getters fall back to whatever the markup declares when nothing is persisted, so an app's
-// index.html defaults (e.g. class="style-ember") stay the single source of truth.
+// index.html defaults (e.g. class="style-ember") stay the single source of truth. The body font
+// is the exception: its class is never looked for (see setFont).
 //
 // The pre-paint counterpart is ts/boot.ts (bundled as a classic script for <head>), which
 // re-applies these persisted values before first paint; keep the storage keys and the applied
@@ -37,6 +38,16 @@ function write(key: string, value: string): void {
   } catch {
     // storage unavailable - the change still applies, it just won't survive a reload
   }
+}
+
+// A value handed to a setter becomes part of a class name, and one with whitespace in it cannot:
+// classList.add throws. The setters stored the value first, so a bad name was persisted and
+// only then failed. Checked before anything is written.
+function className(value: string): string {
+  if (/\s/.test(value)) {
+    throw new Error(`Blaizio theme: "${value}" cannot be used as a name, it contains whitespace.`);
+  }
+  return value;
 }
 
 const prefersDark = matchMedia('(prefers-color-scheme: dark)');
@@ -108,10 +119,11 @@ export function getStyle(): string {
 }
 
 export function setStyle(style: string): void {
-  write(STYLE_KEY, style);
+  const name = className(style);
+  write(STYLE_KEY, name);
   const el = document.documentElement;
   for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
-  el.classList.add('style-' + style);
+  el.classList.add('style-' + name);
 }
 
 /** The active color preset name; 'nova' (the built-in default palette) when none is applied. */
@@ -126,7 +138,7 @@ export function getPreset(): string {
 
 /** Applies a color preset: swaps the `preset-*` class ('nova' = remove it, back to the default). */
 export function setPreset(preset: string): void {
-  const normalized = preset || 'nova';
+  const normalized = className(preset || 'nova');
   write(PRESET_KEY, normalized);
   const el = document.documentElement;
   for (const c of [...el.classList]) if (c.startsWith('preset-')) el.classList.remove(c);
@@ -147,27 +159,20 @@ export function setDir(dir: string): void {
 // `blaizio-<prefix>`. 'default' (or '') = no class - the :root tokens win. Same shape as
 // preset/nova above; the CSS behind each class ships with the consumer's stylesheet.
 
-// The font overlay's marker class is `font-<name>`, a prefix Tailwind also uses (font-sans,
-// font-medium, font-[...]). Those are the app's own classes on <html>: never read one as the
-// overlay, never remove one. No overlay is named like a Tailwind utility.
-const TAILWIND_FONT = /^font-(sans|serif|mono|thin|extralight|light|normal|medium|semibold|bold|extrabold|black|stretch-.+|\[.+|\(.+)$/;
-const isOverlayClass = (name: string, prefix: string): boolean =>
-  name.startsWith(prefix) && !(prefix === 'font-' && TAILWIND_FONT.test(name));
-
 function getOverlay(key: string, prefix: string): string {
   const persisted = read(key);
   if (persisted) return persisted;
   for (const c of document.documentElement.classList) {
-    if (isOverlayClass(c, prefix)) return c.slice(prefix.length);
+    if (c.startsWith(prefix)) return c.slice(prefix.length);
   }
   return 'default';
 }
 
 function setOverlay(key: string, prefix: string, value: string): void {
-  const normalized = value || 'default';
+  const normalized = className(value || 'default');
   write(key, normalized);
   const el = document.documentElement;
-  for (const c of [...el.classList]) if (isOverlayClass(c, prefix)) el.classList.remove(c);
+  for (const c of [...el.classList]) if (c.startsWith(prefix)) el.classList.remove(c);
   if (normalized !== 'default') el.classList.add(prefix + normalized);
 }
 
@@ -189,13 +194,30 @@ export function setRadius(radius: string): void {
   setOverlay('blaizio-radius', 'radius-', radius);
 }
 
-/** The active body font stack (`font-*` class); 'default' when none. */
+// The body font's marker class is `font-<name>`, and `font-` is also Tailwind's prefix. An app
+// has its own font classes on <html>: font-sans, font-medium, font-display from its own @theme,
+// font-sans! with the important mark. No list of names can tell those from an overlay, and
+// looking for the class by prefix read them as the selected font and removed them when a font
+// was applied. So this overlay does not look: it knows the name it applied (the persisted one,
+// and the one this page set last) and touches that class only. No host renders a font overlay
+// class in its own markup, so there is no markup default to find. Keep in step with ts/boot.ts.
+const FONT_KEY = 'blaizio-font';
+let appliedFont: string | null = null;
+
+/** The body font stack that was applied; 'default' when none. */
 export function getFont(): string {
-  return getOverlay('blaizio-font', 'font-');
+  return read(FONT_KEY) || appliedFont || 'default';
 }
 
 export function setFont(font: string): void {
-  setOverlay('blaizio-font', 'font-', font);
+  const next = className(font || 'default');
+  const el = document.documentElement;
+  for (const old of [read(FONT_KEY), appliedFont]) {
+    if (old && old !== 'default' && !/\s/.test(old)) el.classList.remove('font-' + old);
+  }
+  write(FONT_KEY, next);
+  appliedFont = next;
+  if (next !== 'default') el.classList.add('font-' + next);
 }
 
 /** The active heading font stack (`heading-*` class); 'default' when none. */

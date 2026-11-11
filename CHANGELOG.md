@@ -9,6 +9,13 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
+  utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
+  was read as the selected font and removed when a font was applied, again on every load once
+  a font was stored. The knob now touches only the class it added. A host that renders a
+  `font-*` overlay class in its own `<html>` markup is no longer picked up; none of the
+  templates does. The theme setters also refuse a name with whitespace before storing it; they
+  used to store it and then fail.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

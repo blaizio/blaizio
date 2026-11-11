@@ -23,9 +23,8 @@ const read = (key: string): string | null => {
 // throw and take the rest of this script down with it, so such a value is ignored.
 const usable = (value: string | null): value is string => !!value && !/\s/.test(value);
 
-// font- is also Tailwind's prefix (font-sans, font-medium, ...): those classes on <html> are the
-// app's own and stay. Keep this pattern in sync with ts/theme.ts.
-const tailwindFont = /^font-(sans|serif|mono|thin|extralight|light|normal|medium|semibold|bold|extrabold|black|stretch-.+|\[.+|\(.+)$/;
+// The font class this script put on <html>, if any (see the body font in apply).
+let appliedFont: string | null = null;
 
 // Puts the persisted choices on <html>. It only reads storage and the OS preference and writes
 // the same result every time, so it can run again whenever the markup defaults come back.
@@ -49,20 +48,29 @@ const apply = (): void => {
   }
   if (dir) el.dir = dir === 'rtl' ? 'rtl' : 'ltr';
 
-  // Token overlays (chart palette, radius scale, body/heading font) - same shape as preset above:
+  // Token overlays (chart palette, radius scale, heading font) - same shape as preset above:
   // a persisted 'default' strips the marker class, anything else swaps it in. Keep the storage
   // keys and prefixes in sync with ts/theme.ts.
   for (const [key, prefix] of [
     ['blaizio-chart', 'chart-'],
     ['blaizio-radius', 'radius-'],
-    ['blaizio-font', 'font-'],
     ['blaizio-heading', 'heading-'],
   ] as const) {
     const value = read(key);
     if (!usable(value)) continue;
-    for (const c of [...el.classList]) if (c.startsWith(prefix) && !(prefix === 'font-' && tailwindFont.test(c))) el.classList.remove(c);
+    for (const c of [...el.classList]) if (c.startsWith(prefix)) el.classList.remove(c);
     if (value !== 'default') el.classList.add(prefix + value);
   }
+
+  // The body font is the one overlay whose class is not looked for. `font-` is also Tailwind's
+  // prefix, and an app's own font-display or font-sans! on <html> cannot be told from an overlay
+  // by name. No host renders a font overlay class in its markup, so the only one to take away
+  // is the one this script added earlier in this document's life. Keep in step with ts/theme.ts.
+  const font = read('blaizio-font');
+  const wanted = usable(font) && font !== 'default' ? 'font-' + font : null;
+  if (appliedFont && appliedFont !== wanted) el.classList.remove(appliedFont);
+  if (wanted) el.classList.add(wanted);
+  appliedFont = wanted;
 };
 
 apply();

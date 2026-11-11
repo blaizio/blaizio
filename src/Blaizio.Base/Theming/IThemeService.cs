@@ -64,10 +64,18 @@ public interface IThemeService
     /// <summary>Applies and persists a radius scale (swaps the <c>radius-*</c> class; <c>"default"</c> removes it).</summary>
     ValueTask SetRadiusAsync(string radius);
 
-    /// <summary>The active body font stack (the <c>font-*</c> class); <c>"default"</c> when none.</summary>
+    /// <summary>
+    /// The body font stack that was applied through this service; <c>"default"</c> when none. The
+    /// name is the one that was stored: the <c>font-*</c> classes on <c>&lt;html&gt;</c> are not
+    /// read, since the app's own ones (<c>font-sans</c>, <c>font-display</c>) share the prefix.
+    /// </summary>
     ValueTask<string> GetFontAsync();
 
-    /// <summary>Applies and persists a body font stack (swaps the <c>font-*</c> class; <c>"default"</c> removes it).</summary>
+    /// <summary>
+    /// Applies and persists a body font stack: adds the <c>font-{name}</c> class to
+    /// <c>&lt;html&gt;</c> and removes the one it added before (<c>"default"</c> only removes).
+    /// Any other <c>font-*</c> class there is the app's own and is left alone.
+    /// </summary>
     ValueTask SetFontAsync(string font);
 
     /// <summary>The active heading font stack (the <c>heading-*</c> class); <c>"default"</c> when none.</summary>
