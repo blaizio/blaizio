@@ -33,6 +33,8 @@ lockstep under one version.
   the window grows past the breakpoint, a dialog inside an `@if`).
 - **Dialog, Sheet, Popover, Hover Card, Tooltip, menus, Accordion, Collapsible**: closing while
   the opening animation is still running plays the closing animation. It used to be skipped.
+- **Accordion, Collapsible**: closing, reopening and closing again within the animation time no
+  longer removes the panel partway through the second close.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

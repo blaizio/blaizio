@@ -70,7 +70,10 @@ class Collapse {
     const run = () => {
       this.frame = undefined;
       this.timer = undefined;
-      if (this.el.dataset.state !== 'closed') this.measure();
+      if (this.el.dataset.state === 'closed') return;
+      // Open again: a timer left by an interrupted close must not end a later one early.
+      clearTimeout(this.fallback);
+      this.measure();
     };
     if (document.hidden) this.timer = window.setTimeout(run, 0);
     else this.frame = requestAnimationFrame(run);
@@ -92,6 +95,9 @@ class Collapse {
 
     const longest = (list: string) => Math.max(...list.split(',').map((v) => parseFloat(v) || 0));
     const total = longest(style.animationDuration) + longest(style.animationDelay);
+    // Called on every render while closing: keep one timer, or a stale one from an interrupted
+    // close would cut a later exit animation short.
+    clearTimeout(this.fallback);
     this.fallback = window.setTimeout(this.finish, total * 1000 + 100);
   }
 
