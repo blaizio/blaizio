@@ -18,6 +18,8 @@ lockstep under one version.
 - **Theme**: the persisted theme, style, palette, radius, fonts and direction survive enhanced
   navigation. On a statically rendered page the first in-app link put `<html>` back to its markup
   defaults until a full reload. `boot.js` now applies them again after each enhanced page update.
+- **Avatar**: on a statically rendered page the image stays visible after enhanced navigation.
+  It used to fall back to the initials on the first in-app link.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

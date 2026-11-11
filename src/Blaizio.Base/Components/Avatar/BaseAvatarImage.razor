@@ -46,10 +46,19 @@ else
         }
     }
 
+    // Shows the image and hides the fallback once the image has loaded, and does it again whenever
+    // the element's style is put back. Enhanced navigation merges the next page into this one: it
+    // keeps the element, restores the server's display:none and clears the fallback's style, and
+    // since src did not change no second load event comes. The observer sits on the element, so it
+    // goes away with it; the "complete" test keeps a source that is still loading hidden.
     private const string StaticOnLoad =
-        "this.style.display='';" +
-        "var f=this.parentElement&&this.parentElement.querySelector('[data-slot=avatar-fallback]');" +
-        "if(f)f.style.display='none'";
+        "var i=this,s=function(){" +
+        "if(!i.complete||!i.naturalWidth)return;" +
+        "if(i.style.display)i.style.display='';" +
+        "var f=i.parentElement&&i.parentElement.querySelector('[data-slot=avatar-fallback]');" +
+        "if(f&&f.style.display!=='none')f.style.display='none'};" +
+        "s();" +
+        "if(!i.bzSwap&&window.MutationObserver){i.bzSwap=new MutationObserver(s);i.bzSwap.observe(i,{attributes:true,attributeFilter:['style']})}";
 
     private string CurrentStyle =>
         Avatar?.Status == ImageStatus.Loaded ? (Style ?? string.Empty) : $"display:none;{Style}";
