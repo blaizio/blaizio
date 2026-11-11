@@ -142,6 +142,10 @@ class Carousel {
       top: this.opts.horizontal ? 0 : delta,
       behavior: 'smooth',
     });
+    // A target the viewport cannot move to (already at the end) fires no scroll event, so nothing
+    // would ever report the rest and C# would keep waiting for an arrival. A real scroll re-arms
+    // this on every event.
+    this.scheduleSettle();
   }
 
   scrollNext(): void {
