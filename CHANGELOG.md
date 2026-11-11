@@ -27,6 +27,8 @@ lockstep under one version.
   culture's own calendar (Umm al-Qura covers 1900 to 2077) no longer throws either.
 - **Calendar**: after paging to another month, the arrow keys move from the day that holds the
   tab stop. They used to start from the day focused before paging and jump the view back to it.
+- **Input Number**: a `float` field shows the number it holds when focused (`0.1`, not
+  `0.100000001490116`), and leaving the field no longer changes the value.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

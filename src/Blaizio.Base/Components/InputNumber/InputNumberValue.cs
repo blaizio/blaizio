@@ -126,4 +126,17 @@ internal static class InputNumberValue<TValue>
         <= (double)decimal.MinValue => decimal.MinValue,
         _ => (decimal)value,
     };
+
+    /// <summary>
+    /// The same for a <see langword="float"/>, through its shortest text that reads back as the same
+    /// value. Widened to <see langword="double"/> first, a float shows its binary tail (0.1f becomes
+    /// 0.100000001490116), and that is what the field would put in front of the user on focus.
+    /// </summary>
+    public static decimal Saturate(float value)
+    {
+        if (float.IsNaN(value)) return 0;
+        if (value >= (float)decimal.MaxValue) return decimal.MaxValue;
+        if (value <= (float)decimal.MinValue) return decimal.MinValue;
+        return decimal.Parse(value.ToString("R", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
+    }
 }
