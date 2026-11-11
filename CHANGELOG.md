@@ -32,6 +32,11 @@ lockstep under one version.
 - **Data Table**: in a number cell edited in place, a typed `1.5` is 1.5 in every culture. Where
   `.` groups thousands (de-DE, es-ES and others) it used to commit 15, and a whole-number cell
   took it as 15 instead of refusing it. Pasted numbers with grouping are read as before.
+- **Data Table, Virtualizer**: an `ItemsProvider` that fails with a cancellation of its own (a
+  client timeout) is reported like any other failure and can be asked again. It used to be taken
+  for a superseded request, which left the rows loading for good. A request that really was
+  superseded is now ignored whatever it throws; an error raised by a cancelled call used to
+  reach the app's error handling.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

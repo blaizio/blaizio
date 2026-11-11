@@ -275,20 +275,26 @@ else
         try
         {
             var result = await ItemsProvider(new VirtualizerRequest(start, end - start, cts.Token));
-            if (cts.Token.IsCancellationRequested) return;
+            if (cts.IsCancellationRequested) return;
             _providerItems = result.Items;
             _providerStart = start;
             _totalCount = result.TotalCount;
             _providerLoaded = true;
             StateHasChanged();
         }
-        catch (OperationCanceledException)
+        catch when (cts.IsCancellationRequested)
         {
-            // Superseded - the newer request owns the state.
+            // Superseded - the newer request owns the state. Whatever this one threw on its way
+            // out is not news: the cancellation itself, or the error a client raises when its call
+            // is cancelled.
         }
         catch (Exception ex)
         {
-            // Fire-and-forget seam: route a throwing provider to the circuit's error boundary.
+            // The current request failed. That includes a cancellation the provider raised by
+            // itself (a client timeout): read as "superseded", it left this window's placeholders
+            // unfilled for good. Forget the range so the same window can be asked for again, then
+            // route the failure to the error boundary (this is a fire-and-forget seam).
+            _lastFetchKey = null;
             await DispatchExceptionAsync(ex);
         }
     }

@@ -792,17 +792,30 @@
             _loading = false;
             StateHasChanged();
         }
-        catch (OperationCanceledException)
+        catch when (cts.IsCancellationRequested)
         {
-            // Superseded by a newer request - a later load owns the loading flag + result.
+            // Superseded by a newer request (or the table is gone): a later load owns the loading
+            // flag and the result. Whatever this one threw on its way out is not news, be it the
+            // cancellation itself or the error a client raises when its call is cancelled.
         }
-        catch when (ReferenceEquals(_loadCts, cts) && !cts.IsCancellationRequested)
+        catch (Exception ex)
         {
             // The provider failed. Forget the request key so the same request can run again
             // (otherwise it is deduplicated forever) and drop the loading state, then let the
             // exception reach the app's error handling.
             _lastLoadKey = null;
             _loading = false;
+
+            // A cancellation the provider raised by itself (a client timeout) is a failure too:
+            // read as "superseded", it left the table loading for good. Blazor drops a cancelled
+            // task without a render and without telling anyone, so it is handed over by hand.
+            if (ex is OperationCanceledException)
+            {
+                StateHasChanged();
+                await DispatchExceptionAsync(ex);
+                return;
+            }
+
             throw;
         }
     }
