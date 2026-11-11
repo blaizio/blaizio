@@ -12,7 +12,7 @@
     - A cached or prerendered image can finish loading BEFORE Blazor wires the event handler, losing
       the event forever. After render, ts/image.ts probes el.complete/naturalWidth and reports the
       settled state.
-    - The element keys off the root's Attempt counter, so Retry() remounts it and the browser issues
+    - The element keys off the root's Attempt counter, so Retry() renders it anew and the browser issues
       a fresh request.
 *@
 
@@ -86,7 +86,7 @@
         if (_reportedSrc == Src) return;
         _reportedSrc = Src;
         _probeQueued = true; // the new source may settle before our handlers attach - probe after render
-        Root?.Report(string.IsNullOrEmpty(Src) ? ImageStatus.Idle : ImageStatus.Loading);
+        Root?.Report(string.IsNullOrEmpty(Src) ? ImageStatus.Idle : Root.Static ? ImageStatus.Loaded : ImageStatus.Loading);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

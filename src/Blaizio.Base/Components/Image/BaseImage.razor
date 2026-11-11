@@ -28,7 +28,30 @@
     /// <summary>Current load status. Starts at <see cref="ImageStatus.Loading"/>.</summary>
     internal ImageStatus Status { get; private set; } = ImageStatus.Loading;
 
-    /// <summary>Bumped by <see cref="Retry"/>; the img keys off it so a retry remounts the element (fresh request).</summary>
+    /// <summary>
+    /// True on a page that is rendered statically and will stay that way (no render mode assigned).
+    /// Nothing reports a load there: no Blazor events, no script probe. The image then counts as
+    /// loaded from the start and the browser shows it natively; held at Loading, the styled layer
+    /// kept it transparent for good. While prerendering an interactive component this is false,
+    /// since the load is reported once the component is interactive.
+    /// </summary>
+    internal bool Static
+    {
+        get
+        {
+            // A host that supplies no renderer info (some test renderers throw on these) is
+            // treated as interactive, like the avatar does.
+            try { return AssignedRenderMode is null && !RendererInfo.IsInteractive; }
+            catch (Exception) { return false; }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        if (Static) Status = ImageStatus.Loaded;
+    }
+
+    /// <summary>Bumped by <see cref="Retry"/>; the img keys off it so a retry renders a new element (fresh request).</summary>
     internal int Attempt { get; private set; }
 
     private readonly List<BaseImageSource> _sources = [];
@@ -51,7 +74,7 @@
         Notify(status);
     }
 
-    /// <summary>Re-attempts a failed load: the img remounts (issuing a fresh request) and status returns to Loading.</summary>
+    /// <summary>Re-attempts a failed load: the img is rendered anew (issuing a fresh request) and status returns to Loading.</summary>
     public void Retry()
     {
         if (Status != ImageStatus.Error) return;
