@@ -175,19 +175,29 @@ class Carousel {
     // scrollLeft assignment below would be ANIMATED, so the drag lags a frame behind the pointer and
     // stutters. Force instant scrolling for the duration of the drag; restored on release.
     this.vp.style.scrollBehavior = 'auto';
-    try { this.vp.setPointerCapture(e.pointerId); } catch { /* no capture */ }
-    this.vp.addEventListener('pointermove', this.onPointerMove);
-    this.vp.addEventListener('pointerup', this.onPointerUp);
-    this.vp.addEventListener('pointercancel', this.onPointerUp);
+    // No pointer capture yet. A captured pointer sends its click to the viewport, so a press
+    // that never becomes a drag would not reach the button, link or checkbox inside the slide.
+    // The capture is taken once the pointer has really moved (onPointerMove). Until then the
+    // listeners sit on the window, which also sees a release outside the viewport.
+    window.addEventListener('pointermove', this.onPointerMove);
+    window.addEventListener('pointerup', this.onPointerUp);
+    window.addEventListener('pointercancel', this.onPointerUp);
     // Taking hold of the viewport is the user claiming control: stop rotation for good.
     this.pause();
   };
 
   private onPointerMove = (e: PointerEvent): void => {
     if (!this.dragging) return;
+    // The button came up where no pointerup could reach us (outside the browser window, before
+    // the capture): end the drag here instead of scrolling under a pointer that is only hovering.
+    if (e.buttons === 0) { this.onPointerUp(e); return; }
     const dx = e.clientX - this.startX;
     const dy = e.clientY - this.startY;
-    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) this.moved = true;
+    if (!this.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+      this.moved = true;
+      // Now it is a drag: keep receiving the pointer when it leaves the viewport or the window.
+      try { this.vp.setPointerCapture(e.pointerId); } catch { /* no capture */ }
+    }
     if (this.opts.horizontal) this.vp.scrollLeft = this.startScrollLeft - dx;
     else this.vp.scrollTop = this.startScrollTop - dy;
   };
@@ -195,10 +205,10 @@ class Carousel {
   private onPointerUp = (e: PointerEvent): void => {
     if (!this.dragging) return;
     this.dragging = false;
-    try { this.vp.releasePointerCapture(e.pointerId); } catch { /* already released */ }
-    this.vp.removeEventListener('pointermove', this.onPointerMove);
-    this.vp.removeEventListener('pointerup', this.onPointerUp);
-    this.vp.removeEventListener('pointercancel', this.onPointerUp);
+    try { this.vp.releasePointerCapture(e.pointerId); } catch { /* never captured, or already released */ }
+    window.removeEventListener('pointermove', this.onPointerMove);
+    window.removeEventListener('pointerup', this.onPointerUp);
+    window.removeEventListener('pointercancel', this.onPointerUp);
     // A cancelled drag is followed by no click, so the swallow would eat the next real one.
     if (e.type === 'pointercancel') this.moved = false;
     this.vp.style.scrollSnapType = ''; // restore snap, then settle onto the nearest slide
@@ -285,9 +295,9 @@ class Carousel {
     this.vp.removeEventListener('scroll', this.scheduleSettle);
     this.vp.removeEventListener('pointerdown', this.onPointerDown);
     this.vp.removeEventListener('click', this.onClickCapture, true);
-    this.vp.removeEventListener('pointermove', this.onPointerMove);
-    this.vp.removeEventListener('pointerup', this.onPointerUp);
-    this.vp.removeEventListener('pointercancel', this.onPointerUp);
+    window.removeEventListener('pointermove', this.onPointerMove);
+    window.removeEventListener('pointerup', this.onPointerUp);
+    window.removeEventListener('pointercancel', this.onPointerUp);
     this.vp.removeEventListener('pointerenter', this.suspend);
     this.vp.removeEventListener('pointerleave', this.resume);
     this.vp.removeEventListener('focusin', this.hardPause);
