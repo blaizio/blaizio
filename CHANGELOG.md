@@ -41,6 +41,9 @@ lockstep under one version.
   tab stop. A toolbar that fits its container could put it on the hidden scroll button, and a
   group whose tab-stop item was disabled or removed had none, so Tab skipped it. Items added
   later no longer become extra tab stops.
+- **Table of Contents**: opening a link in a new tab (Ctrl or middle click) or copying its address
+  gives this page at that heading. The links were `#id`, which the browser resolves against
+  `<base href>`, so it opened the site root. The links' `href` is now the page path plus `#id`.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

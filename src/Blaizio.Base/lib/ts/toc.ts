@@ -64,10 +64,16 @@ class TocSpy {
     const content = document.querySelector(contentSelector);
     this.headings = content ? [...content.querySelectorAll<HTMLElement>(headingSelector)] : [];
 
-    // Ordinal per link, for styling that staggers off position (the marks variant's reveal).
-    [...this.nav.querySelectorAll<HTMLElement>('a[data-toc-id]')].forEach((link, index) =>
-      link.style.setProperty('--bz-toc-index', String(index)),
-    );
+    // Ordinal per link, for styling that staggers off position (the marks variant's reveal), and
+    // the link's full address. The links are rendered as `#id`, which the browser resolves
+    // against <base href>, not against this page: a Ctrl or middle click (left to the browser),
+    // "open in new tab" and "copy link" all got the site root. A plain click never used the href.
+    const here = `${location.pathname}${location.search}`;
+    [...this.nav.querySelectorAll<HTMLElement>('a[data-toc-id]')].forEach((link, index) => {
+      link.style.setProperty('--bz-toc-index', String(index));
+      const id = link.dataset.tocId;
+      if (id) link.setAttribute('href', `${here}#${id}`);
+    });
 
     // Plain passive listeners, deliberately not rAF-throttled: the list is small and rAF never
     // fires on hidden pages, which would freeze the highlight.
