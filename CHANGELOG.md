@@ -29,6 +29,9 @@ lockstep under one version.
   tab stop. They used to start from the day focused before paging and jump the view back to it.
 - **Input Number**: a `float` field shows the number it holds when focused (`0.1`, not
   `0.100000001490116`), and leaving the field no longer changes the value.
+- **Data Table**: in a number cell edited in place, a typed `1.5` is 1.5 in every culture. Where
+  `.` groups thousands (de-DE, es-ES and others) it used to commit 15, and a whole-number cell
+  took it as 15 instead of refusing it. Pasted numbers with grouping are read as before.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

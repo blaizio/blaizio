@@ -1781,6 +1781,7 @@
             string? error = null;
             if (values is not null && values.TryGetValue(key, out var text) && text is not null)
             {
+                if (editor.Kind == DataTableEditor.Number) text = TypedNumber(text);
                 if (!editor.TryParse(text, title, EditParseErrorMessage, out next, out error)) { session.Errors[key] = error; continue; }
             }
             else if (session.Drafts.TryGetValue(key, out var draft))
@@ -2820,6 +2821,20 @@
         }
         signature = key.ToString();
         return new { mode, columns = list, selectable = Selectable, rowCount, numberChars, editOnClick = EditOnClick };
+    }
+
+    // The text of a number cell's field, as the cell parser must read it. The field is a
+    // BzInputNumber: it never holds grouping, and it takes "." as the decimal point in every
+    // culture, because numeric keypads send it. The cell parser also accepts grouping (pasted
+    // "1.234,50" has to work), so where "." groups thousands a typed "1.5" would commit 15.
+    // Same rule as the number field itself: a "." with no culture separator beside it is the
+    // decimal point.
+    private static string TypedNumber(string text)
+    {
+        var separator = CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
+        return separator != "." && !text.Contains(separator, StringComparison.Ordinal)
+            ? text.Replace(".", separator, StringComparison.Ordinal)
+            : text;
     }
 
     // An editable column whose property has no setter (a record, an init or read-only property)
