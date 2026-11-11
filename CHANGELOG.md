@@ -15,6 +15,9 @@ lockstep under one version.
 - **Drawer**: a drawer can be dragged shut with a finger. On a touch screen the browser took the
   gesture for its own panning after the first move, so the panel never followed the finger and
   the drawer sprang back. Scrolling inside the drawer is unchanged.
+- **Theme**: the persisted theme, style, palette, radius, fonts and direction survive enhanced
+  navigation. On a statically rendered page the first in-app link put `<html>` back to its markup
+  defaults until a full reload. `boot.js` now applies them again after each enhanced page update.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

@@ -10,56 +10,81 @@
 // the markup defaults (e.g. class="style-ember") are left untouched.
 
 const el = document.documentElement;
-let theme: string | null = null;
-let style: string | null = null;
-let preset: string | null = null;
-let dir: string | null = null;
-try {
-  theme = localStorage.getItem('blaizio-theme');
-  style = localStorage.getItem('blaizio-style');
-  preset = localStorage.getItem('blaizio-preset');
-  dir = localStorage.getItem('blaizio-dir');
-} catch {
-  // storage unavailable (privacy mode) - keep the markup defaults
-}
-// 'light' | 'dark' are explicit choices; anything else ('system', nothing persisted yet, or a
-// legacy value) resolves against the OS preference.
-el.classList.toggle('dark', theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches));
+
+const read = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null; // storage unavailable (privacy mode) - keep the markup defaults
+  }
+};
+
 // A persisted value becomes a class name. One with whitespace in it would make classList.add
 // throw and take the rest of this script down with it, so such a value is ignored.
 const usable = (value: string | null): value is string => !!value && !/\s/.test(value);
-if (usable(style)) {
-  for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
-  el.classList.add('style-' + style);
-}
-// A persisted 'nova' (the default palette) strips any markup preset class rather than adding one.
-if (usable(preset)) {
-  for (const c of [...el.classList]) if (c.startsWith('preset-')) el.classList.remove(c);
-  if (preset !== 'nova') el.classList.add('preset-' + preset);
-}
-if (dir) el.dir = dir === 'rtl' ? 'rtl' : 'ltr';
 
-// Token overlays (chart palette, radius scale, body/heading font) - same shape as preset above:
-// a persisted 'default' strips the marker class, anything else swaps it in. Keep the storage
-// keys and prefixes in sync with ts/theme.ts.
-for (const [key, prefix] of [
-  ['blaizio-chart', 'chart-'],
-  ['blaizio-radius', 'radius-'],
-  ['blaizio-font', 'font-'],
-  ['blaizio-heading', 'heading-'],
-] as const) {
-  let value: string | null = null;
-  try {
-    value = localStorage.getItem(key);
-  } catch {
-    // storage unavailable - keep the markup defaults
+// font- is also Tailwind's prefix (font-sans, font-medium, ...): those classes on <html> are the
+// app's own and stay. Keep this pattern in sync with ts/theme.ts.
+const tailwindFont = /^font-(sans|serif|mono|thin|extralight|light|normal|medium|semibold|bold|extrabold|black|stretch-.+|\[.+|\(.+)$/;
+
+// Puts the persisted choices on <html>. It only reads storage and the OS preference and writes
+// the same result every time, so it can run again whenever the markup defaults come back.
+const apply = (): void => {
+  const theme = read('blaizio-theme');
+  const style = read('blaizio-style');
+  const preset = read('blaizio-preset');
+  const dir = read('blaizio-dir');
+
+  // 'light' | 'dark' are explicit choices; anything else ('system', nothing persisted yet, or a
+  // legacy value) resolves against the OS preference.
+  el.classList.toggle('dark', theme === 'dark' || (theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches));
+  if (usable(style)) {
+    for (const c of [...el.classList]) if (c.startsWith('style-')) el.classList.remove(c);
+    el.classList.add('style-' + style);
   }
-  if (!usable(value)) continue;
-  // font- is also Tailwind's prefix (font-sans, font-medium, ...): those classes on <html> are the
-  // app's own and stay. Keep this pattern in sync with ts/theme.ts.
-  const tailwind = /^font-(sans|serif|mono|thin|extralight|light|normal|medium|semibold|bold|extrabold|black|stretch-.+|\[.+|\(.+)$/;
-  for (const c of [...el.classList]) if (c.startsWith(prefix) && !(prefix === 'font-' && tailwind.test(c))) el.classList.remove(c);
-  if (value !== 'default') el.classList.add(prefix + value);
+  // A persisted 'nova' (the default palette) strips any markup preset class rather than adding one.
+  if (usable(preset)) {
+    for (const c of [...el.classList]) if (c.startsWith('preset-')) el.classList.remove(c);
+    if (preset !== 'nova') el.classList.add('preset-' + preset);
+  }
+  if (dir) el.dir = dir === 'rtl' ? 'rtl' : 'ltr';
+
+  // Token overlays (chart palette, radius scale, body/heading font) - same shape as preset above:
+  // a persisted 'default' strips the marker class, anything else swaps it in. Keep the storage
+  // keys and prefixes in sync with ts/theme.ts.
+  for (const [key, prefix] of [
+    ['blaizio-chart', 'chart-'],
+    ['blaizio-radius', 'radius-'],
+    ['blaizio-font', 'font-'],
+    ['blaizio-heading', 'heading-'],
+  ] as const) {
+    const value = read(key);
+    if (!usable(value)) continue;
+    for (const c of [...el.classList]) if (c.startsWith(prefix) && !(prefix === 'font-' && tailwindFont.test(c))) el.classList.remove(c);
+    if (value !== 'default') el.classList.add(prefix + value);
+  }
+};
+
+apply();
+
+// Enhanced navigation (a statically rendered page with blazor.web.js) merges the next page into
+// this document, <html> included: its class and dir go back to what the server sent, and this
+// script does not run again. Without the hook below the theme, style and direction fell back to
+// the markup defaults on the first in-app link and stayed there until a full reload. Blazor loads
+// after this script, so the hook is taken as soon as its object exists.
+type EnhancedEvents = { addEventListener?: (name: string, handler: () => void) => void };
+let hooked = false;
+const hook = (): void => {
+  if (hooked) return;
+  const blazor = (window as Window & { Blazor?: EnhancedEvents }).Blazor;
+  if (!blazor?.addEventListener) return;
+  hooked = true;
+  blazor.addEventListener('enhancedload', apply);
+};
+hook();
+if (!hooked) {
+  document.addEventListener('DOMContentLoaded', hook, { once: true });
+  window.addEventListener('load', hook, { once: true });
 }
 
 // Floating-surface module warmup. Dialogs, menus and popovers lazy-import their interop modules
