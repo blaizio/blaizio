@@ -1,0 +1,19 @@
+@* Test host: an editable decimal column and an editable whole-number column, for the cultures where "." groups thousands. *@
+<BzDataTable @ref="Table" TItem="Product" Items="Items" RowKey="@(p => p.Id)" EditMode="Mode">
+    <BzPropertyColumn Property="@(p => p.Price)" Editable />
+    <BzPropertyColumn Property="@(p => p.Stock)" Editable />
+</BzDataTable>
+
+@code {
+    [Parameter] public List<Product> Items { get; set; } = [];
+    [Parameter] public DataTableEditMode Mode { get; set; }
+
+    public BzDataTable<Product>? Table;
+
+    public sealed class Product
+    {
+        public int Id { get; init; }
+        public decimal Price { get; set; }
+        public int Stock { get; set; }
+    }
+}

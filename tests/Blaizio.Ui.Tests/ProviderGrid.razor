@@ -1,0 +1,18 @@
+@* Test host: a provider-fed BzDataTable inside an error boundary, so a failure the table reports is visible. *@
+<ErrorBoundary @ref="Boundary">
+    <ChildContent>
+        <BzDataTable TItem="Person" ItemsProvider="Provider" PageSize="PageSize" RowKey="@(p => p.Id)">
+            <BzPropertyColumn Property="@(p => p.Name)" />
+        </BzDataTable>
+    </ChildContent>
+    <ErrorContent Context="error">
+        <p data-reported>@error.GetType().Name</p>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    [Parameter] public DataTableItemsProvider<Person>? Provider { get; set; }
+    [Parameter] public int PageSize { get; set; } = 5;
+
+    public ErrorBoundary? Boundary;
+}

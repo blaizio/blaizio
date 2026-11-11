@@ -1,0 +1,15 @@
+@* Test host: a provider-fed BzVirtualizer inside an error boundary, so a failure the list reports is visible. *@
+<ErrorBoundary>
+    <ChildContent>
+        <BzVirtualizer TItem="Person" ItemsProvider="Provider">
+            <div @attributes="context.Attributes">@context.Item.Name</div>
+        </BzVirtualizer>
+    </ChildContent>
+    <ErrorContent Context="error">
+        <p data-reported>@error.GetType().Name</p>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    [Parameter] public VirtualizerItemsProvider<Person>? Provider { get; set; }
+}
