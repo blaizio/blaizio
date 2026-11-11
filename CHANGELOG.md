@@ -41,6 +41,9 @@ lockstep under one version.
 - **Resizable**: a resize handle follows `Disabled` when it changes after the first render: one
   that started disabled could never be dragged, and one disabled later still could. A handle
   removed in the middle of a drag no longer leaves the resize cursor on the page.
+- **Input Number**: negative numbers work in cultures that do not write the minus sign as a plain
+  `-` (Hebrew, Arabic, Persian, Swedish, Norwegian, Finnish). A typed `-5` was refused, and a
+  field holding a negative value could not be typed into. The focused field shows a plain `-`.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

@@ -87,32 +87,49 @@ internal static class InputNumberValue<TValue>
     /// </remarks>
     public static bool TryParse(string text, CultureInfo culture, out decimal value)
     {
-        var separator = culture.NumberFormat.NumberDecimalSeparator;
+        var format = EditFormat(culture);
+        var separator = format.NumberDecimalSeparator;
         if (separator != "." && !text.Contains(separator, StringComparison.Ordinal))
             text = text.Replace(".", separator, StringComparison.Ordinal);
 
         switch (Code)
         {
-            case TypeCode.Int32 when int.TryParse(text, IntegerStyles, culture, out var i):
+            case TypeCode.Int32 when int.TryParse(text, IntegerStyles, format, out var i):
                 value = i;
                 return true;
-            case TypeCode.Int64 when long.TryParse(text, IntegerStyles, culture, out var l):
+            case TypeCode.Int64 when long.TryParse(text, IntegerStyles, format, out var l):
                 value = l;
                 return true;
-            case TypeCode.Int16 when short.TryParse(text, IntegerStyles, culture, out var s):
+            case TypeCode.Int16 when short.TryParse(text, IntegerStyles, format, out var s):
                 value = s;
                 return true;
             case TypeCode.Single or TypeCode.Double
-                when double.TryParse(text, DecimalStyles, culture, out var d) && double.IsFinite(d):
+                when double.TryParse(text, DecimalStyles, format, out var d) && double.IsFinite(d):
                 value = Saturate(d);
                 return true;
-            case TypeCode.Decimal when decimal.TryParse(text, DecimalStyles, culture, out var m):
+            case TypeCode.Decimal when decimal.TryParse(text, DecimalStyles, format, out var m):
                 value = m;
                 return true;
             default:
                 value = 0;
                 return false;
         }
+    }
+
+    /// <summary>
+    /// The culture's number format as the edit text uses it: with a plain "-" for the minus sign.
+    /// The script guard admits that one character, and it is what a keyboard types. Several
+    /// cultures write the sign differently (U+2212 in sv-SE, a direction mark before it in he-IL
+    /// and ar-SA): there a typed "-5" did not parse, and the edit text of a negative value began
+    /// with a character the guard refused, so nothing could be typed into it.
+    /// </summary>
+    internal static NumberFormatInfo EditFormat(CultureInfo culture)
+    {
+        var format = culture.NumberFormat;
+        if (format.NegativeSign == "-") return format;
+        format = (NumberFormatInfo)format.Clone();
+        format.NegativeSign = "-";
+        return format;
     }
 
     private const NumberStyles IntegerStyles = NumberStyles.Integer;
