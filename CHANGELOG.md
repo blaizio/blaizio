@@ -38,6 +38,9 @@ lockstep under one version.
 - **Tree**: a virtualized tree no longer goes blank when a search or a collapse shortens the list
   while it is scrolled far down. After a drag the browser cancelled, the next click on a row is
   no longer swallowed.
+- **Resizable**: a resize handle follows `Disabled` when it changes after the first render: one
+  that started disabled could never be dragged, and one disabled later still could. A handle
+  removed in the middle of a drag no longer leaves the resize cursor on the page.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

@@ -102,7 +102,9 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || Disabled) return;
+        // Wired whether or not the handle starts disabled: the script reads data-disabled on every
+        // press, so Disabled can change after the first render in either direction.
+        if (!firstRender) return;
         if (!AriaDiagnostics.HasName(AriaLabel, AriaLabelledBy, Attributes))
             await AriaDiagnostics.WarnUnnamedAsync(Js, "ResizeHandle");
         if (_instance.IsDisposed) return;

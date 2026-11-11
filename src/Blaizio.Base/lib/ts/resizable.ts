@@ -29,13 +29,21 @@ class ResizeHandleDrag {
 
   // Stop the resize arrows (Home/End) from scrolling the page; C# does the actual resize via its own
   // keydown handler (preventDefault doesn't stop the event reaching Blazor).
+  // Read off the element each time: the handle renders data-disabled, and Disabled can change
+  // after the first render. Checked only when the script was wired, a handle that started
+  // disabled never became draggable and one disabled later stayed draggable.
+  private get disabled(): boolean {
+    return this.handle.dataset.disabled === 'true';
+  }
+
   private onKeyDown = (e: KeyboardEvent) => {
+    if (this.disabled) return;
     const keys = this.horizontal ? ['ArrowLeft', 'ArrowRight'] : ['ArrowUp', 'ArrowDown'];
     if (keys.includes(e.key) || e.key === 'Home' || e.key === 'End') e.preventDefault();
   };
 
   private onDown = (e: PointerEvent) => {
-    if (e.button !== 0) return;
+    if (e.button !== 0 || this.disabled) return;
     const group = this.handle.closest('[data-slot=resizable-panel-group]') as HTMLElement | null;
     if (!group) return;
     this.groupSize = this.horizontal ? group.offsetWidth : group.offsetHeight;
@@ -83,6 +91,14 @@ class ResizeHandleDrag {
   };
 
   dispose() {
+    // Removed in the middle of a drag (its panel left the group): no pointerup will reach us, so
+    // put back what the drag changed, or the resize cursor stays on the whole page.
+    if (this.dragging) {
+      this.dragging = false;
+      this.handle.removeAttribute('data-resize-handle-active');
+      document.body.style.cursor = '';
+      if (this.dragCursor) this.handle.style.cursor = this.prevHandleCursor;
+    }
     this.handle.removeEventListener('pointerdown', this.onDown);
     this.handle.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('pointermove', this.onMove);
