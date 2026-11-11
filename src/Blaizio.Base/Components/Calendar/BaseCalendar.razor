@@ -302,7 +302,10 @@
     public async Task OnNavigate(string key, bool shift)
     {
         var rtl = ResolvedDirection == Direction.Rtl;
-        var origin = _focused ?? _context.DefaultFocusable;
+        // The day that holds the tab stop, which is where focus is: the focused day while it is on
+        // screen, else the default one. Reading _focused alone started from a day that was paged
+        // away, and the first arrow jumped the view back to its month.
+        var origin = _context.FocusedDate ?? _context.DefaultFocusable;
         var system = System;
 
         var target = key switch

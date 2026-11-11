@@ -25,6 +25,8 @@ lockstep under one version.
   longer takes the page down. The padding days past either end are empty cells, paging stops
   there, and the arrow keys stop at the last day. A `Min`, `Max` or value outside the span of the
   culture's own calendar (Umm al-Qura covers 1900 to 2077) no longer throws either.
+- **Calendar**: after paging to another month, the arrow keys move from the day that holds the
+  tab stop. They used to start from the day focused before paging and jump the view back to it.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.
