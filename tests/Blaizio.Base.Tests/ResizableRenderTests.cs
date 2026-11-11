@@ -190,4 +190,16 @@ public class ResizableRenderTests : BunitContext
         Assert.Equal(25, (int)cut.Instance.GetHandleValueNow(1));
         Assert.Equal(0, (int)cut.Instance.GetHandleValueNow(0));
     }
+
+    [Fact]
+    public void A_handle_that_starts_disabled_is_still_wired()
+    {
+        // The script reads data-disabled on every press, so the handle has to be wired even when
+        // it starts disabled: skipped, it never became draggable once it was enabled.
+        var cut = Render<BaseResizeHandle>(p => p.Add(x => x.Disabled, true).Add(x => x.AriaLabel, "Resize"));
+
+        Assert.Equal("true", cut.Find("[data-slot=resizable-handle]").GetAttribute("data-disabled"));
+        cut.WaitForAssertion(() => Assert.Contains(JSInterop.Invocations,
+            call => call.Identifier == "import" && call.Arguments[0] is string path && path.EndsWith("resizable.js")));
+    }
 }

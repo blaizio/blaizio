@@ -258,4 +258,34 @@ public class InputNumberTypeTests : BunitContext
 
         Assert.Equal("0.1", cut.Find("input").GetAttribute("value"));
     }
+
+    // The script guard admits a plain "-", which is what a keyboard types. Several cultures write
+    // the sign differently (U+2212, or a direction mark before it): there "-5" did not parse.
+    [Theory]
+    [InlineData("he-IL")]
+    [InlineData("ar-SA")]
+    [InlineData("fa-IR")]
+    [InlineData("sv-SE")]
+    [InlineData("en-US")]
+    public void A_typed_minus_is_the_minus_sign_in_every_culture(string culture)
+    {
+        Assert.True(InputNumberValue<decimal>.TryParse("-5", System.Globalization.CultureInfo.GetCultureInfo(culture), out var value));
+        Assert.Equal(-5m, value);
+    }
+
+    [Fact]
+    public void The_edit_text_of_a_negative_value_starts_with_a_plain_minus()
+    {
+        // sv-SE writes the sign as U+2212: as edit text the guard refused it, so nothing could be
+        // typed into a field holding a negative value.
+        var cut = Render<BaseInputNumber<decimal>>(p => p
+            .Add(x => x.Value, -5.5m)
+            .Add(x => x.ValueChanged, EventCallback.Factory.Create<decimal>(this, _ => { }))
+            .Add(x => x.Culture, System.Globalization.CultureInfo.GetCultureInfo("sv-SE"))
+            .Add(x => x.ChildContent, Field()));
+
+        cut.Find("input").Focus();
+
+        Assert.Equal("-5,5", cut.Find("input").GetAttribute("value"));
+    }
 }

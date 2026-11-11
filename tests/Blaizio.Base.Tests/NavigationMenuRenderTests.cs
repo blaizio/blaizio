@@ -181,4 +181,21 @@ public class NavigationMenuRenderTests : BunitContext
         Assert.Contains("Panel", content.InnerHtml);
         Assert.NotNull(content.Closest("[data-slot=navigation-menu-item]")); // dropped inside its item
     }
+
+    [Fact]
+    public async Task A_finger_lifting_inside_the_menu_does_not_close_it()
+    {
+        var cut = Render<BaseNavigationMenu>(ps => ps.Add(x => x.CloseDelay, 0).AddChildContent(Item("a")));
+        await cut.InvokeAsync(() => cut.Instance.ToggleAsync("a"));
+
+        // Every touch ends with a pointerleave on whatever it touched; a mouse leaving is the
+        // real thing.
+        await cut.Find("[data-slot=navigation-menu]")
+            .TriggerEventAsync("onpointerleave", new PointerEventArgs { PointerType = "touch" });
+        Assert.True(cut.Instance.IsOpen("a"));
+
+        await cut.Find("[data-slot=navigation-menu]")
+            .TriggerEventAsync("onpointerleave", new PointerEventArgs { PointerType = "mouse" });
+        cut.WaitForAssertion(() => Assert.False(cut.Instance.IsAnyOpen));
+    }
 }

@@ -617,4 +617,18 @@ public class TreeRenderTests : BunitContext
         arabic.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = "F2" });
         Assert.Equal("إعادة التسمية", arabic.Find("[data-part=rename-input]").GetAttribute("aria-label"));
     }
+
+    [Fact]
+    public async Task Virtualize_keeps_rows_in_the_window_when_the_list_shrinks_under_a_deep_scroll()
+    {
+        var many = Enumerable.Range(0, 500).Select(i => Leaf($"n{i}")).ToList();
+        var cut = RenderTreeComponent(many, configure: ps => ps.Add(t => t.Virtualize, true));
+        await cut.InvokeAsync(() => cut.Instance.OnVirtualScroll(16_000, 480)); // far down the list
+        Assert.NotEmpty(cut.FindAll("[data-tree-row]"));
+
+        // A search leaves ten rows while the last reported offset still points far past them.
+        cut.Render(ps => ps.Add(t => t.Items, many.Take(10).ToList()));
+
+        Assert.Equal(10, cut.FindAll("[data-tree-row]").Count);
+    }
 }

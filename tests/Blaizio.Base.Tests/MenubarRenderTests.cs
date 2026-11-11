@@ -1,6 +1,7 @@
 using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Rendering;
+using Microsoft.AspNetCore.Components.Web;
 using Xunit;
 
 namespace Blaizio.Base.Tests;
@@ -132,5 +133,34 @@ public class MenubarRenderTests : BunitContext
 
         cut.InvokeAsync(() => cut.FindComponent<BaseMenubarContent>().Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=menu]"));
+    }
+
+    private static IReadOnlyList<AngleSharp.Dom.IElement> Triggers(IRenderedComponent<BaseMenubar> cut) =>
+        cut.FindAll("[role=menuitem][data-bz-roving-item]");
+
+    [Fact]
+    public async Task A_touch_tap_on_another_trigger_switches_to_its_menu()
+    {
+        var cut = Render<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
+        Triggers(cut)[0].Click(); // File is open
+
+        // A finger does not hover: its tap is a pointerenter and then a click. The enter used to
+        // switch to Edit and the click then toggled Edit shut, closing the whole bar.
+        await Triggers(cut)[1].TriggerEventAsync("onpointerenter", new PointerEventArgs { PointerType = "touch" });
+        Triggers(cut)[1].Click();
+
+        Assert.Equal("false", Triggers(cut)[0].GetAttribute("aria-expanded"));
+        Assert.Equal("true", Triggers(cut)[1].GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
+    public async Task A_mouse_moving_onto_another_trigger_still_switches()
+    {
+        var cut = Render<BaseMenubar>(p => p.AddChildContent(TwoMenus()));
+        Triggers(cut)[0].Click();
+
+        await Triggers(cut)[1].TriggerEventAsync("onpointerenter", new PointerEventArgs { PointerType = "mouse" });
+
+        Assert.Equal("true", Triggers(cut)[1].GetAttribute("aria-expanded"));
     }
 }

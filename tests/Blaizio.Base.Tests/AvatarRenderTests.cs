@@ -42,4 +42,20 @@ public class AvatarRenderTests : BunitContext
         Assert.DoesNotContain("display:none", cut.Find("[data-slot=avatar-image]").GetAttribute("style") ?? "");
         Assert.Empty(cut.FindAll("[data-slot=avatar-fallback]"));
     }
+
+    [Fact]
+    public void On_a_static_renderer_the_image_carries_its_own_load_handler()
+    {
+        SetRendererInfo(new RendererInfo("Static", false));
+
+        var image = RenderAvatar().Find("[data-slot=avatar-image]");
+
+        // The element swaps itself in, and again whenever its style is put back (a page merged
+        // in by enhanced navigation restores the server's display:none).
+        var handler = image.GetAttribute("onload");
+        Assert.NotNull(handler);
+        Assert.Contains("MutationObserver", handler);
+        Assert.Contains("data-slot=avatar-fallback", handler);
+        Assert.Contains("display:none", image.GetAttribute("style"));
+    }
 }

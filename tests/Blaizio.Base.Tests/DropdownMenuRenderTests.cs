@@ -316,4 +316,34 @@ public class DropdownMenuRenderTests : BunitContext
 
         Assert.False(cut.Find("[data-bz-menu-label]").HasAttribute("id"));
     }
+
+    [Fact]
+    public void A_submenu_closes_with_its_menu()
+    {
+        RenderFragment items = b =>
+        {
+            b.OpenComponent<BaseDropdownMenuSub>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuSub.ChildContent), (RenderFragment)(s =>
+            {
+                s.OpenComponent<BaseDropdownMenuSubTrigger>(0);
+                s.AddComponentParameter(1, nameof(BaseDropdownMenuSubTrigger.ChildContent), (RenderFragment)(x => x.AddContent(0, "Share")));
+                s.CloseComponent();
+                s.OpenComponent<BaseDropdownMenuSubContent>(2);
+                s.AddComponentParameter(3, nameof(BaseDropdownMenuSubContent.ChildContent), Item("Email"));
+                s.CloseComponent();
+            }));
+            b.CloseComponent();
+        };
+        var cut = Render<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
+        cut.Find("[data-bz-dropdown-menu-sub-anchor]").Click();
+        Assert.Equal(2, cut.FindAll("[role=menu]").Count);
+
+        cut.Render(p => p.Add(x => x.Open, false)); // the menu closes: the submenu drops at once
+        Assert.Single(cut.FindAll("[role=menu]"));
+        cut.Render(p => p.Add(x => x.Open, true));  // and is opened again while still closing
+
+        // The submenu did not come back with it, and its trigger says so.
+        Assert.Single(cut.FindAll("[role=menu]"));
+        Assert.Equal("false", cut.Find("[data-bz-dropdown-menu-sub-anchor]").GetAttribute("aria-expanded"));
+    }
 }
