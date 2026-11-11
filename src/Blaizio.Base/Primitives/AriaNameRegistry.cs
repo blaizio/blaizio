@@ -4,7 +4,7 @@ namespace Blaizio;
 /// Tracks whether a title / description child is currently rendered inside a named surface
 /// (dialog, popover), so the surface emits <c>aria-labelledby</c> / <c>aria-describedby</c>
 /// only for an element that actually exists - a dangling reference is worse than none. Cascaded
-/// by the surface content; the title/description register on first render and unregister on removal.
+/// by the surface content; the title/description register when they are initialized and unregister on removal.
 /// </summary>
 internal sealed class AriaNameRegistry(Action onChanged)
 {

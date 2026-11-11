@@ -3,7 +3,7 @@
 // viewport are rendered - the rest are stood in for by two spacer rows the host renders above and
 // below. Two paths: a fast FIXED path where every row is the same estimated height (pure index math,
 // scales to millions of rows), and a DYNAMIC path that measures each rendered row, keeps a running
-// offset map (the scroll position itself is never written). All geometry is
+// offset map (a re-measure never moves the scroll position; only scrollToIndex writes it). All geometry is
 // read live off the root's data-attributes (like slider.ts), so a count / height / filter change
 // needs no re-init - only a `refresh()`. Reports the visible [start, end) range back to C#; in
 // fixed mode it passes -1 spacer sentinels and lets C# own the (testable) spacer math, in dynamic
