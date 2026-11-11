@@ -22,6 +22,9 @@ const TRACK_SELECTOR = '[data-bz-slider-track]';
 class Slider {
   private activeIndex = -1;
   private pointerId: number | null = null;
+  // Thumbs sharing the pressed thumb's value (see onPointerDown), and that value.
+  private stack: number[] = [];
+  private stackValue = 0;
 
   constructor(
     private readonly root: HTMLElement,
@@ -100,19 +103,38 @@ class Slider {
     return this.min + ratio * (this.max - this.min);
   }
 
-  /** Index of the thumb whose current value is nearest a target value (for clicks on the track). */
+  private valueOf(thumb: HTMLElement): number {
+    const current = parseFloat(thumb.getAttribute('aria-valuenow') ?? '');
+    return Number.isFinite(current) ? current : 0;
+  }
+
+  /**
+   * Index of the thumb whose current value is nearest a target value (for clicks on the track).
+   * Thumbs on the same value tie, and each can only move one way (it is held between its
+   * neighbours): the last of them goes up, the first goes down. Taking the first on every tie
+   * left a click above a stacked pair without effect.
+   */
   private closestThumb(value: number): number {
     let best = -1;
     let bestDistance = Infinity;
     for (const thumb of this.thumbs) {
-      const current = parseFloat(thumb.getAttribute('aria-valuenow') ?? '');
-      const distance = Math.abs((Number.isFinite(current) ? current : 0) - value);
-      if (distance < bestDistance) {
+      const current = this.valueOf(thumb);
+      const distance = Math.abs(current - value);
+      if (distance < bestDistance || (distance === bestDistance && value > current)) {
         bestDistance = distance;
         best = this.indexOf(thumb);
       }
     }
     return best;
+  }
+
+  /** Indices of the thumbs that share `thumb`'s value, in order; just its own when it is alone. */
+  private stackedWith(thumb: HTMLElement): number[] {
+    const value = this.valueOf(thumb);
+    return this.thumbs
+      .filter((other) => this.valueOf(other) === value)
+      .map((other) => this.indexOf(other))
+      .sort((a, b) => a - b);
   }
 
   // --- pointer ---
@@ -126,6 +148,10 @@ class Slider {
     if (index < 0) return;
 
     this.activeIndex = index;
+    // A press on stacked thumbs lands on whichever is drawn on top, and that one may be unable to
+    // move the way the drag goes. Which thumb is meant is settled by the first move.
+    this.stack = targetThumb ? this.stackedWith(targetThumb) : [];
+    this.stackValue = targetThumb ? this.valueOf(targetThumb) : 0;
     this.pointerId = event.pointerId;
     // Capture so the drag keeps tracking outside the thin rail; can throw if the pointer is already
     // gone (or for a synthetic event) - the drag still works off the document-level move/up listeners.
@@ -147,7 +173,14 @@ class Slider {
 
   private onPointerMove = (event: PointerEvent): void => {
     if (this.activeIndex < 0) return;
-    void invokeDotNet(this.ref, 'OnInput', this.activeIndex, this.valueFromPointer(event.clientX, event.clientY));
+    const value = this.valueFromPointer(event.clientX, event.clientY);
+    if (this.stack.length > 1) {
+      if (value === this.stackValue) return;
+      this.activeIndex = value < this.stackValue ? this.stack[0]! : this.stack[this.stack.length - 1]!;
+      this.stack = [];
+      this.thumbAt(this.activeIndex)?.focus();
+    }
+    void invokeDotNet(this.ref, 'OnInput', this.activeIndex, value);
   };
 
   private onPointerUp = (): void => {
@@ -160,6 +193,7 @@ class Slider {
     }
     this.pointerId = null;
     this.activeIndex = -1;
+    this.stack = [];
     this.root.removeEventListener('pointermove', this.onPointerMove);
     this.root.removeEventListener('pointerup', this.onPointerUp);
     this.root.removeEventListener('pointercancel', this.onPointerUp);
