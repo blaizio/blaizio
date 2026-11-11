@@ -337,14 +337,17 @@
             {
                 _selfRef ??= DotNetObjectReference.Create(this);
                 var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/sortable.js");
-                await _instance.CreateAsync(module, "createSortable", _element, _selfRef, new
+                // What the factory is given, remembered as such: Disabled can change while the
+                // call is on its way, and the value at return is not the one the script holds.
+                var disabled = Disabled;
+                var created = await _instance.CreateAsync(module, "createSortable", _element, _selfRef, new
                 {
                     id = ResolvedId,
                     strategy = Strategy.ToString().ToLowerInvariant(),
                     orientation = Orientation.ToString().ToLowerInvariant(),
                     group = Group,
                     animationMs = AnimationMs,
-                    disabled = Disabled,
+                    disabled,
                     sort = AllowSorting,
                     transferOut = AllowTransferOut,
                     transferIn = AllowTransferIn,
@@ -355,6 +358,7 @@
                     placeholderClass = PlaceholderClass,
                     animation = Animation.ToString().ToLowerInvariant(),
                 });
+                if (created) _sentDisabled = disabled;
             }
             catch (JSDisconnectedException)
             {
@@ -364,15 +368,11 @@
 
         // The options above are sent once; Disabled is the one that must follow the parameter, or
         // a list disabled after it rendered keeps dragging by pointer.
-        if (_instance.IsCreated && _sentDisabled != Disabled)
+        if (_instance.IsCreated && _sentDisabled is { } sent && sent != Disabled)
         {
-            var wasSent = _sentDisabled is not null;
             _sentDisabled = Disabled;
-            if (wasSent)
-            {
-                try { await _instance.InvokeVoidAsync("setDisabled", Disabled); }
-                catch (JSDisconnectedException) { /* Circuit gone. */ }
-            }
+            try { await _instance.InvokeVoidAsync("setDisabled", Disabled); }
+            catch (JSDisconnectedException) { /* Circuit gone. */ }
         }
 
         if (_needsSettle && _instance.IsCreated)
