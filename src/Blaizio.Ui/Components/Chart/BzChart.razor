@@ -404,6 +404,9 @@
 
         var series = _seriesOrder.Select(o => _series[o]).ToList();
         var count = Data.Count;
+        // The hovered index belongs to the data it was taken from. Data replaced by a shorter list
+        // while the pointer rests on a point left it past the end, and the tooltip indexed there.
+        if (_active >= count) _active = null;
 
         var values = new double[series.Count][];
         for (var s = 0; s < series.Count; s++)

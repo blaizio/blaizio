@@ -19,6 +19,8 @@ lockstep under one version.
 - **Image**: on a statically rendered page the image is shown. Nothing reports a load there, so
   it stayed transparent for good. It now counts as loaded from the start when the page has no
   render mode; while an interactive component is prerendering it waits as before.
+- **Chart**: replacing `Data` with a shorter list while the pointer rests on a point no longer
+  throws. The cartesian and radar charts kept the hovered index and read past the end.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.
