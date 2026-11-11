@@ -28,6 +28,9 @@ lockstep under one version.
   keyboard again (focus stayed on the page, so Escape and the arrows did nothing). A submenu now
   closes with its menu: it used to come back invisible with the next opening, its trigger still
   reporting `aria-expanded="true"`.
+- **Dialog, Sheet, Popover, Hover Card, menus**: a surface whose component is removed while it is
+  open no longer leaves a hidden copy of itself in the page (a mobile sidebar sheet open while
+  the window grows past the breakpoint, a dialog inside an `@if`).
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

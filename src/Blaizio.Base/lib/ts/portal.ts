@@ -71,7 +71,11 @@ export function portalToBody(el: HTMLElement): { restore(): void } {
   return {
     restore() {
       delete (el as Portaled)[ANCHOR];
-      if (placeholder.isConnected) placeholder.replaceWith(el);
+      // The component went away while its element sat in the layer: Blazor has already removed
+      // the node, and swapping it back in for the placeholder would leave a dead, hidden copy of
+      // the surface in the page for good. Only an element that is still in the document returns.
+      if (!el.isConnected) placeholder.remove();
+      else if (placeholder.isConnected) placeholder.replaceWith(el);
       else el.remove();
       // A frame we created is disposable scaffolding - drop it once its last surface leaves.
       if (container !== document.body && container.childNodes.length === 0) container.remove();
