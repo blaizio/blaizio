@@ -12,6 +12,9 @@ lockstep under one version.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.
+- **Drawer**: a drawer can be dragged shut with a finger. On a touch screen the browser took the
+  gesture for its own panning after the first move, so the panel never followed the finger and
+  the drawer sprang back. Scrolling inside the drawer is unchanged.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

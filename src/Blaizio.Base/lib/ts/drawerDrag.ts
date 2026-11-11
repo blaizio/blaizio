@@ -61,6 +61,8 @@ class DrawerDrag {
     this.snaps = (options.snapPoints ?? []).filter((n) => n > 0 && n <= 1).sort((a, b) => a - b);
     this.snapIndex = clampIndex(options.activeSnap, this.snaps.length);
     content.addEventListener('pointerdown', this.onPointerDown);
+    // Not passive: it has to be able to refuse the browser's own pan (see onTouchMove).
+    content.addEventListener('touchmove', this.onTouchMove, { passive: false });
   }
 
   private get snapping(): boolean {
@@ -175,6 +177,27 @@ class DrawerDrag {
     offset = Math.min(offset, this.size);
     this.translate(offset);
     this.fade(offset);
+  };
+
+  // On a touch screen the browser pans by itself once the finger moves, and tells the page so with
+  // pointercancel: the drag would end after its first move and the panel would never follow the
+  // finger. Refusing the touchmove keeps the gesture ours. Only for a move that drags the panel:
+  // a scroll inside the drawer, and any move across the axis, stay with the browser.
+  private onTouchMove = (e: TouchEvent): void => {
+    if (!this.down || !e.cancelable) return;
+    if (this.dragging) { e.preventDefault(); return; }
+
+    const touch = e.touches[0];
+    if (!touch) return;
+    const dx = touch.clientX - this.startX;
+    const dy = touch.clientY - this.startY;
+    const along = (this.vertical ? dy : dx) * this.sign;
+    const perp = Math.abs(this.vertical ? dx : dy);
+    // The first touchmove can arrive before the pointer path has crossed its own threshold, and
+    // a pan the browser starts here cannot be taken back. Same test as onPointerMove, minus the
+    // distance: heading for the edge (either way with snap points) and not a scroll.
+    const heading = this.snapping ? Math.abs(along) > 0 : along > 0;
+    if (heading && Math.abs(along) > perp && !this.scrollConsumes(e.target, along)) e.preventDefault();
   };
 
   private onPointerUp = (e: PointerEvent): void => {
@@ -382,6 +405,7 @@ class DrawerDrag {
   dispose(): void {
     clearTimeout(this.settleTimer);
     this.content.removeEventListener('pointerdown', this.onPointerDown);
+    this.content.removeEventListener('touchmove', this.onTouchMove);
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('pointercancel', this.onPointerUp);
