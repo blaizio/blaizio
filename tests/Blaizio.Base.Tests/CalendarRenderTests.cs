@@ -427,4 +427,101 @@ public class CalendarRenderTests : BunitContext
         var stops = cut.FindAll("[data-slot=calendar-day-button]").Count(b => b.GetAttribute("tabindex") == "0");
         Assert.Equal(1, stops);
     }
+
+    private IRenderedComponent<BaseCalendar> RenderAt(DateOnly month, Action<ComponentParameterCollectionBuilder<BaseCalendar>>? extra = null) =>
+        Render<BaseCalendar>(p =>
+        {
+            p.Add(x => x.Today, Today);
+            p.Add(x => x.Culture, Inv);
+            p.Add(x => x.DefaultMonth, month);
+            extra?.Invoke(p);
+        });
+
+    private static string? TabStop(IRenderedComponent<BaseCalendar> cut) =>
+        cut.FindAll("[data-slot=calendar-day-button]").Single(b => b.GetAttribute("tabindex") == "0").GetAttribute("aria-label");
+
+    [Fact]
+    public async Task Arrow_keys_start_from_the_tab_stop_after_paging_away_from_the_focused_day()
+    {
+        var cut = Render();
+        Day(cut, new DateOnly(2026, 6, 10)).Click();
+
+        cut.Find("[data-slot=calendar-button-next]").Click();
+        cut.Find("[data-slot=calendar-button-next]").Click(); // August: the tab stop is now 1 August
+
+        // The key arrives from the day that has focus, which is the tab stop. Starting from the
+        // day focused last (10 June) sent the view back to June.
+        await cut.InvokeAsync(() => cut.Instance.OnNavigate("ArrowRight", false));
+
+        Assert.Equal("August 2026", cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim());
+        Assert.Equal(new DateOnly(2026, 8, 2).ToString("D", Inv), TabStop(cut));
+    }
+
+    [Fact]
+    public void The_last_month_a_calendar_can_show_renders()
+    {
+        // 31 December 9999 is a Friday: its week runs into year 10000, which no date can express.
+        var cut = RenderAt(new DateOnly(9999, 12, 1));
+
+        Assert.Equal("December 9999", cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim());
+        Assert.NotNull(Day(cut, new DateOnly(9999, 12, 31)));
+        Assert.Equal("true", cut.Find("[data-slot=calendar-button-next]").GetAttribute("aria-disabled"));
+        // The days past the end are empty cells, not buttons.
+        Assert.Equal(7, cut.FindAll("[data-slot=calendar-week]").Last().QuerySelectorAll("td[data-slot=calendar-day]").Length);
+        Assert.Equal(6, cut.FindAll("[data-slot=calendar-week]").Last().QuerySelectorAll("[data-slot=calendar-day-button]").Length);
+    }
+
+    [Fact]
+    public void The_first_month_a_calendar_can_show_renders()
+    {
+        // 1 January 0001 is a Monday: with the week starting on Sunday there is no day before it.
+        var cut = RenderAt(new DateOnly(1, 1, 1), p => p.Add(x => x.WeekStartsOn, DayOfWeek.Sunday));
+
+        Assert.NotNull(Day(cut, new DateOnly(1, 1, 1)));
+        Assert.Equal("true", cut.Find("[data-slot=calendar-button-previous]").GetAttribute("aria-disabled"));
+        Assert.Equal(6, cut.FindAll("[data-slot=calendar-week]").First().QuerySelectorAll("[data-slot=calendar-day-button]").Length);
+    }
+
+    [Theory]
+    [InlineData("ArrowRight")]
+    [InlineData("ArrowDown")]
+    [InlineData("End")]
+    [InlineData("PageDown")]
+    public async Task Keys_stop_at_the_last_day_instead_of_throwing(string key)
+    {
+        var cut = RenderAt(new DateOnly(9999, 12, 1));
+        Day(cut, new DateOnly(9999, 12, 31)).Click();
+
+        await cut.InvokeAsync(() => cut.Instance.OnNavigate(key, key == "PageDown"));
+
+        Assert.Equal("December 9999", cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim());
+        Assert.Equal(new DateOnly(9999, 12, 31).ToString("D", Inv), TabStop(cut));
+    }
+
+    [Fact]
+    public void Bounds_outside_the_culture_calendar_do_not_throw()
+    {
+        // Umm al-Qura covers 30 April 1900 to 16 November 2077; Min and Max here are both outside it.
+        var cut = RenderCulture("ar-SA", p => p
+            .Add(x => x.Min, new DateOnly(1800, 1, 1))
+            .Add(x => x.Max, new DateOnly(2200, 1, 1)));
+
+        Assert.Contains("ذو الحجة", cut.Find("[data-slot=calendar-caption-label]").TextContent);
+    }
+
+    [Fact]
+    public void A_calendar_system_stops_at_its_own_ends()
+    {
+        var gregorian = new CalendarSystem(Inv);
+
+        Assert.Equal(DateOnly.MaxValue, gregorian.AddDays(new DateOnly(9999, 12, 30), 7));
+        Assert.Equal(DateOnly.MinValue, gregorian.AddDays(new DateOnly(1, 1, 3), -7));
+        Assert.Equal(DateOnly.MaxValue, gregorian.AddMonths(new DateOnly(9999, 12, 1), 1));
+        Assert.Equal(DateOnly.MinValue, gregorian.AddYears(new DateOnly(1, 6, 1), -1));
+
+        var hijri = new CalendarSystem(new CultureInfo("ar-SA"));
+        Assert.Equal(new DateOnly(1900, 4, 30), hijri.MinDate);
+        Assert.False(hijri.Supports(new DateOnly(1800, 1, 1)));
+        Assert.Equal(hijri.GetYear(hijri.MinDate), hijri.GetYear(new DateOnly(1800, 1, 1)));
+    }
 }

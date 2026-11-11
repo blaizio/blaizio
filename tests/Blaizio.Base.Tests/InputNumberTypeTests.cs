@@ -218,4 +218,44 @@ public class InputNumberTypeTests : BunitContext
     [Fact]
     public void An_integer_field_still_rejects_a_fraction_where_dot_groups_thousands() =>
         Assert.False(InputNumberValue<int>.TryParse("1.5", System.Globalization.CultureInfo.GetCultureInfo("de-DE"), out _));
+
+    // A float widened to double shows its binary tail: 0.1f became 0.100000001490116, and the edit
+    // text prints every decimal the value has.
+    [Theory]
+    [InlineData(0.1f, "0.1")]
+    [InlineData(2.675f, "2.675")]
+    [InlineData(0.00001f, "0.00001")]
+    [InlineData(1234.5f, "1234.5")]
+    public void A_float_keeps_the_digits_it_was_given(float value, string expected) =>
+        Assert.Equal(decimal.Parse(expected, System.Globalization.CultureInfo.InvariantCulture), InputNumberValue<float>.ToDecimal(value));
+
+    [Fact]
+    public void A_float_survives_the_trip_through_the_field_unchanged()
+    {
+        var third = 1f / 3;
+
+        Assert.Equal(third, InputNumberValue<float>.FromDecimal(InputNumberValue<float>.ToDecimal(third)));
+    }
+
+    [Fact]
+    public void A_float_outside_decimal_range_saturates()
+    {
+        Assert.Equal(decimal.MaxValue, InputNumberValue<float>.ToDecimal(float.MaxValue));
+        Assert.Equal(decimal.MinValue, InputNumberValue<float>.ToDecimal(float.NegativeInfinity));
+        Assert.Equal(0m, InputNumberValue<float>.ToDecimal(float.NaN));
+    }
+
+    [Fact]
+    public void A_float_field_shows_the_number_it_holds_when_focused()
+    {
+        var cut = Render<BaseInputNumber<float>>(p => p
+            .Add(x => x.Value, 0.1f)
+            .Add(x => x.ValueChanged, EventCallback.Factory.Create<float>(this, _ => { }))
+            .Add(x => x.Culture, System.Globalization.CultureInfo.InvariantCulture)
+            .Add(x => x.ChildContent, Field()));
+
+        cut.Find("input").Focus();
+
+        Assert.Equal("0.1", cut.Find("input").GetAttribute("value"));
+    }
 }
