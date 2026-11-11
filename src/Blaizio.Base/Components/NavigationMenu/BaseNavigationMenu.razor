@@ -76,7 +76,7 @@
         new PropBuilder(this)
             .Data("slot", "navigation-menu")
             .Data("viewport", Viewport ? "true" : "false")
-            .On("onpointerleave", EventCallback.Factory.Create(this, ScheduleClose))
+            .On("onpointerleave", EventCallback.Factory.Create<PointerEventArgs>(this, OnPointerLeave))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown))
             .Merge(Attributes, Class, Style);
 
@@ -134,6 +134,12 @@
         if (_pointerOpened) { _pointerOpened = false; return Task.CompletedTask; }
         return SetValueAsync("");
     }
+
+    // A finger "leaves" every element the moment it lifts, so each tap inside the menu ended with a
+    // pointerleave: a tap on the open panel that was not on a link closed it. Leaving is a hover
+    // notion; a touch user closes with the trigger, a link, or a tap outside.
+    private Task OnPointerLeave(PointerEventArgs e) =>
+        e.PointerType == "touch" ? Task.CompletedTask : ScheduleClose();
 
     /// <summary>Pointer left the whole menu: close after the delay.</summary>
     public async Task ScheduleClose()

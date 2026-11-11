@@ -21,6 +21,9 @@ lockstep under one version.
   render mode; while an interactive component is prerendering it waits as before.
 - **Chart**: replacing `Data` with a shorter list while the pointer rests on a point no longer
   throws. The cartesian and radar charts kept the hovered index and read past the end.
+- **Menubar, Navigation Menu**: on a touch screen, tapping another menubar trigger switches to
+  its menu (it used to close the whole bar), and a tap inside an open navigation menu panel no
+  longer closes it unless it lands on a link.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

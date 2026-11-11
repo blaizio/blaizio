@@ -36,7 +36,7 @@
             .Aria("controls", Menu?.ContentId)
             .Data("state", open ? "open" : "closed")
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, OnClickAsync))
-            .On("onpointerenter", EventCallback.Factory.Create(this, OnPointerEnterAsync))
+            .On("onpointerenter", EventCallback.Factory.Create<PointerEventArgs>(this, OnPointerEnterAsync))
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
         if (RenderAs is null) props.Set("type", "button");
@@ -56,9 +56,12 @@
 
     // Once a menu in the bar is open, moving the pointer onto another trigger switches to it - the
     // hallmark menu-bar behaviour. With nothing open, hover does nothing (a click opens the first).
-    private Task OnPointerEnterAsync()
+    //
+    // A finger does not hover: its tap fires pointerenter and then click. The enter switched to this
+    // menu and the click that followed toggled it shut, so tapping another trigger closed the bar.
+    private Task OnPointerEnterAsync(PointerEventArgs e)
     {
-        if (Menu is null || Bar is null) return Task.CompletedTask;
+        if (Menu is null || Bar is null || e.PointerType == "touch") return Task.CompletedTask;
         return Bar.Value is not null && !Menu.Open
             ? Menu.RequestOpen.InvokeAsync(MenuFocusIntent.None)
             : Task.CompletedTask;
