@@ -24,6 +24,10 @@ lockstep under one version.
 - **Menubar, Navigation Menu**: on a touch screen, tapping another menubar trigger switches to
   its menu (it used to close the whole bar), and a tap inside an open navigation menu panel no
   longer closes it unless it lands on a link.
+- **Dropdown Menu, Context Menu, Menubar**: a menu reopened while it is still closing takes the
+  keyboard again (focus stayed on the page, so Escape and the arrows did nothing). A submenu now
+  closes with its menu: it used to come back invisible with the next opening, its trigger still
+  reporting `aria-expanded="true"`.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

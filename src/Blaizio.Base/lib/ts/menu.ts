@@ -154,6 +154,17 @@ class Menu {
     }
   };
 
+  /**
+   * Place the opening focus again. A menu reopened while it was still closing keeps this surface
+   * and this instance, and the opening focus is placed once per instance: the press that closed it
+   * had moved focus to the page, so the reopened menu had no focus and no key reached it.
+   */
+  refocus = (): void => {
+    clearTimeout(this.focusTimer);
+    this.focusSettled = false;
+    this.focusWhenReady();
+  };
+
   /** The element the opening focus should land on, or null while the items haven't rendered yet. */
   private initialTarget(): HTMLElement | null {
     if (this.options.initialFocus === 'none') return this.container;

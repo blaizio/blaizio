@@ -127,6 +127,8 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     private Task<IJSObjectReference>? _menuTask;
     private DotNetObjectReference<MenuContentBase>? _selfRef;
     private bool _dismissedByPointer;
+    private bool _releasePending;
+    private bool _refocusPending;
 
     /// <summary>Captures the surface element reference (passed to <c>ElementRefCaptured</c> in the markup).</summary>
     protected void CaptureElement(ElementReference reference) => Element = reference;
@@ -161,6 +163,8 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             {
                 Present = false;
                 Closing = false;
+                // The element goes with this render; the script instances bound to it follow it.
+                _releasePending = true;
             }
             return;
         }
@@ -169,6 +173,9 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 
         if (open && (!Present || Closing))
         {
+            // Reopened while closing: the surface and its menu instance stay, and the instance
+            // places the opening focus once, so it has to be asked for again.
+            if (Present && Closing) _refocusPending = true;
             Present = true;
             Closing = false;
         }
@@ -181,14 +188,34 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_releasePending)
+        {
+            _releasePending = false;
+            await ReleaseInstancesAsync();
+        }
+
         if (!Present) return;
 
         // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
         // and a slow module import must not let a second pass create twice.
         _presenceTask ??= CreatePresenceAsync();
         _positioningTask ??= CreatePositioningAsync();
-        _menuTask ??= CreateMenuAsync();
+        var menuTask = _menuTask ??= CreateMenuAsync();
         if (Dismissable) _dismissTask ??= CreateDismissableLayerAsync();
+
+        if (_refocusPending)
+        {
+            _refocusPending = false;
+            try
+            {
+                // The press that closed the menu moved focus to the page. Without this the
+                // reopened menu had no focus, and Escape, the arrows and typing reached nothing.
+                var menu = await menuTask;
+                if (menu is not null) await menu.InvokeVoidAsync("refocus");
+            }
+            catch (JSDisconnectedException) { }
+            catch (ObjectDisposedException) { }
+        }
 
         if (Closing)
         {
@@ -427,6 +454,31 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         }
         catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { }
+    }
+
+    // An ancestor closed and took this surface's element with it, while the component stays (a
+    // submenu when the whole menu closes). The instances are bound to that element: kept, the next
+    // opening rendered a new element that no script ever positioned, so the submenu stayed
+    // invisible. All four are claimed before the first await, so a render that comes in meanwhile
+    // finds none and creates fresh ones.
+    [ExcludeFromCodeCoverage]
+    private async Task ReleaseInstancesAsync()
+    {
+        Task<IJSObjectReference>?[] tasks = [_positioningTask, _dismissTask, _menuTask, _presenceTask];
+        _positioningTask = _dismissTask = _menuTask = _presenceTask = null;
+        foreach (var task in tasks)
+        {
+            if (task is null) continue;
+            try
+            {
+                var instance = await task;
+                if (instance is null) continue;
+                await instance.InvokeVoidAsync("dispose");
+                await instance.DisposeAsync();
+            }
+            catch (JSDisconnectedException) { }
+            catch (ObjectDisposedException) { }
+        }
     }
 
     [ExcludeFromCodeCoverage]

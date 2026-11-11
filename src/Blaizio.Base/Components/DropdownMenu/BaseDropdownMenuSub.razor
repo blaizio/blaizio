@@ -31,7 +31,13 @@
     /// <summary>Hover delay before the submenu opens, in milliseconds. Unset inherits <see cref="BlaizioOptions"/> (100 out of the box).</summary>
     [Parameter] public int? OpenDelay { get; set; }
 
+    // The root menu's state, cascaded past every level. A submenu does not outlive its menu: left
+    // open when the menu closed, its trigger kept saying aria-expanded="true" and the submenu came
+    // back, unasked, with the menu's next opening.
+    [CascadingParameter] private DropdownMenuContext? RootMenu { get; set; }
+
     private string _baseId = default!;
+    private bool _closedWithRoot;
     private readonly ControllableState<bool> _state = new();
     private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
     private CancellationTokenSource? _openCts;
@@ -50,6 +56,20 @@
     protected override void OnInitialized() => _baseId = Identifier.Create("dropdown-menu-sub");
 
     protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+
+    protected override Task OnParametersSetAsync()
+    {
+        if (RootMenu is not { Open: false })
+        {
+            _closedWithRoot = false;
+            return Task.CompletedTask;
+        }
+
+        // Once per close of the root: a controlled submenu whose parent keeps it open is not asked again.
+        if (!_state.Value || _closedWithRoot) return Task.CompletedTask;
+        _closedWithRoot = true;
+        return RequestCloseAsync();
+    }
 
     // Immediate open (click / ArrowRight / Enter); cancels any pending hover-open first.
     private Task RequestOpenAsync(MenuFocusIntent intent)
