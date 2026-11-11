@@ -92,16 +92,10 @@
 
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            if (_instance.IsCreated) await _instance.InvokeVoidAsync("dispose");
-            if (_instance.IsCreated) await _instance.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
+        // Instances only - the modules are shared via JsModules and outlive this component. Not
+        // guarded by IsCreated: the handle has to learn it is disposed even while its instance is
+        // still being created, or the late arrival is kept.
+        await _instance.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }
