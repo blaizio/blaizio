@@ -79,7 +79,7 @@ class Collapse {
   /**
    * Called after the element re-rendered with data-state="closed". When no exit animation is
    * configured (e.g. a style without accordion animations), reports "done" immediately so C#
-   * is removed at once; otherwise animationend does it - backed by a timer for the longest
+   * removes the panel at once; otherwise animationend does it - backed by a timer for the longest
    * declared animation, because hidden pages (background tab, headless window) get no rendering
    * updates and never dispatch animation events. Same pattern as presence.ts.
    */
@@ -95,8 +95,13 @@ class Collapse {
     this.fallback = window.setTimeout(this.finish, total * 1000 + 100);
   }
 
+  // Only the animation the element runs NOW counts. Closing while the entry animation is still
+  // playing cancels that one, and its animationcancel arrives with the state already "closed":
+  // taken for the end of the exit, it removed the panel before the exit animation had played.
   private onAnimationEnd = (e: AnimationEvent) => {
-    if (e.target === this.el && this.el.dataset.state === 'closed') this.finish();
+    if (e.target !== this.el || this.el.dataset.state !== 'closed') return;
+    const running = getComputedStyle(this.el).animationName.split(',').map((name) => name.trim());
+    if (running.includes(e.animationName)) this.finish();
   };
 
   // A closed panel kept in the render tree carries hidden="until-found". When find-in-page matches

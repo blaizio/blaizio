@@ -1,7 +1,7 @@
 // Exit-animation presence for overlay surfaces (dialog, sheet, popover) - the generic sibling of
 // collapse.ts (which also measures heights). The element stays rendered with data-state="closed"
 // while the style's exit animation plays; this module tells C# when it finished so the element can
-// removal (the exit-animation presence equivalent). Callback interop, like FocusScope.
+// be removed (the exit-animation presence equivalent). Callback interop, like FocusScope.
 
 import { invokeDotNet } from './core';
 import type { DotNetObjectReference } from './core';
@@ -56,8 +56,13 @@ class Presence {
     this.fallback = window.setTimeout(this.finish, total * 1000 + 100);
   }
 
+  // Only the animation the element runs NOW counts. Closing while the entry animation is still
+  // playing cancels that one, and its animationcancel arrives with the state already "closed":
+  // taken for the end of the exit, it removed the surface before the exit animation had played.
   private onAnimationEnd = (e: AnimationEvent) => {
-    if (e.target === this.el && this.el.dataset.state === 'closed') this.finish();
+    if (e.target !== this.el || this.el.dataset.state !== 'closed') return;
+    const running = getComputedStyle(this.el).animationName.split(',').map((name) => name.trim());
+    if (running.includes(e.animationName)) this.finish();
   };
 
   /** Idempotent per close - C# ignores the report unless it is actually closing. */

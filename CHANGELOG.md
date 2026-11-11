@@ -31,6 +31,8 @@ lockstep under one version.
 - **Dialog, Sheet, Popover, Hover Card, menus**: a surface whose component is removed while it is
   open no longer leaves a hidden copy of itself in the page (a mobile sidebar sheet open while
   the window grows past the breakpoint, a dialog inside an `@if`).
+- **Dialog, Sheet, Popover, Hover Card, Tooltip, menus, Accordion, Collapsible**: closing while
+  the opening animation is still running plays the closing animation. It used to be skipped.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.
