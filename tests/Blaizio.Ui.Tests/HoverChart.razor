@@ -1,0 +1,25 @@
+@* Test host: a bar chart and a radar chart with tooltips, over data that can get shorter. *@
+@if (Radar)
+{
+    <BzRadarChart Data="Data" Label="d => d.Month">
+        <BzChartTooltip />
+        <BzRadarSeries Name="Desktop" Value="d => d.Desktop" />
+    </BzRadarChart>
+}
+else
+{
+    <BzChart Data="Data" Label="d => d.Month">
+        <BzChartTooltip />
+        <BzChartBarSeries Name="Desktop" Value="d => d.Desktop" />
+    </BzChart>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<Point> Data { get; set; } = [];
+    [Parameter] public bool Radar { get; set; }
+
+    public sealed record Point(string Month, double Desktop);
+
+    public static List<Point> Months(int count) =>
+        Enumerable.Range(1, count).Select(i => new Point($"M{i}", 100 + i * 10)).ToList();
+}
