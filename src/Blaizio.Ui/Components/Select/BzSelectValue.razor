@@ -95,7 +95,6 @@ else
     [CascadingParameter] private SelectContext? Select { get; set; }
 
     private ElementReference _tokensEl;
-    private IJSObjectReference? _overflowModule;
     private readonly JsInstance _overflow = new();
 
     // The "+N" counter needs DOM measurement; only the Count mode with the default badges uses it. The
@@ -118,8 +117,7 @@ else
         {
             if (!_overflow.IsCreated)
             {
-                _overflowModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/tokenOverflow.js");
-                await _overflow.CreateAsync(_overflowModule, "createTokenOverflow", _tokensEl);
+                await _overflow.CreateAsync(Js, "./_content/blaizio.base/dist/tokenOverflow.js", "createTokenOverflow", _tokensEl);
             }
             else
             {
@@ -137,8 +135,9 @@ else
     public async ValueTask DisposeAsync()
     {
         // The overflow INSTANCE is ours; the module reference is the shared JsModules proxy and
-        // must outlive this component.
-        await DisposeOverflowAsync();
+        // must outlive this component. Disposed, not released: a creation still in flight must not
+        // attach to an element that is gone.
+        await _overflow.DisposeAsync();
         GC.SuppressFinalize(this);
     }
 }
