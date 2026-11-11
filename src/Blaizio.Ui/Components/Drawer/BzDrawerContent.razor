@@ -246,6 +246,8 @@
         {
             _selfRef ??= DotNetObjectReference.Create(this);
             _dragModule ??= await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/drawerDrag.js");
+            // Closed while the module was on its way: there is nothing to wire any more.
+            if (!_open) return;
             var options = new
             {
                 direction = Side.GetDescription(),
@@ -343,10 +345,12 @@
         _dragWired = false;
         try
         {
-            // The drawer closed but the component stays: drop the drag (and a wiring still in
-            // flight) so the next opening wires a fresh one.
-            await _drag.ReleaseAsync();
+            // The drawer closed but the component stays: drop the drag so the next opening wires a
+            // fresh one. The wiring is awaited first. Released the other way round, a wiring that
+            // was still importing its module attached a drag afterwards, to the closing element,
+            // and the next opening found the handle taken and wired nothing.
             if (_wireTask is not null) await _wireTask;
+            await _drag.ReleaseAsync();
         }
         catch (JSDisconnectedException)
         {

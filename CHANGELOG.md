@@ -44,6 +44,8 @@ lockstep under one version.
 - **Table of Contents**: opening a link in a new tab (Ctrl or middle click) or copying its address
   gives this page at that heading. The links were `#id`, which the browser resolves against
   `<base href>`, so it opened the site root. The links' `href` is now the page path plus `#id`.
+- **Drawer**: a drawer closed before its drag script had loaded can be dragged the next time it
+  opens.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.
