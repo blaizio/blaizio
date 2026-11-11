@@ -19,8 +19,32 @@ public readonly struct CalendarSystem
     /// <summary>Builds a system from the culture's formatting calendar (Gregorian, Persian, Hijri, ...).</summary>
     public CalendarSystem(CultureInfo culture) => _calendar = culture.DateTimeFormat.Calendar;
 
-    private static DateTime ToDateTime(DateOnly date) => date.ToDateTime(TimeOnly.MinValue);
+    /// <summary>
+    /// The first day this calendar system can express. Gregorian starts at year 1; Umm al-Qura
+    /// only at 30 April 1900. A day before it is read as this day, so the arithmetic below never
+    /// throws on a date the calendar cannot name.
+    /// </summary>
+    public DateOnly MinDate => DateOnly.FromDateTime(_calendar.MinSupportedDateTime);
+
+    /// <summary>The last day this calendar system can express (see <see cref="MinDate"/>).</summary>
+    public DateOnly MaxDate => DateOnly.FromDateTime(_calendar.MaxSupportedDateTime);
+
+    /// <summary>Whether the calendar system can express <paramref name="date"/>.</summary>
+    public bool Supports(DateOnly date) => date >= MinDate && date <= MaxDate;
+
+    // Every conversion goes through here, so a day outside the calendar's span (a Min or Value far
+    // in the past under Umm al-Qura, say) lands on the nearest day it does have.
+    private DateTime ToDateTime(DateOnly date)
+    {
+        var min = MinDate;
+        var max = MaxDate;
+        return (date < min ? min : date > max ? max : date).ToDateTime(TimeOnly.MinValue);
+    }
+
     private static DateOnly ToDateOnly(DateTime dateTime) => DateOnly.FromDateTime(dateTime);
+
+    private int ClampYear(int year) =>
+        Math.Clamp(year, _calendar.GetYear(_calendar.MinSupportedDateTime), _calendar.GetYear(_calendar.MaxSupportedDateTime));
 
     /// <summary>The calendar-system year of <paramref name="date"/> (e.g. 1405 for a Persian locale).</summary>
     public int GetYear(DateOnly date) => _calendar.GetYear(ToDateTime(date));
@@ -31,8 +55,18 @@ public readonly struct CalendarSystem
     /// <summary>The day-of-month in the calendar system (1-based).</summary>
     public int GetDayOfMonth(DateOnly date) => _calendar.GetDayOfMonth(ToDateTime(date));
 
-    /// <summary>Number of months in the calendar-system year <paramref name="year"/>.</summary>
-    public int MonthsInYear(int year) => _calendar.GetMonthsInYear(year);
+    /// <summary>Number of months in the calendar-system year <paramref name="year"/> (a year outside the system's span counts as its nearest one).</summary>
+    public int MonthsInYear(int year) => _calendar.GetMonthsInYear(ClampYear(year));
+
+    /// <summary>
+    /// Adds <paramref name="days"/> days, stopping at the system's first or last day instead of
+    /// running past it (<see cref="DateOnly.AddDays"/> throws there).
+    /// </summary>
+    public DateOnly AddDays(DateOnly date, int days)
+    {
+        var number = (long)date.DayNumber + days;
+        return DateOnly.FromDayNumber((int)Math.Clamp(number, MinDate.DayNumber, MaxDate.DayNumber));
+    }
 
     /// <summary>The first day of the calendar-system month that contains <paramref name="date"/>.</summary>
     public DateOnly FirstOfMonth(DateOnly date)
@@ -50,11 +84,34 @@ public readonly struct CalendarSystem
         return ToDateOnly(_calendar.ToDateTime(year, month, _calendar.GetDaysInMonth(year, month), 0, 0, 0, 0));
     }
 
-    /// <summary>Adds <paramref name="months"/> calendar-system months (clamping the day to the new month length).</summary>
-    public DateOnly AddMonths(DateOnly date, int months) => ToDateOnly(_calendar.AddMonths(ToDateTime(date), months));
+    /// <summary>
+    /// Adds <paramref name="months"/> calendar-system months (clamping the day to the new month
+    /// length). A result past either end of the system stops at that end.
+    /// </summary>
+    public DateOnly AddMonths(DateOnly date, int months)
+    {
+        try
+        {
+            return ToDateOnly(_calendar.AddMonths(ToDateTime(date), months));
+        }
+        catch (ArgumentException)
+        {
+            return months < 0 ? MinDate : MaxDate;
+        }
+    }
 
-    /// <summary>Adds <paramref name="years"/> calendar-system years.</summary>
-    public DateOnly AddYears(DateOnly date, int years) => ToDateOnly(_calendar.AddYears(ToDateTime(date), years));
+    /// <summary>Adds <paramref name="years"/> calendar-system years, stopping at either end of the system.</summary>
+    public DateOnly AddYears(DateOnly date, int years)
+    {
+        try
+        {
+            return ToDateOnly(_calendar.AddYears(ToDateTime(date), years));
+        }
+        catch (ArgumentException)
+        {
+            return years < 0 ? MinDate : MaxDate;
+        }
+    }
 
     /// <summary>Whether two days fall in the same calendar-system year and month.</summary>
     public bool SameMonth(DateOnly a, DateOnly b)
@@ -67,9 +124,18 @@ public readonly struct CalendarSystem
     /// <summary>The first day of the given calendar-system year and month (month/day clamped to valid ranges).</summary>
     public DateOnly FromYearMonth(int year, int month)
     {
+        year = ClampYear(year);
         var months = _calendar.GetMonthsInYear(year);
         month = Math.Clamp(month, 1, months);
-        return ToDateOnly(_calendar.ToDateTime(year, month, 1, 0, 0, 0, 0));
+        try
+        {
+            return ToDateOnly(_calendar.ToDateTime(year, month, 1, 0, 0, 0, 0));
+        }
+        catch (ArgumentException)
+        {
+            // The system's first or last year need not hold every month (Umm al-Qura ends mid-year).
+            return year <= _calendar.GetYear(_calendar.MinSupportedDateTime) ? MinDate : FirstOfMonth(MaxDate);
+        }
     }
 
     /// <summary>The 1-based week-of-year for <paramref name="date"/> in the culture's calendar + week rule.</summary>

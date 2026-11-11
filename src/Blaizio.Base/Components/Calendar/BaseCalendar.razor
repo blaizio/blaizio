@@ -303,17 +303,18 @@
     {
         var rtl = ResolvedDirection == Direction.Rtl;
         var origin = _focused ?? _context.DefaultFocusable;
+        var system = System;
 
         var target = key switch
         {
-            "ArrowUp" => origin.AddDays(-7),
-            "ArrowDown" => origin.AddDays(7),
-            "ArrowLeft" => origin.AddDays(rtl ? 1 : -1),
-            "ArrowRight" => origin.AddDays(rtl ? -1 : 1),
-            "Home" => StartOfWeek(origin),
-            "End" => StartOfWeek(origin).AddDays(6),
-            "PageUp" => shift ? System.AddYears(origin, -1) : System.AddMonths(origin, -1),
-            "PageDown" => shift ? System.AddYears(origin, 1) : System.AddMonths(origin, 1),
+            "ArrowUp" => system.AddDays(origin, -7),
+            "ArrowDown" => system.AddDays(origin, 7),
+            "ArrowLeft" => system.AddDays(origin, rtl ? 1 : -1),
+            "ArrowRight" => system.AddDays(origin, rtl ? -1 : 1),
+            "Home" => system.AddDays(origin, -WeekdayOffset(origin)),
+            "End" => system.AddDays(origin, 6 - WeekdayOffset(origin)),
+            "PageUp" => shift ? system.AddYears(origin, -1) : system.AddMonths(origin, -1),
+            "PageDown" => shift ? system.AddYears(origin, 1) : system.AddMonths(origin, 1),
             _ => origin,
         };
 
@@ -351,11 +352,8 @@
         StateHasChanged();
     }
 
-    private DateOnly StartOfWeek(DateOnly date)
-    {
-        var diff = (7 + (int)date.DayOfWeek - (int)EffectiveWeekStart) % 7;
-        return date.AddDays(-diff);
-    }
+    // How many days `date` sits after the start of its week.
+    private int WeekdayOffset(DateOnly date) => (7 + (int)date.DayOfWeek - (int)EffectiveWeekStart) % 7;
 
     private Task GoToPreviousMonth() =>
         CanGoPrevious(_month.Value) ? _month.SetAsync(System.AddMonths(_month.Value, -1), MonthChanged) : Task.CompletedTask;
@@ -363,11 +361,13 @@
     private Task GoToNextMonth() =>
         CanGoNext(_month.Value) ? _month.SetAsync(System.AddMonths(_month.Value, 1), MonthChanged) : Task.CompletedTask;
 
+    // Paging also stops at the ends of the calendar system itself (year 1 and 9999 for Gregorian,
+    // a much shorter span for Umm al-Qura): there is no month beyond them to show.
     private bool CanGoPrevious(DateOnly displayMonth) =>
-        !Disabled && (Min is not { } min || displayMonth > System.FirstOfMonth(min));
+        !Disabled && displayMonth > System.MinDate && (Min is not { } min || displayMonth > System.FirstOfMonth(min));
 
     private bool CanGoNext(DateOnly displayMonth) =>
-        !Disabled && (Max is not { } max || LastVisibleDay(displayMonth) < System.FirstOfMonth(max));
+        !Disabled && LastVisibleDay(displayMonth) < System.MaxDate && (Max is not { } max || LastVisibleDay(displayMonth) < System.FirstOfMonth(max));
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

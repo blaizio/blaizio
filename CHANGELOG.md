@@ -20,6 +20,11 @@ lockstep under one version.
   defaults until a full reload. `boot.js` now applies them again after each enhanced page update.
 - **Avatar**: on a statically rendered page the image stays visible after enhanced navigation.
   It used to fall back to the initials on the first in-app link.
+- **Calendar, Input Date**: the first and the last month a calendar can show (January 0001 and
+  December 9999) render instead of throwing, so typing `31/12/9999` and opening the popup no
+  longer takes the page down. The padding days past either end are empty cells, paging stops
+  there, and the arrow keys stop at the last day. A `Min`, `Max` or value outside the span of the
+  culture's own calendar (Umm al-Qura covers 1900 to 2077) no longer throws either.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.

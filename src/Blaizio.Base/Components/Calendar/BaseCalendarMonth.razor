@@ -68,11 +68,19 @@
                     @if (Context.ShowWeekNumber)
                     {
                         <td data-slot="calendar-week-number" class="@Context.ClassNames.WeekNumber">
-                            @Context.Number(Context.System.WeekOfYear(week[0], Context.Culture, Context.WeekStartsOn))
+                            @Context.Number(Context.System.WeekOfYear(week.First(day => day is not null)!.Value, Context.Culture, Context.WeekStartsOn))
                         </td>
                     }
-                    @foreach (var date in week)
+                    @foreach (var day in week)
                     {
+                        @* A padding day the calendar cannot express (before its first day or after
+                           its last) is an empty cell, like a hidden outside day. *@
+                        if (day is not { } date)
+                        {
+                            <td data-slot="calendar-day" class="@Context.ClassNames.Day" aria-hidden="true"></td>
+                            continue;
+                        }
+
                         var outside = !Context.System.SameMonth(date, _month);
                         @if (outside && !Context.ShowOutsideDays)
                         {
@@ -101,7 +109,8 @@
 
     protected override void OnParametersSet()
     {
-        _month = Context.System.AddMonths(Context.DisplayMonth, MonthIndex);
+        // FirstOfMonth: at the very end of the calendar system AddMonths stops on its last day.
+        _month = Context.System.FirstOfMonth(Context.System.AddMonths(Context.DisplayMonth, MonthIndex));
         _year = Context.System.GetYear(_month);
         _monthNumber = Context.System.GetMonth(_month);
     }
@@ -156,20 +165,27 @@
 
     // Whole weeks from the grid start until the calendar-system month is covered (4-6 rows incl. trailing
     // outside days). Day-of-week is universal, so the week framing stays on DateOnly.
-    private IEnumerable<DateOnly[]> Weeks()
+    //
+    // Counted in day numbers, not with DateOnly.AddDays: the padding of the first and last month a
+    // calendar can show runs past its range (the week of 31 December 9999 ends in year 10000), and
+    // AddDays throws there, which took the whole page down. Such a day is null and renders empty.
+    private IEnumerable<DateOnly?[]> Weeks()
     {
-        var lastOfMonth = Context.System.LastOfMonth(_month);
-        var cursor = StartOfWeek(_month);
-        while (cursor <= lastOfMonth)
-        {
-            yield return Enumerable.Range(0, 7).Select(i => cursor.AddDays(i)).ToArray();
-            cursor = cursor.AddDays(7);
-        }
-    }
+        var system = Context.System;
+        var first = system.MinDate.DayNumber;
+        var last = system.MaxDate.DayNumber;
+        var lastOfMonth = system.LastOfMonth(_month).DayNumber;
+        var lead = (7 + (int)_month.DayOfWeek - (int)Context.WeekStartsOn) % 7;
 
-    private DateOnly StartOfWeek(DateOnly date)
-    {
-        var diff = (7 + (int)date.DayOfWeek - (int)Context.WeekStartsOn) % 7;
-        return date.AddDays(-diff);
+        for (var start = _month.DayNumber - lead; start <= lastOfMonth; start += 7)
+        {
+            var week = new DateOnly?[7];
+            for (var i = 0; i < 7; i++)
+            {
+                var number = start + i;
+                if (number >= first && number <= last) week[i] = DateOnly.FromDayNumber(number);
+            }
+            yield return week;
+        }
     }
 }
