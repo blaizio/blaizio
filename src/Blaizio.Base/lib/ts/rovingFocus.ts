@@ -39,22 +39,57 @@ type FocusIntent = 'first' | 'last' | 'prev' | 'next';
 const ITEM_SELECTOR = '[data-bz-roving-item]';
 
 export class RovingFocus {
+  private mutations?: MutationObserver;
+  private resizes?: ResizeObserver;
+
   constructor(
     private readonly container: HTMLElement,
     private readonly options: RovingFocusOptions,
   ) {
     if (!container) return;
-    this.seedTabStops();
+    this.ensureTabStop();
     this.container.addEventListener('keydown', this.onKeyDown);
     this.container.addEventListener('focusin', this.onFocusIn);
+
+    // The tab stop is chosen once and then only follows focus, so anything that takes its holder
+    // away left the group with no way in by Tab: the holder gets disabled (an Undo button with
+    // nothing to undo), is removed (a closed tab), or is hidden (a toolbar's scroll button once the
+    // bar fits). Items that arrive later need their tabindex too. Our own tabindex writes come
+    // back through the observer and are skipped, so this cannot feed itself.
+    this.mutations = new MutationObserver((records) => {
+      if (records.some((record) => record.type === 'childList' || record.attributeName !== 'tabindex')) {
+        this.ensureTabStop();
+      }
+    });
+    this.mutations.observe(container, { subtree: true, childList: true, attributes: true });
+    // A group that was hidden when it was wired (a closed panel) has no drawn item to prefer;
+    // its size changing is the moment it shows.
+    this.resizes = new ResizeObserver(this.ensureTabStop);
+    this.resizes.observe(container);
   }
 
-  /** Make exactly one item tabbable: the `[data-roving-active]` one if present, else the first. */
-  private seedTabStops(): void {
+  /**
+   * Make exactly one item tabbable. The item that holds the stop keeps it while it is still
+   * enabled and drawn; otherwise the `[data-roving-active]` one takes it, else the first. An
+   * item with no layout box cannot take focus, so it never holds the stop - unless the whole
+   * group is hidden, where any item will do until it shows.
+   */
+  private ensureTabStop = (): void => {
     const items = this.getItems();
-    const active = items.find((item) => item.hasAttribute('data-roving-active')) ?? items[0];
-    for (const item of items) item.setAttribute('tabindex', item === active ? '0' : '-1');
-  }
+    const drawn = items.filter((item) => item.getClientRects().length > 0);
+    const pool = drawn.length > 0 ? drawn : items;
+    const keep =
+      pool.find((item) => item.getAttribute('tabindex') === '0') ??
+      pool.find((item) => item.hasAttribute('data-roving-active')) ??
+      pool[0];
+
+    for (const item of this.container.querySelectorAll<HTMLElement>(ITEM_SELECTOR)) {
+      // A disabled item is left alone, except to take back a stop it can no longer honour.
+      if (item !== keep && !items.includes(item) && item.getAttribute('tabindex') !== '0') continue;
+      const tabindex = item === keep ? '0' : '-1';
+      if (item.getAttribute('tabindex') !== tabindex) item.setAttribute('tabindex', tabindex);
+    }
+  };
 
   /** Whenever an item receives focus (arrow, Tab, or click), it becomes the sole tab stop. */
   private onFocusIn = (event: FocusEvent): void => {
@@ -173,6 +208,8 @@ export class RovingFocus {
   }
 
   dispose = (): void => {
+    this.mutations?.disconnect();
+    this.resizes?.disconnect();
     this.container.removeEventListener('keydown', this.onKeyDown);
     this.container.removeEventListener('focusin', this.onFocusIn);
   };

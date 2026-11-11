@@ -37,6 +37,10 @@ lockstep under one version.
   for a superseded request, which left the rows loading for good. A request that really was
   superseded is now ignored whatever it throws; an error raised by a cancelled call used to
   reach the app's error handling.
+- **Toolbar, Tabs, Radio Group, Toggle Group, Menubar**: the group always keeps one reachable
+  tab stop. A toolbar that fits its container could put it on the hidden scroll button, and a
+  group whose tab-stop item was disabled or removed had none, so Tab skipped it. Items added
+  later no longer become extra tab stops.
 - **Resizable**: leaving a page while its resize handles are still starting up no longer throws
   `ObjectDisposedException` (and shows the Blazor error banner). A handle disposed before its JS
   setup finishes now skips the setup, and tears down a JS instance that arrives after disposal.
