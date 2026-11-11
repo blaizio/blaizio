@@ -568,6 +568,10 @@
         var viewport = _viewportPx > 0 ? _viewportPx : 480;
         var visible = (int)Math.Ceiling(viewport / rowH) + 1;
         var first = (int)Math.Floor(_scrollTop / rowH);
+        // _scrollTop is the last offset the script reported. After the list got shorter (a search,
+        // a collapse) it can point far past the end: no row fell in the window, the viewport went
+        // blank, and it came back a screenful per round trip. Keep the window on the list's end.
+        first = Math.Min(first, Math.Max(0, total - visible));
 
         if (_refocusValue is not null && _visibility.Cached is { } cached)
         {

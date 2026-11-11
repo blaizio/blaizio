@@ -405,13 +405,16 @@ class Tree {
     }
 
     // A cancelled pointer (the browser took the touch, capture was lost) is not a drop.
-    this.finish(e.type === 'pointercancel');
+    // No click follows a cancelled pointer, so there is none to swallow.
+    this.finish(e.type === 'pointercancel', e.type !== 'pointercancel');
   };
 
-  private finish(cancelled: boolean): void {
+  private finish(cancelled: boolean, clickFollows = true): void {
     this.dragging = false;
     this.pressed = false;
-    this.swallowClick = true; // eat the click the browser fires after this drag's pointerup
+    // Eat the click the browser fires after this drag's pointerup. Armed with no click coming,
+    // it ate the next one instead: a row control activated from the keyboard did nothing once.
+    this.swallowClick = clickFollows;
     cancelAnimationFrame(this.scrollRAF);
     this.scrollRAF = 0;
     clearTimeout(this.hoverTimer);
