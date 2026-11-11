@@ -70,8 +70,9 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
                 _virtualized = tree.Virtualize;
                 if (tree.Virtualize)
                 {
-                    var module = await JsModules.ImportAsync(js, TreeModule);
-                    await _scrollObserver.CreateAsync(module, "observeScroll", element, _selfRef);
+                    // Import and create in one call: the handle then knows about a release that
+                    // arrives while the module is still loading.
+                    await _scrollObserver.CreateAsync(js, TreeModule, "observeScroll", element, _selfRef);
                 }
                 else
                 {
@@ -101,8 +102,7 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
         _marquee = tree.MarqueeLabels;
         if (tree.MarqueeLabels && !_marqueeInstance.IsCreated)
         {
-            var module = await JsModules.ImportAsync(js, "./_content/blaizio.base/dist/marquee.js");
-            await _marqueeInstance.CreateAsync(module, "createMarquee", element);
+            await _marqueeInstance.CreateAsync(js, "./_content/blaizio.base/dist/marquee.js", "createMarquee", element);
         }
         else if (!tree.MarqueeLabels)
         {
