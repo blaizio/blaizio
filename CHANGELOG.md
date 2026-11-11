@@ -49,6 +49,8 @@ lockstep under one version.
 - **Carousel**: asking for a slide the viewport cannot move to (it is already at its end) no
   longer leaves the carousel ignoring the next scroll.
 - **Sortable**: `Disabled` changed while the list is starting up now reaches the script.
+- **Toolbar**: `Overflow` changed while the toolbar is starting up no longer leaves the previous
+  mode wired.
 - **Carousel**: a mouse click on a button, link or checkbox inside a slide reaches it again. The
   viewport took hold of the pointer on every press, so the click went to the viewport instead.
   It now takes hold only once the press has become a drag.

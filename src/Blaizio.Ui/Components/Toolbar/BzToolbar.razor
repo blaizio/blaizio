@@ -232,8 +232,10 @@
         // The root element is the viewport's parent - resolved JS-side from the ref, so no second
         // ElementReference has to thread through BaseToolbar. Expand only needs the overflow
         // watcher (its clip is CSS); Scroll also gets the paging and the per-direction state.
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/toolbar.js");
-        await _scroller.CreateAsync(module, "createScrollerFromViewport", _viewport, mode);
+        // Import and create in one call. Overflow can change again while the module is still
+        // loading; created from a module fetched by hand, the first wiring did not know it had
+        // been released and attached the mode that was no longer wanted.
+        await _scroller.CreateAsync(Js, "./_content/blaizio.base/dist/toolbar.js", "createScrollerFromViewport", _viewport, mode);
     }
 
     private string? _wiredMode;
