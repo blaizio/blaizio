@@ -5,8 +5,9 @@ namespace Blaizio.Docs.E2E;
 
 /// <summary>
 /// Behaviour that lives in the scripts and that bUnit cannot see: where a click lands once the
-/// carousel has seen the press, a drawer dragged with a finger, and the calendar's arrow keys
-/// after paging.
+/// carousel has seen the press, a drawer dragged with a finger, the calendar's arrow keys after
+/// paging, a menubar tapped on a touch screen, a context menu reopened while it closes, a sheet
+/// removed while it is open, and two slider thumbs on the same value.
 /// </summary>
 [Collection("docs-e2e")]
 public sealed class PointerAndKeyboardTests(DocsServerFixture fx)
@@ -136,5 +137,107 @@ public sealed class PointerAndKeyboardTests(DocsServerFixture fx)
             "from => document.activeElement?.getAttribute('data-slot') === 'calendar-day-button' && document.activeElement.getAttribute('aria-label') !== from",
             from);
         Assert.Equal(month, (await caption.InnerTextAsync()).Trim());
+    }
+
+    [E2EFact]
+    public async Task Menubar_tap_on_another_trigger_switches_menus_on_a_touch_screen()
+    {
+        await using var context = await fx.Browser.NewContextAsync(new()
+        {
+            ViewportSize = new ViewportSize { Width = 900, Height = 900 },
+            HasTouch = true,
+        });
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/menubar");
+
+        var triggers = page.Locator("main [data-bz-menubar]").First.Locator("[role=menuitem][data-bz-roving-item]");
+        await triggers.Nth(0).ScrollIntoViewIfNeededAsync();
+        await triggers.Nth(0).TapAsync();
+        await Assertions.Expect(triggers.Nth(0)).ToHaveAttributeAsync("aria-expanded", "true");
+
+        // A finger's tap is a pointerenter and then a click: the enter switched menus and the
+        // click toggled the new one shut, so the whole bar closed.
+        await triggers.Nth(1).TapAsync();
+
+        await Assertions.Expect(triggers.Nth(1)).ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(triggers.Nth(0)).ToHaveAttributeAsync("aria-expanded", "false");
+    }
+
+    [E2EFact]
+    public async Task Context_menu_reopened_while_closing_takes_the_keyboard_and_drops_its_submenu()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/context-menu");
+
+        var region = page.Locator("main [data-slot=context-menu-trigger]").First;
+        await region.ScrollIntoViewIfNeededAsync();
+        var box = (await region.BoundingBoxAsync())!;
+        await page.Mouse.ClickAsync(box.X + 60, box.Y + 40, new() { Button = MouseButton.Right });
+
+        var subTrigger = page.Locator("[role=menu] [role=menuitem][aria-haspopup=menu]").First;
+        await subTrigger.HoverAsync();
+        await Assertions.Expect(subTrigger).ToHaveAttributeAsync("aria-expanded", "true");
+        await Assertions.Expect(page.Locator("[role=menu]")).ToHaveCountAsync(2);
+
+        // A second right-click elsewhere closes the menu and opens it again in one go.
+        await page.Mouse.ClickAsync(box.X + box.Width - 60, box.Y + box.Height - 30, new() { Button = MouseButton.Right });
+
+        // One menu, visible; the submenu stayed closed and says so; and the menu has the keyboard.
+        await Assertions.Expect(page.Locator("[role=menu]")).ToHaveCountAsync(1);
+        await Assertions.Expect(page.Locator("[role=menu]").First).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator("[role=menu] [role=menuitem][aria-haspopup=menu]").First)
+            .ToHaveAttributeAsync("aria-expanded", "false");
+        await page.WaitForFunctionAsync("() => document.activeElement?.closest('[role=menu]') != null");
+
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(page.Locator("[role=menu]")).ToHaveCountAsync(0);
+    }
+
+    [E2EFact]
+    public async Task Mobile_sidebar_sheet_leaves_no_copy_when_the_window_grows_past_the_breakpoint()
+    {
+        await using var context = await fx.NewContextAsync(viewport: new ViewportSize { Width = 600, Height = 900 });
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/sidebar");
+
+        await page.Locator("[data-slot=sidebar-trigger]:visible").First.ClickAsync();
+        await Assertions.Expect(page.Locator("[role=dialog][data-slot=sidebar]")).ToHaveCountAsync(1);
+
+        // The sheet's component goes away while its element sits in the page-level layer. The
+        // layer used to put the removed element back where it was declared, hidden, for good.
+        await page.SetViewportSizeAsync(1300, 900);
+
+        await Assertions.Expect(page.Locator("[role=dialog][data-slot=sidebar]")).ToHaveCountAsync(0);
+        await Assertions.Expect(page.Locator("[data-slot=sheet-overlay]")).ToHaveCountAsync(0);
+    }
+
+    [E2EFact]
+    public async Task Slider_thumbs_on_the_same_value_can_be_pulled_apart()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/slider");
+        await ScriptLoadedAsync(page, "slider");
+
+        // The first slider on the page that has two thumbs.
+        var slider = page.Locator("main [data-slot=slider]")
+            .Filter(new() { Has = page.Locator("[role=slider] >> nth=1") }).First;
+        await slider.ScrollIntoViewIfNeededAsync();
+        var thumbs = slider.Locator("[role=slider]");
+        await Assertions.Expect(thumbs).ToHaveCountAsync(2);
+
+        await thumbs.Nth(0).FocusAsync();
+        await page.Keyboard.PressAsync("End"); // the lower thumb runs up against the upper one
+        var upper = await thumbs.Nth(1).GetAttributeAsync("aria-valuenow");
+        await Assertions.Expect(thumbs.Nth(0)).ToHaveAttributeAsync("aria-valuenow", upper!);
+
+        // Dragging the pair toward the start moves the thumb that can go that way: the lower one.
+        var box = (await thumbs.Nth(1).BoundingBoxAsync())!;
+        var x = box.X + box.Width / 2;
+        var y = box.Y + box.Height / 2;
+        await page.Mouse.MoveAsync(x, y);
+        await page.Mouse.DownAsync();
+        for (var step = 1; step <= 8; step++) await page.Mouse.MoveAsync(x - step * 10, y);
+        await page.Mouse.UpAsync();
+
+        await Assertions.Expect(thumbs.Nth(1)).ToHaveAttributeAsync("aria-valuenow", upper!);
+        await Assertions.Expect(thumbs.Nth(0)).Not.ToHaveAttributeAsync("aria-valuenow", upper!);
     }
 }
