@@ -35,6 +35,8 @@ lockstep under one version.
   Enter did not clear it, and with `AllowDuplicates` the next keystroke added the same tags again.
 - **Tooltip**: a controlled tooltip that its parent keeps closed no longer takes the hover delay
   off every other tooltip under the same provider.
+- **Tree**: pressing the same letter again moves to the next node that starts with it. The second
+  press used to do nothing.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

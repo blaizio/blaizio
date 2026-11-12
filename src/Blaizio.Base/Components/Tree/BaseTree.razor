@@ -894,12 +894,16 @@
         _typeTick = now;
 
         var visible = EnsureVisible();
-        // A repeated single char cycles matches; a growing buffer narrows from the focused node.
-        var start = _typeBuffer.Length == 1 ? fromIndex + 1 : fromIndex;
+        // The same character again cycles through the nodes that start with it ("a", "a", "a" walks
+        // the a's; the buffer "aaa" matched none of them, so the second press did nothing). Any
+        // other growing buffer narrows from the focused node.
+        var cycling = _typeBuffer.Replace(key, string.Empty, StringComparison.CurrentCultureIgnoreCase).Length == 0;
+        var search = cycling ? key : _typeBuffer;
+        var start = cycling ? fromIndex + 1 : fromIndex;
         for (var step = 0; step < visible.Count; step++)
         {
             var node = visible[(start + step) % visible.Count];
-            if (TextOf(node.Item).StartsWith(_typeBuffer, StringComparison.CurrentCultureIgnoreCase))
+            if (TextOf(node.Item).StartsWith(search, StringComparison.CurrentCultureIgnoreCase))
             {
                 var index = visible.FindIndex(f => f.Value == node.Value);
                 await MoveFocusAsync(index, extend: false);
