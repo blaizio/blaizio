@@ -670,7 +670,10 @@
         {
             var leaves = new List<string>();
             CollectEnabledLeaves(item, leaves);
-            if (leaves.Count > 0 && leaves.TrueForAll(set.Contains)) set.ExceptWith(leaves);
+            // Nothing under it to check (a branch whose children are not loaded, or all disabled):
+            // the set is unchanged, so no change is raised for it.
+            if (leaves.Count == 0) return;
+            if (leaves.TrueForAll(set.Contains)) set.ExceptWith(leaves);
             else set.UnionWith(leaves);
         }
 

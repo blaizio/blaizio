@@ -37,6 +37,8 @@ lockstep under one version.
   off every other tooltip under the same provider.
 - **Tree**: pressing the same letter again moves to the next node that starts with it. The second
   press used to do nothing.
+- **Tree**: the checkbox of a branch with no leaves under it (children not loaded yet, or all
+  disabled) no longer raises `CheckedValuesChanged` with an unchanged list.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once
