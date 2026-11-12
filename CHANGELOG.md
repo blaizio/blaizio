@@ -63,6 +63,10 @@ lockstep under one version.
   landed off the step (14 for a quarter-hour step).
 - **Input Date, Input Time**: a letter typed into an empty segment no longer stays in the box. The
   segment's value did not change, so nothing was sent to the browser to take the letter out.
+- **Data Table**: a table with sized columns that is scrolled sideways no longer jumps back to its
+  first column when a web font finishes loading or a column is added. The column widths are
+  measured again then, and the scroll position was lost in the measuring; a cell that held the
+  keyboard cursor could end up hidden under a pinned column.
 - **Data Table**: the rows are filtered and sorted once when the table first renders, not once per
   child column, and not at all while the table is being removed.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font

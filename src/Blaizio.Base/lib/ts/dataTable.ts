@@ -2314,10 +2314,20 @@ class DataTableColumns {
 
   // Content widths, read off the browser's own layout twice: the table as wide as its content
   // (max-content) and as narrow as it goes (min-content). Restored before anything paints.
+  //
+  // The scroll positions are restored as well. For that moment the table is narrower than its
+  // box (and its rows a different height), and a scroll offset that lies past the end of
+  // shorter content is cut back by the browser for good: a table scrolled sideways jumped to
+  // its first column whenever a web font arrived or a column joined, with the keyboard cursor
+  // left under a pinned column. The box's own offsets, and those of everything it sits in.
   private measure(heads: HTMLTableCellElement[], cols: HTMLTableColElement[]): void {
     const style = this.table.style;
     const saved = [style.width, style.minWidth, style.tableLayout] as const;
     const savedCols = cols.map((c) => c.style.width);
+    const scrolled: { el: Element; left: number; top: number }[] = [];
+    for (let el: Element | null = this.container; el; el = el.parentElement) {
+      if (el.scrollLeft !== 0 || el.scrollTop !== 0) scrolled.push({ el, left: el.scrollLeft, top: el.scrollTop });
+    }
     this.measuring = true;
     try {
       cols.forEach((c) => (c.style.width = ''));
@@ -2333,6 +2343,10 @@ class DataTableColumns {
     } finally {
       cols.forEach((c, i) => (c.style.width = savedCols[i]));
       [style.width, style.minWidth, style.tableLayout] = saved;
+      for (const { el, left, top } of scrolled) {
+        if (el.scrollLeft !== left) el.scrollLeft = left;
+        if (el.scrollTop !== top) el.scrollTop = top;
+      }
       this.measuring = false;
     }
   }
