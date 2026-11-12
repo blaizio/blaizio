@@ -179,10 +179,11 @@ class Combobox {
         return;
       }
       case 'Enter':
-        if (this.active && isSelectable(this.active)) {
-          event.preventDefault();
-          this.active.click();
-        }
+        // While the list is up Enter belongs to it. Left to the browser it submitted the form
+        // around the input whenever no option was highlighted (nothing matched yet, or the
+        // highlight was never moved).
+        event.preventDefault();
+        if (this.active && isSelectable(this.active)) this.active.click();
         return;
       default:
         return;

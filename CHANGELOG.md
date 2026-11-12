@@ -26,6 +26,9 @@ lockstep under one version.
   screen again. With an unchanged duration the old countdown kept running, so a toast updated late
   in its life closed a moment after the update. Each toast element carries a new
   `data-bz-toast-revision` attribute once it has been updated.
+- **Combobox**: Enter no longer submits the surrounding form while the list is open. It did
+  whenever no option was highlighted, which with `AutoHighlight` off is the usual state after
+  typing a filter.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once
