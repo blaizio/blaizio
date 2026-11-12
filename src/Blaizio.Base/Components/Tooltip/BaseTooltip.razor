@@ -113,6 +113,9 @@
     private async Task OpenNowAsync()
     {
         await SetOpenAsync(true);
+        // Once per open. A controlled tooltip whose parent keeps it closed is asked to open on
+        // every hover, and each of those added to the provider's count.
+        if (_reportedOpen) return;
         Provider?.NotifyOpen();
         _reportedOpen = true;
     }
@@ -124,8 +127,11 @@
     private async Task CloseAsync()
     {
         CancelPending();
-        if (!_state.Value) return;
-        await SetOpenAsync(false);
+        if (_state.Value) await SetOpenAsync(false);
+        // Given back whether or not the tooltip ever showed: one the parent kept closed (or closed
+        // itself) was still counted, and left counted it took the hover delay off every tooltip
+        // under the provider for good.
+        if (!_reportedOpen) return;
         Provider?.NotifyClose();
         _reportedOpen = false;
     }
