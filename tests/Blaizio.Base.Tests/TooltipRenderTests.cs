@@ -154,4 +154,27 @@ public class TooltipRenderTests : BunitContext
 
         ctx.Dispose();
     }
+
+    [Fact]
+    public void A_controlled_tooltip_kept_closed_gives_its_count_back_to_the_provider()
+    {
+        SetupFocusVisible(true);
+        // No skip window, so the answer below is the open count alone.
+        var ctx = new TooltipProviderContext(delayDuration: 700, skipDelayDuration: 0);
+        var cut = Render<CascadingValue<TooltipProviderContext>>(p => p
+            .Add(c => c.Value, ctx)
+            .AddChildContent<BaseTooltip>(t => t.Add(x => x.Open, false).AddChildContent(Body())));
+
+        // The parent never accepts the open. Each ask used to add to the provider's count and
+        // nothing took it back, so every tooltip under the provider lost its hover delay for good.
+        for (var i = 0; i < 2; i++)
+        {
+            cut.Find("button").FocusIn(new FocusEventArgs());
+            cut.Find("button").FocusOut(new FocusEventArgs());
+        }
+
+        Assert.Empty(cut.FindAll("[role=tooltip]"));
+        Assert.False(ctx.ShouldSkipDelay);
+        ctx.Dispose();
+    }
 }

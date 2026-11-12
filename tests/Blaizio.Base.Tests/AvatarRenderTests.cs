@@ -58,4 +58,35 @@ public class AvatarRenderTests : BunitContext
         Assert.Contains("data-slot=avatar-fallback", handler);
         Assert.Contains("display:none", image.GetAttribute("style"));
     }
+
+    [Fact]
+    public void A_source_taken_away_after_loading_brings_the_fallback_back()
+    {
+        string? src = "/me.png";
+        var cut = Render<BaseAvatar>(p => p.AddChildContent(builder =>
+        {
+            builder.OpenComponent<BaseAvatarImage>(0);
+            builder.AddComponentParameter(1, nameof(BaseAvatarImage.Src), src);
+            builder.CloseComponent();
+            builder.OpenComponent<BaseAvatarFallback>(2);
+            builder.AddComponentParameter(3, nameof(BaseAvatarFallback.ChildContent), (RenderFragment)(b => b.AddContent(0, "ME")));
+            builder.CloseComponent();
+        }));
+        cut.Find("[data-slot=avatar-image]").TriggerEvent("onload", EventArgs.Empty);
+        Assert.Empty(cut.FindAll("[data-slot=avatar-fallback]"));
+
+        // No load or error event follows a source that goes away: the image used to stay "loaded"
+        // with nothing to show, and the fallback stayed away.
+        src = null;
+        cut.Render();
+        Assert.Equal("ME", cut.Find("[data-slot=avatar-fallback]").TextContent);
+        Assert.Contains("display:none", cut.Find("[data-slot=avatar-image]").GetAttribute("style"));
+
+        // A new source starts over: hidden until its own load event.
+        src = "/new.png";
+        cut.Render();
+        Assert.Contains("display:none", cut.Find("[data-slot=avatar-image]").GetAttribute("style"));
+        cut.Find("[data-slot=avatar-image]").TriggerEvent("onload", EventArgs.Empty);
+        Assert.Empty(cut.FindAll("[data-slot=avatar-fallback]"));
+    }
 }

@@ -268,4 +268,28 @@ public class InputNumberRenderTests : BunitContext
         // Grid points are 0.5, 1.5, 2.5: rounding to the step's zero decimals would give 2.
         Assert.Equal(2.5d, bound);
     }
+
+    [Fact]
+    public async Task A_release_during_a_slow_change_handler_still_ends_the_hold()
+    {
+        // The repeat's cancellation source used to be created after the first step's ValueChanged
+        // came back. A release that arrived before that found nothing to cancel, and the repeat
+        // then started and never stopped.
+        var gate = new TaskCompletionSource();
+        var emitted = new List<double?>();
+        var cut = Controlled(30, EventCallback.Factory.Create<double?>(this, async v =>
+        {
+            emitted.Add(v);
+            await gate.Task;
+        }));
+        var increment = cut.FindAll("button")[1];
+
+        var press = increment.PointerDownAsync();
+        await increment.PointerUpAsync();
+        gate.SetResult();
+        await press;
+
+        await Task.Delay(600); // past the 300ms lead-in and several 60ms ticks
+        Assert.Equal([31d], emitted);
+    }
 }

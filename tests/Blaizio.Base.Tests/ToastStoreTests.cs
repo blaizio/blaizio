@@ -170,4 +170,20 @@ public class ToastStoreTests
 
         Assert.Empty(store.Toasts);
     }
+
+    [Fact]
+    public void Replacing_a_toasts_content_moves_its_revision()
+    {
+        // The host renders the revision, which is how the engine tells an update from a plain
+        // re-render and starts the auto-close time over for the new content.
+        var store = new ToastStore();
+        var id = store.Show(new ToastData { Title = "Saving" }, "save");
+        Assert.Equal(0, store.Toasts[0].Revision);
+
+        store.Show(new ToastData { Title = "Saved" }, "save");
+        Assert.Equal(1, store.Toasts[0].Revision);
+
+        store.Update(id, new ToastData { Title = "Saved again" });
+        Assert.Equal(2, store.Toasts[0].Revision);
+    }
 }

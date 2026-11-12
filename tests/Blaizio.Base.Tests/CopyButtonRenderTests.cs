@@ -81,4 +81,22 @@ public class CopyButtonRenderTests : BunitContext
         Assert.Equal("x", anchor.GetAttribute("data-bz-copy-text"));
         Assert.False(anchor.HasAttribute("type"));
     }
+
+    [Fact]
+    public async Task A_second_copy_while_the_first_is_still_being_handled_does_not_throw()
+    {
+        var gate = new TaskCompletionSource();
+        var calls = 0;
+        var cut = Render<BaseCopyButton>(p => p
+            .Add(x => x.Value, "x")
+            .Add(x => x.OnCopied, async (bool _) => { if (calls++ == 0) await gate.Task; }));
+
+        var first = cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));  // waits in OnCopied
+        _ = cut.InvokeAsync(() => cut.Instance.OnCopyResult(true));          // takes over the feedback
+        gate.SetResult();
+
+        // The first used to read the token of a source the second had disposed.
+        await first;
+        Assert.Equal("copied", cut.Find("button").GetAttribute("data-copy-state"));
+    }
 }

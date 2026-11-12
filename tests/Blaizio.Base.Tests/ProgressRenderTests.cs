@@ -127,4 +127,17 @@ public class ProgressRenderTests : BunitContext
         Assert.False(unnamed.Find("div").HasAttribute("aria-label"));
         Assert.False(unnamed.Find("div").HasAttribute("aria-labelledby"));
     }
+
+    [Fact]
+    public void A_value_that_is_not_a_number_counts_as_zero()
+    {
+        // 0.0 / 0 for a job with nothing to do. Clamping leaves NaN as it is, so it used to reach
+        // aria-valuenow as the text "NaN".
+        var cut = Render<BaseProgress>(p => p.Add(x => x.Value, double.NaN));
+
+        var bar = cut.Find("div");
+        Assert.Equal("0", bar.GetAttribute("aria-valuenow"));
+        Assert.Equal("0", bar.GetAttribute("data-value"));
+        Assert.Equal("loading", bar.GetAttribute("data-state"));
+    }
 }

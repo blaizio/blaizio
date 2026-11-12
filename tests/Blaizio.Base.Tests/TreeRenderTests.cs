@@ -631,4 +631,33 @@ public class TreeRenderTests : BunitContext
 
         Assert.Equal(10, cut.FindAll("[data-tree-row]").Count);
     }
+
+    [Fact]
+    public void Typeahead_with_the_same_letter_again_cycles_through_its_matches()
+    {
+        var cut = RenderTreeComponent([Leaf("apple"), Leaf("avocado"), Leaf("banana"), Leaf("apricot")]);
+
+        cut.Find("[data-part=item][data-value=apple]").KeyDown(new KeyboardEventArgs { Key = "a" });
+        Assert.Equal("0", cut.Find("[data-part=item][data-value=avocado]").GetAttribute("tabindex"));
+
+        // The buffer is "aa" now, which no node starts with: the second press used to do nothing.
+        cut.Find("[data-part=item][data-value=avocado]").KeyDown(new KeyboardEventArgs { Key = "a" });
+        Assert.Equal("0", cut.Find("[data-part=item][data-value=apricot]").GetAttribute("tabindex"));
+
+        cut.Find("[data-part=item][data-value=apricot]").KeyDown(new KeyboardEventArgs { Key = "a" });
+        Assert.Equal("0", cut.Find("[data-part=item][data-value=apple]").GetAttribute("tabindex"));
+    }
+
+    [Fact]
+    public void Checking_a_branch_with_nothing_under_it_raises_no_change()
+    {
+        var raised = 0;
+        var cut = RenderTreeComponent([Branch("empty"), Leaf("readme")], configure: ps => ps
+            .Add(t => t.Checkable, true)
+            .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, _ => raised++)));
+
+        cut.Find("[data-part=branch-control][data-value=empty] [data-part=checkbox]").Click();
+
+        Assert.Equal(0, raised);
+    }
 }
