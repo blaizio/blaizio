@@ -56,6 +56,9 @@ lockstep under one version.
   keeps it open) slides the panel back. The drawer stayed open off screen, with focus trapped and
   nothing to see. `SnapPoints` with no value above 0 and up to 1 (percentages, for example) now
   opens a plain drawer; it opened an invisible one.
+- **Input Text, Input Group, Toolbar**: text still waiting on `DebounceDelay` is raised when the
+  field loses focus and before `OnKeyDown` hears Enter. A submit-on-Enter handler or a Save button
+  used to read the text from before the last burst of typing.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

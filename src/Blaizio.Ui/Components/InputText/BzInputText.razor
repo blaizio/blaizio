@@ -28,8 +28,8 @@
               class="@Tw.Merge(TextareaClasses, Class)"
               @oninput="OnInputAsync"
               @onfocus="OnFocus"
-              @onblur="OnBlur"
-              @onkeydown="OnKeyDown"
+              @onblur="BlurHandler"
+              @onkeydown="KeyDownHandler"
               @attributes="Attributes"></textarea>
 }
 else
@@ -49,8 +49,8 @@ else
            class="@Tw.Merge(InputClasses, Class)"
            @oninput="OnInputAsync"
            @onfocus="OnFocus"
-           @onblur="OnBlur"
-           @onkeydown="OnKeyDown"
+           @onblur="BlurHandler"
+           @onkeydown="KeyDownHandler"
            @attributes="Attributes" />
 }
 
@@ -64,6 +64,7 @@ else
     /// <summary>
     /// Milliseconds of typing pause before <see cref="ValueChanged"/> fires - each keystroke restarts
     /// the wait, so a burst of typing raises one change. <c>0</c> (the default) fires on every input.
+    /// Text still waiting is raised at once when the field loses focus or Enter is pressed.
     /// </summary>
     [Parameter] public int DebounceDelay { get; set; }
 
@@ -157,6 +158,9 @@ else
 
     private ElementReference _element;
     private CancellationTokenSource? _debounce;
+    // The text typed since the last change was raised, while the pause is still running.
+    private string? _pendingText;
+    private bool _hasPending;
 
     /// <summary>
     /// Focuses the field - hold the component with <c>@ref</c> and call this from an event handler
@@ -197,16 +201,52 @@ else
         _debounce?.Dispose();
         _debounce = new CancellationTokenSource();
         var token = _debounce.Token;
+        (_pendingText, _hasPending) = (text, true);
         try
         {
             await Task.Delay(DebounceDelay, token);
-            await ValueChanged.InvokeAsync(text);
         }
         catch (TaskCanceledException)
         {
-            // Superseded by a newer keystroke - the newer wait owns the emit.
+            // Superseded by a newer keystroke (the newer wait owns the emit) or already flushed.
+            return;
         }
+
+        await FlushAsync();
     }
+
+    // Raises the text still waiting on the pause, now. Leaving the field or pressing Enter is the
+    // user saying they are done: a handler that reads the bound value then (submit on Enter, a
+    // Save button) got the text from before the last burst of typing, and the change arrived after it.
+    private Task FlushAsync()
+    {
+        if (!_hasPending) return Task.CompletedTask;
+        var text = _pendingText;
+        (_pendingText, _hasPending) = (null, false);
+        _debounce?.Cancel();
+        return ValueChanged.InvokeAsync(text);
+    }
+
+    private async Task OnBlurAsync(FocusEventArgs e)
+    {
+        await FlushAsync();
+        await OnBlur.InvokeAsync(e);
+    }
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await FlushAsync();
+        await OnKeyDown.InvokeAsync(e);
+    }
+
+    // The flushing handlers go on the element only while a pause is in use. Without one the
+    // consumer's own callbacks are attached as they are, and an unset callback attaches nothing,
+    // so a plain field still sends no key or blur events it has no use for.
+    private EventCallback<FocusEventArgs> BlurHandler =>
+        DebounceDelay > 0 ? EventCallback.Factory.Create<FocusEventArgs>(this, OnBlurAsync) : OnBlur;
+
+    private EventCallback<KeyboardEventArgs> KeyDownHandler =>
+        DebounceDelay > 0 ? EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync) : OnKeyDown;
 
     public void Dispose()
     {
