@@ -59,6 +59,8 @@ lockstep under one version.
 - **Input Text, Input Group, Toolbar**: text still waiting on `DebounceDelay` is raised when the
   field loses focus and before `OnKeyDown` hears Enter. A submit-on-Enter handler or a Save button
   used to read the text from before the last burst of typing.
+- **Input Time**: with `MinuteStep` above 1, the first Arrow Up on an empty minute lands on 00. It
+  landed off the step (14 for a quarter-hour step).
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

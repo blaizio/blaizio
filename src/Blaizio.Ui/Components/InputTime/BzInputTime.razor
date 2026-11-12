@@ -255,8 +255,12 @@
         var max = MaxFor(part);
         var min = MinFor(part);
         var span = max - min + 1;
-        var current = ValueFor(part) ?? (step > 0 ? max : min); // first arrow lands on min/max
-        var next = min + (((current - min + step) % span + span) % span);
+        // An empty segment: up starts at the lowest value, down at the last one on the step's
+        // grid (59, or 45 for a quarter-hour step). Wrapping up from the highest value landed off
+        // the grid for any step above 1 (59 + 15 gave 14).
+        var next = ValueFor(part) is { } current
+            ? min + (((current - min + step) % span + span) % span)
+            : step > 0 ? min : min + ((step % span + span) % span);
         SetPart(part, next);
         await EmitAsync();
     }
