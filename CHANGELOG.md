@@ -22,6 +22,10 @@ lockstep under one version.
 - **Message Scroller**: a wheel-up that scrolls nothing no longer switches follow off. In a
   transcript shorter than the viewport, at the very top, or over a scrolling block inside a
   message, the messages that came later were not followed.
+- **Toast**: a toast updated in place (`Show` with the same id, or `Update`) gets its full time on
+  screen again. With an unchanged duration the old countdown kept running, so a toast updated late
+  in its life closed a moment after the update. Each toast element carries a new
+  `data-bz-toast-revision` attribute once it has been updated.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

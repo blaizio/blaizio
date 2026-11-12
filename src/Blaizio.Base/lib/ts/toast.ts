@@ -40,6 +40,8 @@ interface ToastEntry {
   // Auto-close timing (remaining-time bookkeeping, so hover pauses are exact).
   duration: number; // ms, or Infinity for persistent
   remaining: number;
+  // data-bz-toast-revision as last seen: it moves each time the toast's content is replaced.
+  revision: string | null;
   timer: number | null;
   closeStart: number;
   lastCloseStart: number;
@@ -127,6 +129,7 @@ class Stack {
       removing: false,
       duration,
       remaining: duration,
+      revision: el.getAttribute('data-bz-toast-revision'),
       timer: null,
       closeStart: 0,
       lastCloseStart: 0,
@@ -163,12 +166,19 @@ class Stack {
     return Number.isFinite(value) && value > 0 ? value : DEFAULT_DURATION;
   }
 
-  // Re-read the duration; if a persistent toast (e.g. loading) became finite, arm its timer afresh.
+  // Re-read the duration and the revision. A persistent toast (e.g. loading) that became finite
+  // arms its timer afresh, and so does one whose content was replaced: new words get their full
+  // time on screen, where the old countdown closed a toast updated late in its life a moment
+  // after the update.
   private refreshDuration(entry: ToastEntry): void {
     const duration = this.durationOf(entry.el);
-    if (duration === entry.duration) return;
+    const revision = entry.el.getAttribute('data-bz-toast-revision');
+    if (duration === entry.duration && revision === entry.revision) return;
     entry.duration = duration;
+    entry.revision = revision;
     entry.remaining = duration;
+    // Not running any more: a pause that follows must not take the old run's time off the new total.
+    entry.lastCloseStart = entry.closeStart;
     if (entry.timer !== null) {
       clearTimeout(entry.timer);
       entry.timer = null;

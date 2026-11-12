@@ -23,6 +23,7 @@ public sealed class ToastStore : IToastStore, IDisposable
             // Same id ⇒ update in place (promise resolve, or an explicit re-show). Clear any pending
             // dismissal so a resolved promise toast doesn't animate out from under its new content.
             existing.Data = data;
+            existing.Revision++;
             existing.DismissRequested = false;
         }
         else
@@ -40,6 +41,7 @@ public sealed class ToastStore : IToastStore, IDisposable
         ArgumentNullException.ThrowIfNull(data);
         if (Find(id) is not { } instance) return;
         instance.Data = data;
+        instance.Revision++;
         Changed?.Invoke();
     }
 

@@ -20,6 +20,12 @@ public sealed class ToastInstance
     public ToastData Data { get; internal set; }
 
     /// <summary>
+    /// How many times <see cref="Data"/> was replaced. The host renders it, so the engine can tell
+    /// an update from a plain re-render and give the new content its full time on screen.
+    /// </summary>
+    internal int Revision { get; set; }
+
+    /// <summary>
     /// Set when something asks to dismiss this toast (<see cref="IToastStore.Dismiss"/>). The host
     /// forwards it to the engine so the exit animation plays; the instance is only dropped once the
     /// engine reports back. User-initiated dismissals (swipe / close button) start in the engine and
