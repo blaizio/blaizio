@@ -68,6 +68,20 @@ else
         if (Avatar is not null) Avatar.StatusChanged += Refresh;
     }
 
+    private string? _lastSrc;
+    private bool _srcSeen;
+
+    // The status only moves on the image's load and error events, and a source that is taken away
+    // fires neither: the image stayed "loaded" with nothing to show and the fallback stayed away.
+    protected override void OnParametersSet()
+    {
+        if (_srcSeen && _lastSrc == Src) return;
+        var changed = _srcSeen;
+        (_srcSeen, _lastSrc) = (true, Src);
+        if (!changed) return;
+        Avatar?.Report(string.IsNullOrEmpty(Src) ? ImageStatus.Error : ImageStatus.Loading);
+    }
+
     private void OnLoad() => Avatar?.Report(ImageStatus.Loaded);
     private void OnError() => Avatar?.Report(ImageStatus.Error);
     private void Refresh() => InvokeAsync(StateHasChanged);
