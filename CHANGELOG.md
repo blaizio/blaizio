@@ -63,6 +63,8 @@ lockstep under one version.
   landed off the step (14 for a quarter-hour step).
 - **Input Date, Input Time**: a letter typed into an empty segment no longer stays in the box. The
   segment's value did not change, so nothing was sent to the browser to take the letter out.
+- **Data Table**: the rows are filtered and sorted once when the table first renders, not once per
+  child column, and not at all while the table is being removed.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

@@ -610,17 +610,23 @@
     internal void Register(IGridColumn<TItem> column)
     {
         _registered.Add(column);
-        if (ServerDriven) RebuildColumns(); else Recompute();
-        StateHasChanged();
+        RegistrationChanged();
     }
 
     internal void Unregister(IGridColumn<TItem> column)
     {
-        if (_registered.Remove(column))
-        {
-            if (ServerDriven) RebuildColumns(); else Recompute();
-            StateHasChanged();
-        }
+        if (_registered.Remove(column)) RegistrationChanged();
+    }
+
+    // The columns are rebuilt at once; the rows are filtered and sorted by the render this asks
+    // for (see _columnRowsStale), once however many columns came or went before it. Done here it
+    // ran the whole pipeline once per child column while the table first rendered, and once per
+    // column again while it was being taken down.
+    private void RegistrationChanged()
+    {
+        RebuildColumns();
+        if (!ServerDriven) _columnRowsStale = true;
+        StateHasChanged();
     }
 
     // A child column gets each render's parameters after this table has arranged it (the columns
