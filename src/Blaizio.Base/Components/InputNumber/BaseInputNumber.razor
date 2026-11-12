@@ -232,10 +232,13 @@
         PressEnd();
         // The repeat continues from where this first step landed - not from _value, which in controlled
         // mode still holds the pre-press number until the parent's render arrives.
+        // The source exists before the await: a release that arrives while ValueChanged is still
+        // running has to find something to cancel, or the repeat started after it and never stopped.
+        var token = (_repeatCts = new CancellationTokenSource()).Token;
         var seed = await StepFromAsync(_value.Value ?? StartFrom(), direction * EffectiveStep);
+        if (token.IsCancellationRequested) return;
 
-        _repeatCts = new CancellationTokenSource();
-        _ = RepeatAsync(direction, seed, _repeatCts.Token);
+        _ = RepeatAsync(direction, seed, token);
     }
 
     private void PressEnd()

@@ -44,6 +44,9 @@ lockstep under one version.
 - **Progress**: a value that is not a number (`0.0 / 0`) is shown as 0. It rendered a full bar and
   `aria-valuenow="NaN"`.
 - **Copy Button**: clicking again while an `OnCopied` handler is still running no longer throws.
+- **Input Number**: holding a step button no longer runs on after release when `ValueChanged` is
+  slow. A release that arrived while the first step's handler was still running was missed, and
+  the value kept counting.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once
