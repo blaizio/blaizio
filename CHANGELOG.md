@@ -16,6 +16,9 @@ lockstep under one version.
   key are left to the browser.
 - **Carousel**: slides added or removed after the first render are counted. The dots and the
   previous and next buttons kept the old count until the next scroll or resize.
+- **Message Scroller**: a wheel-up that scrolls nothing no longer switches follow off. In a
+  transcript shorter than the viewport, at the very top, or over a scrolling block inside a
+  message, the messages that came later were not followed.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

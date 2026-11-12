@@ -247,13 +247,26 @@ class MessageScrollerController {
 
   private onWheel = (e: WheelEvent): void => {
     this.abandonSettle();
-    if (e.deltaY < 0) {
+    // Follow is paused here and not on the scroll event, so text streaming in between cannot pull
+    // the reader back. Only a wheel that will move the viewport counts: one that moves nothing
+    // (a transcript shorter than the viewport, already at the top, a scrolling block inside a
+    // message taking the wheel) is followed by no scroll event, and follow would stay off.
+    if (e.deltaY < 0 && this.wheelMovesViewportUp(e.target)) {
       this.following = false;
       this.wheelPaused = true;
     } else {
       this.wheelPaused = false;
     }
   };
+
+  private wheelMovesViewportUp(target: EventTarget | null): boolean {
+    const vp = this.viewport;
+    if (!vp || vp.scrollTop <= 0) return false;
+    for (let el = target instanceof Element ? target : null; el && el !== vp; el = el.parentElement) {
+      if (el.scrollTop > 0 && /auto|scroll/.test(getComputedStyle(el).overflowY)) return false;
+    }
+    return true;
+  }
 
   private onUserScroll = (): void => {
     this.abandonSettle();
