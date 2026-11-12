@@ -1,0 +1,15 @@
+@* Test host: six child columns, sorted, over rows that can count how often they are read. *@
+<BzDataTable TItem="Person" Items="Items" DefaultSort="Sort">
+    <BzPropertyColumn Property="@(p => p.Name)" Sortable />
+    <BzPropertyColumn Property="@(p => p.Age)" Sortable />
+    <BzPropertyColumn Property="@(p => p.Score)" />
+    <BzPropertyColumn Property="@(p => p.Active)" />
+    <BzPropertyColumn Property="@(p => p.Role)" />
+    <BzPropertyColumn Property="@(p => p.Code)" />
+</BzDataTable>
+
+@code {
+    private static readonly SortState Sort = new("Name", SortDirection.Descending);
+
+    [Parameter] public IEnumerable<Person>? Items { get; set; }
+}
