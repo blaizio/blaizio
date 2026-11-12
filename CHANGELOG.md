@@ -29,6 +29,8 @@ lockstep under one version.
 - **Combobox**: Enter no longer submits the surrounding form while the list is open. It did
   whenever no option was highlighted, which with `AutoHighlight` off is the usual state after
   typing a filter.
+- **Hotkey**: a hotkey with `Disabled` set leaves the key to the browser. It ignored the press but
+  still prevented the default, so the combination did nothing at all.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

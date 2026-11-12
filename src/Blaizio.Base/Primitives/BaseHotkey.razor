@@ -23,14 +23,25 @@
 
     private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseHotkey>? _selfRef;
+    // What the script was last told. It has to know, not only OnHotkey below: a disabled hotkey
+    // that still prevented the browser's default left the combo dead on the page.
+    private bool _sentDisabled;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender || string.IsNullOrEmpty(Combo)) return;
+        if (firstRender && !string.IsNullOrEmpty(Combo))
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/hotkeys.js");
+            var disabled = _sentDisabled = Disabled;
+            await _instance.CreateAsync(module, "createHotkey", Combo, _selfRef, PreventDefault, false, !disabled);
+        }
 
-        _selfRef = DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/hotkeys.js");
-        await _instance.CreateAsync(module, "createHotkey", Combo, _selfRef, PreventDefault);
+        if (_instance.IsCreated && _sentDisabled != Disabled)
+        {
+            _sentDisabled = Disabled;
+            await _instance.InvokeVoidAsync("setEnabled", !_sentDisabled);
+        }
     }
 
     [JSInvokable]

@@ -21,12 +21,20 @@ class Hotkey {
     private readonly ref: DotNetObjectReference,
     private readonly preventDefault: boolean,
     private readonly skipContentEditable: boolean,
+    private enabled: boolean,
   ) {
     window.addEventListener('keydown', this.onKeyDown);
   }
 
+  /** Switches the hotkey off and on without unregistering it. Off, the key is left to the page. */
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+  }
+
   private onKeyDown = (e: KeyboardEvent) => {
-    if (e.repeat) return;
+    // Checked here and not only in C#: a disabled hotkey that still prevented the default left
+    // the combo dead for the browser as well.
+    if (!this.enabled || e.repeat) return;
     // A bare combo (no ctrl/meta/alt - shift alone still counts as bare) must not fire while the
     // user is typing: single letters like "o"/"r" would hijack every text field. Combos with a
     // "real" modifier (Ctrl/⌘/Alt) still fire everywhere, so app shortcuts like ⌘Z keep working.
@@ -50,6 +58,7 @@ export function createHotkey(
   ref: DotNetObjectReference,
   preventDefault: boolean,
   skipContentEditable = false,
+  enabled = true,
 ): Hotkey {
-  return new Hotkey(parseCombo(combo), ref, preventDefault, skipContentEditable);
+  return new Hotkey(parseCombo(combo), ref, preventDefault, skipContentEditable, enabled);
 }
