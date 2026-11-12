@@ -48,23 +48,23 @@
         <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-time-input"
              data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
             <input @ref="_hourRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                   value="@Shown(Part.Hour, DisplayHour)" disabled="@Disabled" aria-label="@HourAriaLabel"
+                   @bind:get="Shown(Part.Hour, DisplayHour)" @bind:event="oninput" disabled="@Disabled" aria-label="@HourAriaLabel"
                    onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
-                   @oninput="@(e => OnSegmentInput(Part.Hour, e))"
+                   @bind:set="@(text => OnSegmentInput(Part.Hour, text))"
                    @onkeydown="@(e => OnSegmentKeyDown(Part.Hour, e))" />
             <span class="text-muted-foreground select-none">:</span>
             <input @ref="_minuteRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                   value="@Shown(Part.Minute, _minute)" disabled="@Disabled" aria-label="@MinuteAriaLabel"
+                   @bind:get="Shown(Part.Minute, _minute)" @bind:event="oninput" disabled="@Disabled" aria-label="@MinuteAriaLabel"
                    onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
-                   @oninput="@(e => OnSegmentInput(Part.Minute, e))"
+                   @bind:set="@(text => OnSegmentInput(Part.Minute, text))"
                    @onkeydown="@(e => OnSegmentKeyDown(Part.Minute, e))" />
             @if (ShowSeconds)
             {
                 <span class="text-muted-foreground select-none">:</span>
                 <input @ref="_secondRef" inputmode="numeric" autocomplete="off" maxlength="2" placeholder="--"
-                       value="@Shown(Part.Second, _second)" disabled="@Disabled" aria-label="@SecondAriaLabel"
+                       @bind:get="Shown(Part.Second, _second)" @bind:event="oninput" disabled="@Disabled" aria-label="@SecondAriaLabel"
                        onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
-                       @oninput="@(e => OnSegmentInput(Part.Second, e))"
+                       @bind:set="@(text => OnSegmentInput(Part.Second, text))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Second, e))" />
             }
             @if (HourCycle == InputTimeHourCycle.TwelveHour)
@@ -219,9 +219,12 @@
 
     // ----- segmented editing -----
 
-    private async Task OnSegmentInput(Part part, ChangeEventArgs e)
+    // The segments are bound (get / set on input), not written as value + @oninput. A plain value
+    // is only patched when it differs from the last render, and the renderer never learns what was
+    // typed: a letter typed into an empty segment left the model empty and the letter in the box.
+    private async Task OnSegmentInput(Part part, string? text)
     {
-        var digits = new string((e.Value?.ToString() ?? "").Where(char.IsAsciiDigit).ToArray());
+        var digits = new string((text ?? "").Where(char.IsAsciiDigit).ToArray());
         if (digits.Length == 0)
         {
             _typing = null;

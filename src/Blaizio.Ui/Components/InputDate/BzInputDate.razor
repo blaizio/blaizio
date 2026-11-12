@@ -43,25 +43,25 @@
             else if (token.Part == Part.Day)
             {
                 <input @ref="_dayRef" @key="Part.Day" inputmode="numeric" autocomplete="off" maxlength="2"
-                       placeholder="--" value="@FormatPart(Part.Day)" disabled="@Disabled" aria-label="@DayAriaLabel"
+                       placeholder="--" @bind:get="FormatPart(Part.Day)" @bind:event="oninput" disabled="@Disabled" aria-label="@DayAriaLabel"
                        onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
-                       @oninput="@(e => OnSegmentInput(Part.Day, e))"
+                       @bind:set="@(text => OnSegmentInput(Part.Day, text))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Day, e))" />
             }
             else if (token.Part == Part.Month)
             {
                 <input @ref="_monthRef" @key="Part.Month" inputmode="numeric" autocomplete="off" maxlength="2"
-                       placeholder="--" value="@FormatPart(Part.Month)" disabled="@Disabled" aria-label="@MonthAriaLabel"
+                       placeholder="--" @bind:get="FormatPart(Part.Month)" @bind:event="oninput" disabled="@Disabled" aria-label="@MonthAriaLabel"
                        onfocus="this.select()" class="@SegmentClasses" @onblur="@(() => _typing = null)"
-                       @oninput="@(e => OnSegmentInput(Part.Month, e))"
+                       @bind:set="@(text => OnSegmentInput(Part.Month, text))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Month, e))" />
             }
             else
             {
                 <input @ref="_yearRef" @key="Part.Year" inputmode="numeric" autocomplete="off" maxlength="4"
-                       placeholder="----" value="@FormatPart(Part.Year)" disabled="@Disabled" aria-label="@YearAriaLabel"
+                       placeholder="----" @bind:get="FormatPart(Part.Year)" @bind:event="oninput" disabled="@Disabled" aria-label="@YearAriaLabel"
                        onfocus="this.select()" class="@YearSegmentClasses" @onblur="@(() => _typing = null)"
-                       @oninput="@(e => OnSegmentInput(Part.Year, e))"
+                       @bind:set="@(text => OnSegmentInput(Part.Year, text))"
                        @onkeydown="@(e => OnSegmentKeyDown(Part.Year, e))" />
             }
         }
@@ -288,10 +288,13 @@
         _ => _year?.ToString("0000", CultureInfo.InvariantCulture) ?? "",
     };
 
-    private async Task OnSegmentInput(Part part, ChangeEventArgs e)
+    // The segments are bound (get / set on input), not written as value + @oninput. A plain value
+    // is only patched when it differs from the last render, and the renderer never learns what was
+    // typed: a letter typed into an empty segment left the model empty and the letter in the box.
+    private async Task OnSegmentInput(Part part, string? text)
     {
         var keep = part == Part.Year ? 4 : 2;
-        var digits = new string((e.Value?.ToString() ?? "").Where(char.IsAsciiDigit).ToArray());
+        var digits = new string((text ?? "").Where(char.IsAsciiDigit).ToArray());
         if (digits.Length == 0)
         {
             _typing = null;
