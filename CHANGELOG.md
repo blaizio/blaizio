@@ -52,6 +52,10 @@ lockstep under one version.
   that is not a number, or is infinite, is drawn as 0 in the cartesian, radar, pie and radial bar
   charts; one such value used to blank the whole chart. A `TickCount` below 1 no longer asks for
   another render on every render.
+- **Drawer**: a drag dismissal that the parent refuses (a controlled drawer whose `OpenChanged`
+  keeps it open) slides the panel back. The drawer stayed open off screen, with focus trapped and
+  nothing to see. `SnapPoints` with no value above 0 and up to 1 (percentages, for example) now
+  opens a plain drawer; it opened an invisible one.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

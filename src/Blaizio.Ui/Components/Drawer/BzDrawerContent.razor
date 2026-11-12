@@ -137,7 +137,9 @@
         _ => "",
     };
 
-    private bool Snapping => SnapPoints is { Count: > 0 };
+    // Decided from the fractions the script will use, not the raw list: values it cannot use (25
+    // for 25%, or 0) left a drawer marked as snapping with nowhere to snap to, parked off screen.
+    private bool Snapping => SnappedFractions.Length > 0;
 
     private double[] SnappedFractions => SnapPoints is { Count: > 0 }
         ? SnapPoints.Where(f => f is > 0 and <= 1).OrderBy(f => f).ToArray()
@@ -327,7 +329,9 @@
     {
         if (Dialog is not { PreventDismiss: false }) return false;
         await Dialog.SetOpen.InvokeAsync(false);
-        return true;
+        // The cascade has been refreshed by now. A controlled drawer whose handler kept it open
+        // (an unsaved-changes guard) has refused, and the script slides the panel back.
+        return Dialog?.Open != true;
     }
 
     [JSInvokable]
