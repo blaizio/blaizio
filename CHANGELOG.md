@@ -43,6 +43,7 @@ lockstep under one version.
   `Src` stays hidden until it has loaded. The avatar used to keep an empty image and no fallback.
 - **Progress**: a value that is not a number (`0.0 / 0`) is shown as 0. It rendered a full bar and
   `aria-valuenow="NaN"`.
+- **Copy Button**: clicking again while an `OnCopied` handler is still running no longer throws.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

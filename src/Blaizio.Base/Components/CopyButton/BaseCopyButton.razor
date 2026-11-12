@@ -89,8 +89,9 @@
     [JSInvokable]
     public async Task OnCopyResult(bool copied)
     {
+        // Cancelled, not disposed: the invocation it belongs to may still be waiting on OnCopied
+        // and reads its token afterwards, which a disposed source refuses.
         _reset?.Cancel();
-        _reset?.Dispose();
         var reset = _reset = new CancellationTokenSource();
 
         _copied = copied;
