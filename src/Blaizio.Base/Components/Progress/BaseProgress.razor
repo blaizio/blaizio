@@ -62,7 +62,10 @@ else
     [Parameter] public RenderFragment<BzRenderProps>? RenderAs { get; set; }
 
     private double EffectiveMax => Max > 0 ? Max : 100;
-    private double? Clamped => Value is null ? null : Math.Clamp(Value.Value, 0, EffectiveMax);
+    // Not a number (0.0 / 0 for a job with nothing to do) counts as 0: clamping leaves NaN as it
+    // is, and it reached aria-valuenow and the fill as text.
+    private double? Clamped =>
+        Value is not { } value ? null : double.IsNaN(value) ? 0 : Math.Clamp(value, 0, EffectiveMax);
 
     private ProgressContext Context => new(Clamped, EffectiveMax, Orientation);
 

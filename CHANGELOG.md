@@ -41,6 +41,8 @@ lockstep under one version.
   disabled) no longer raises `CheckedValuesChanged` with an unchanged list.
 - **Avatar**: when `Src` is cleared after the image loaded, the fallback shows again, and a new
   `Src` stays hidden until it has loaded. The avatar used to keep an empty image and no fallback.
+- **Progress**: a value that is not a number (`0.0 / 0`) is shown as 0. It rendered a full bar and
+  `aria-valuenow="NaN"`.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

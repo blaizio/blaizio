@@ -95,7 +95,9 @@
     private static string Fmt(double d) => d.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private double EffectiveMax => Max > 0 ? Max : 100;
-    private double Percent => Value is null ? 0 : Math.Clamp(Value.Value, 0, EffectiveMax) / EffectiveMax * 100;
+    // Not a number counts as 0 (clamping leaves NaN as it is, and it reached the dash array as text).
+    private double Percent =>
+        Value is not { } value || double.IsNaN(value) ? 0 : Math.Clamp(value, 0, EffectiveMax) / EffectiveMax * 100;
 
     private double EffectiveThickness => Math.Clamp(Thickness, 1, 24);
     private double Radius => 24 - EffectiveThickness / 2;
