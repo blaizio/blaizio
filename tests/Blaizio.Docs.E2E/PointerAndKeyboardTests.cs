@@ -240,4 +240,28 @@ public sealed class PointerAndKeyboardTests(DocsServerFixture fx)
         await Assertions.Expect(thumbs.Nth(1)).ToHaveAttributeAsync("aria-valuenow", upper!);
         await Assertions.Expect(thumbs.Nth(0)).Not.ToHaveAttributeAsync("aria-valuenow", upper!);
     }
+
+    [E2ETheory]
+    [InlineData("docs/components/input-date", "Day")]
+    [InlineData("docs/components/input-time", "Hour")]
+    public async Task Date_and_time_segments_do_not_keep_a_letter_typed_into_them(string route, string label)
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await DocsServerFixture.OpenAsync(context, route);
+
+        var segment = page.Locator($"input[aria-label={label}]:not([disabled])").First;
+        await segment.ScrollIntoViewIfNeededAsync();
+        await segment.FocusAsync(); // selects what the segment holds
+        await page.Keyboard.PressAsync("Delete");
+        await Assertions.Expect(segment).ToHaveValueAsync("");
+
+        // The segment's part stays empty, so the same empty text is rendered again. Written as a
+        // plain value, nothing was sent to the box and the letter stayed in it.
+        await page.Keyboard.TypeAsync("x");
+        await Assertions.Expect(segment).ToHaveValueAsync("");
+
+        // Digits still go in.
+        await page.Keyboard.TypeAsync("1");
+        await Assertions.Expect(segment).ToHaveValueAsync("1");
+    }
 }

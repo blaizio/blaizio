@@ -582,4 +582,37 @@ public sealed class DataTableColumnsTests(DocsServerFixture fx)
         Assert.Equal(widths, await table.EvaluateAsync<string>(
             "t => [...t.querySelector('tbody tr[data-bz-row-index=\"400\"]').cells].map(c => Math.round(c.getBoundingClientRect().width)).join()"));
     }
+
+    [E2EFact]
+    public async Task A_late_web_font_does_not_throw_a_scrolled_table_back_to_its_first_column()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+        var table = Table(page, "SKU");
+        await page.WaitForFunctionAsync("() => document.querySelectorAll('table[role=grid][data-bz-grid]').length >= 6");
+        await table.ScrollIntoViewIfNeededAsync();
+
+        // Scrolled sideways, as a reader in the middle of a wide table is.
+        var before = await table.EvaluateAsync<double>(@"async t => {
+            const box = t.parentElement;
+            box.scrollLeft = 200;
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            return box.scrollLeft;
+        }");
+        Assert.True(before > 0, "the table does not scroll sideways at this width");
+
+        // A web font that arrives makes the column script measure the content again, with the
+        // table as narrow as it goes for a moment. The browser cuts a scroll offset that lies
+        // past the end of narrower content, and the script used to leave it cut: the table
+        // jumped to its first column, and a cell that had the keyboard cursor ended up under
+        // the pinned columns.
+        var after = await table.EvaluateAsync<double[]>(@"async t => {
+            const box = t.parentElement;
+            document.fonts.dispatchEvent(new Event('loadingdone'));
+            const atOnce = box.scrollLeft;
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+            return [atOnce, box.scrollLeft];
+        }");
+        Assert.Equal([before, before], after);
+    }
 }
