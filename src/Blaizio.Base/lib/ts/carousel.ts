@@ -23,6 +23,14 @@ interface CarouselOptions {
   autoplayMs: number;
 }
 
+// Where an arrow key already has a job of its own: the caret of a text field, a slider's value, the
+// items of a menu, tab list, radio group, list box, tree or grid. A carousel leaves the key alone there.
+const OWN_ARROW_KEYS =
+  'input:not([type="checkbox"]):not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select, ' +
+  '[contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="spinbutton"], ' +
+  '[role="slider"], [role="menu"], [role="menubar"], [role="tablist"], [role="radiogroup"], [role="listbox"], ' +
+  '[role="tree"], [role="grid"], [role="toolbar"]';
+
 class Carousel {
   private readonly resizeObs: ResizeObserver;
   private reportTimer = 0;
@@ -42,7 +50,11 @@ class Carousel {
     private readonly vp: HTMLElement,
     private readonly ref: DotNetObjectReference,
     private readonly opts: CarouselOptions,
+    // The carousel root (the region around the viewport and its controls); the viewport itself
+    // when the caller has none to give.
+    private readonly root: HTMLElement = vp,
   ) {
+    root.addEventListener('keydown', this.onKeyDown);
     vp.addEventListener('scroll', this.scheduleReport, { passive: true });
     vp.addEventListener('scroll', this.scheduleSettle, { passive: true });
     vp.addEventListener('pointerdown', this.onPointerDown);
@@ -164,6 +176,22 @@ class Carousel {
     }
     this.scrollTo(this.selected() - 1);
   }
+
+  // ---- arrow keys ----
+  // Handled here and not by a Blazor handler on the root: that one cannot see where the key was
+  // pressed, so an arrow typed in a slide's text field moved the caret and the slide together.
+  private onKeyDown = (e: KeyboardEvent): void => {
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    const prev = this.opts.horizontal ? 'ArrowLeft' : 'ArrowUp';
+    const next = this.opts.horizontal ? 'ArrowRight' : 'ArrowDown';
+    if (e.key !== prev && e.key !== next) return;
+    const owner = e.target instanceof Element ? e.target.closest(OWN_ARROW_KEYS) : null;
+    if (owner && owner !== this.root && this.root.contains(owner)) return;
+    // Taken: the page (or the viewport) does not scroll along with the slide.
+    e.preventDefault();
+    if (e.key === prev) this.scrollPrev();
+    else this.scrollNext();
+  };
 
   // ---- mouse drag-to-scroll ----
   private onPointerDown = (e: PointerEvent): void => {
@@ -295,6 +323,7 @@ class Carousel {
     if (this.reportTimer) clearTimeout(this.reportTimer);
     clearTimeout(this.settleTimer);
     this.resizeObs.disconnect();
+    this.root.removeEventListener('keydown', this.onKeyDown);
     this.vp.removeEventListener('scroll', this.scheduleReport);
     this.vp.removeEventListener('scroll', this.scheduleSettle);
     this.vp.removeEventListener('pointerdown', this.onPointerDown);
@@ -313,6 +342,7 @@ export function createCarousel(
   viewport: HTMLElement,
   ref: DotNetObjectReference,
   options: CarouselOptions,
+  root?: HTMLElement | null,
 ): Carousel {
-  return new Carousel(viewport, ref, options);
+  return new Carousel(viewport, ref, options, root instanceof HTMLElement ? root : viewport);
 }

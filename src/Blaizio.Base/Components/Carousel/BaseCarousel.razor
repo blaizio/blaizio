@@ -13,7 +13,8 @@
 *@
 
 <CascadingValue Value="this" IsFixed="true">
-    <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+    <BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent"
+                   ElementRefCaptured="@(r => _root = r)" />
 </CascadingValue>
 
 @code {
@@ -115,8 +116,11 @@
             .Aria("label", AriaLabel)
             .Aria("labelledby", AriaLabelledBy)
             .Data("orientation", IsHorizontal ? "horizontal" : "vertical")
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDown))
             .Merge(Attributes, Class, Style);
+
+    // The root element, handed to the script: the arrow keys are listened for there (see
+    // ts/carousel.ts), across the viewport and the controls around it.
+    private ElementReference _root;
 
     /// <summary>Called by a <see cref="BaseCarouselItem"/> on init so slides know their position for
     /// the "N of M" labels. Registration order is render order.</summary>
@@ -155,22 +159,13 @@
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/carousel.js");
             await _instance.CreateAsync(module, "createCarousel", viewport, _selfRef,
-                new { horizontal = IsHorizontal, loop = Loop, autoplayMs = AutoplayInterval });
+                new { horizontal = IsHorizontal, loop = Loop, autoplayMs = AutoplayInterval }, _root);
         }
         catch (JSDisconnectedException)
         {
             // Circuit gone.
         }
     }
-
-    private Task OnKeyDown(KeyboardEventArgs e) => e.Key switch
-    {
-        "ArrowLeft" when IsHorizontal => ScrollPrev(),
-        "ArrowRight" when IsHorizontal => ScrollNext(),
-        "ArrowUp" when !IsHorizontal => ScrollPrev(),
-        "ArrowDown" when !IsHorizontal => ScrollNext(),
-        _ => Task.CompletedTask,
-    };
 
     /// <summary>Scroll to the previous slide (wraps to the last if <see cref="Loop"/> and at the start).</summary>
     public async Task ScrollPrev()

@@ -9,6 +9,11 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
+  a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
+  the control) and the slide together; the carousel now leaves the key alone there. Where it does
+  take the key the page no longer scrolls along, and arrow keys held with Ctrl, Alt or the Command
+  key are left to the browser.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once
