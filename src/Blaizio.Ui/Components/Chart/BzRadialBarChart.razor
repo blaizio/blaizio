@@ -222,7 +222,8 @@
         var rings = new List<Ring>();
         if (Data is not { Count: > 0 } || Value is null) return rings;
 
-        var values = Data.Select(item => Math.Max(0, Value(item))).ToArray();
+        // Not a number or infinite counts as 0 (one such value made every ring's sweep NaN).
+        var values = Data.Select(item => Value(item) is var v && double.IsFinite(v) ? Math.Max(0, v) : 0).ToArray();
         var max = MaxValue ?? values.Max();
         if (max <= 0) return rings;
 
@@ -260,11 +261,19 @@
     private static string ArcPath(double center, double radius, double start, double sweep, int direction)
     {
         var end = start + direction * sweep;
-        var largeArc = sweep > Math.PI ? 1 : 0;
         var sweepFlag = direction > 0 ? 1 : 0;
         var (x0, y0) = (center + radius * Math.Cos(start), center + radius * Math.Sin(start));
         var (x1, y1) = (center + radius * Math.Cos(end), center + radius * Math.Sin(end));
-        return $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 {largeArc} {sweepFlag} {F(x1)} {F(y1)}";
+        if (sweep <= Math.PI)
+            return $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 0 {sweepFlag} {F(x1)} {F(y1)}";
+
+        // Past half a turn the arc is drawn in two pieces through its middle. As one arc, a track
+        // close to a full turn ends so near its start that both are the same point once written
+        // with two decimals, and an arc from a point to itself draws nothing.
+        var middle = start + direction * sweep / 2;
+        var (xm, ym) = (center + radius * Math.Cos(middle), center + radius * Math.Sin(middle));
+        return $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 0 {sweepFlag} {F(xm)} {F(ym)} " +
+               $"A {F(radius)} {F(radius)} 0 0 {sweepFlag} {F(x1)} {F(y1)}";
     }
 
     private RenderFragment RenderLegend => builder =>

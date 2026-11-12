@@ -329,16 +329,20 @@
 
     void IChartRoot.SetXAxis(object owner, bool visible, int tickCount)
     {
-        if (_xAxis == visible && _xTickCount == tickCount) return;
-        (_xAxis, _xTickCount) = (visible, Math.Max(1, tickCount));
+        // Compared as stored: a count below 1 never equalled the 1 it was kept as, so every
+        // render of the axis asked for another one.
+        var ticks = Math.Max(1, tickCount);
+        if (_xAxis == visible && _xTickCount == ticks) return;
+        (_xAxis, _xTickCount) = (visible, ticks);
         Refresh();
     }
 
     void IChartRoot.SetYAxis(object owner, bool visible, int tickCount, Func<double, string>? formatter)
     {
         _yFormatter = formatter;
-        if (_yAxis == visible && _yTickCount == tickCount) return;
-        (_yAxis, _yTickCount) = (visible, Math.Max(1, tickCount));
+        var ticks = Math.Max(1, tickCount);
+        if (_yAxis == visible && _yTickCount == ticks) return;
+        (_yAxis, _yTickCount) = (visible, ticks);
         Refresh();
     }
 
@@ -398,6 +402,10 @@
 
     // MARK: Layout
 
+    // A value that is not a number (a ratio over zero) or is infinite is drawn as 0. Left in, one
+    // such value made the domain NaN, and with it every coordinate of every series.
+    private static double Finite(double value) => double.IsFinite(value) ? value : 0;
+
     private ChartLayout<TItem>? BuildLayout()
     {
         if (Data is not { Count: > 0 }) return null;
@@ -412,14 +420,14 @@
         for (var s = 0; s < series.Count; s++)
         {
             values[s] = new double[count];
-            for (var i = 0; i < count; i++) values[s][i] = series[s].Value(Data[i]);
+            for (var i = 0; i < count; i++) values[s][i] = Finite(series[s].Value(Data[i]));
         }
 
         double[]? xValues = null;
         if (XValue is { } xValue)
         {
             xValues = new double[count];
-            for (var i = 0; i < count; i++) xValues[i] = xValue(Data[i]);
+            for (var i = 0; i < count; i++) xValues[i] = Finite(xValue(Data[i]));
         }
 
         var labels = new string[count];

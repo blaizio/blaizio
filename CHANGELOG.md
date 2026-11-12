@@ -47,6 +47,11 @@ lockstep under one version.
 - **Input Number**: holding a step button no longer runs on after release when `ValueChanged` is
   slow. A release that arrived while the first step's handler was still running was missed, and
   the value kept counting.
+- **Chart**: a pie with a single slice and a radial bar track close to a full turn are drawn at
+  small sizes. They came out empty once both ends of the arc rounded to the same point. A value
+  that is not a number, or is infinite, is drawn as 0 in the cartesian, radar, pie and radial bar
+  charts; one such value used to blank the whole chart. A `TickCount` below 1 no longer asks for
+  another render on every render.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

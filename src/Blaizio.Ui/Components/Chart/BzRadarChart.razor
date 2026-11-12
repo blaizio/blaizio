@@ -323,7 +323,12 @@
         for (var s = 0; s < series.Count; s++)
         {
             values[s] = new double[count];
-            for (var i = 0; i < count; i++) values[s][i] = Math.Max(0, series[s].Value(Data[i]));
+            for (var i = 0; i < count; i++)
+            {
+                // Not a number or infinite counts as 0 (one such value made every ring and point NaN).
+                var value = series[s].Value(Data[i]);
+                values[s][i] = double.IsFinite(value) ? Math.Max(0, value) : 0;
+            }
         }
 
         var labels = new string[count];

@@ -197,7 +197,9 @@
         var slices = new List<Slice>();
         if (Data is not { Count: > 0 } || Value is null) return slices;
 
-        var values = Data.Select(item => Math.Max(0, Value(item))).ToArray();
+        // Not a number or infinite counts as 0: one such value made the total, and with it every
+        // slice's angle, NaN.
+        var values = Data.Select(item => Value(item) is var v && double.IsFinite(v) ? Math.Max(0, v) : 0).ToArray();
         var total = values.Sum();
         if (total <= 0) return slices;
 
@@ -210,8 +212,7 @@
         {
             if (values[i] <= 0) continue;
 
-            // A sweep of a full turn collapses to nothing in a single arc - back off a hair.
-            var sweep = Math.Min(values[i] / total * Math.PI * 2, Math.PI * 2 - 0.0001);
+            var sweep = values[i] / total * Math.PI * 2;
             var end = angle + sweep;
             var mid = angle + sweep / 2;
             var anchorRadius = inner > 0 ? (radius + inner) / 2 : radius * 0.65;
@@ -233,6 +234,11 @@
 
     private static string ArcPath(double center, double radius, double inner, double start, double end, double sweep)
     {
+        // A slice that is the whole pie starts and ends on one point, and an arc from a point to
+        // itself draws nothing. Stopping a hair short only works while the two ends still differ
+        // once written with two decimals, which they do not at small sizes. Two half turns always do.
+        if (sweep >= Math.PI * 2 - 1e-6) return FullTurn(center, radius, inner, start);
+
         var largeArc = sweep > Math.PI ? 1 : 0;
         var (x0, y0) = Point(center, radius, start);
         var (x1, y1) = Point(center, radius, end);
@@ -244,6 +250,21 @@
         var (x3, y3) = Point(center, inner, start);
         return $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 {largeArc} 1 {F(x1)} {F(y1)} " +
                $"L {F(x2)} {F(y2)} A {F(inner)} {F(inner)} 0 {largeArc} 0 {F(x3)} {F(y3)} Z";
+    }
+
+    private static string FullTurn(double center, double radius, double inner, double start)
+    {
+        var (x0, y0) = Point(center, radius, start);
+        var (x1, y1) = Point(center, radius, start + Math.PI);
+        var ring = $"M {F(x0)} {F(y0)} A {F(radius)} {F(radius)} 0 1 1 {F(x1)} {F(y1)} " +
+                   $"A {F(radius)} {F(radius)} 0 1 1 {F(x0)} {F(y0)} Z";
+        if (inner <= 0) return ring;
+
+        // The hole runs the other way round, so the fill leaves it empty.
+        var (x2, y2) = Point(center, inner, start);
+        var (x3, y3) = Point(center, inner, start + Math.PI);
+        return ring + $" M {F(x2)} {F(y2)} A {F(inner)} {F(inner)} 0 1 0 {F(x3)} {F(y3)} " +
+                      $"A {F(inner)} {F(inner)} 0 1 0 {F(x2)} {F(y2)} Z";
     }
 
     private static (double X, double Y) Point(double center, double radius, double angle) =>
