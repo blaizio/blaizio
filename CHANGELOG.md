@@ -31,6 +31,8 @@ lockstep under one version.
   typing a filter.
 - **Hotkey**: a hotkey with `Disabled` set leaves the key to the browser. It ignored the press but
   still prevented the default, so the combination did nothing at all.
+- **Input Tags**: pasted text that was split into tags is cleared from the box. It stayed there,
+  Enter did not clear it, and with `AllowDuplicates` the next keystroke added the same tags again.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

@@ -53,3 +53,13 @@ export function createInputTags(input: HTMLElement, options: InputTagsOptions): 
 export function focusInput(id: string): void {
   document.getElementById(id)?.focus();
 }
+
+/**
+ * Writes the text box's text by id. After pasted text was split into tags C# holds what is left of
+ * it (often nothing), which is also what it rendered before the paste, so the renderer sees no
+ * change to send and the pasted text would stay in the box.
+ */
+export function setInputText(id: string, text: string): void {
+  const input = document.getElementById(id);
+  if (input instanceof HTMLInputElement && input.value !== text) input.value = text;
+}

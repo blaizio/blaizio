@@ -120,7 +120,8 @@
         // Only delimiters that are text split text. A key name ("Enter", "Tab") is matched against
         // keystrokes instead, and as a substring it would cut "Tablet" in two.
         string[] delimiters = [.. EffectiveDelimiters.Where(d => !IsKeyName(d))];
-        if (delimiters.Length > 0 && delimiters.Any(value.Contains))
+        var split = delimiters.Length > 0 && delimiters.Any(value.Contains);
+        if (split)
         {
             var parts = value.Split(delimiters, StringSplitOptions.None);
             for (var i = 0; i < parts.Length - 1; i++) await AddAsync(parts[i]);
@@ -128,6 +129,24 @@
         }
 
         await _query.SetAsync(value, SearchChanged);
+        if (split) await SetInputTextAsync(value);
+    }
+
+    // After a split the text left over is often what was rendered before the paste (nothing), so
+    // the renderer has no change to send and the pasted text stayed in the box: a later Enter did
+    // not clear it and, with duplicates allowed, the next keystroke split it into tags again.
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
+    private async Task SetInputTextAsync(string text)
+    {
+        try
+        {
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputTags.js");
+            await module.InvokeVoidAsync("setInputText", $"{_baseId}-input", text);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit gone - no box left to write to.
+        }
     }
 
     // Enter or a delimiter key: commit the query as a tag. At MaxTags the text stays put (so the user
