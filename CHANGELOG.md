@@ -14,6 +14,8 @@ lockstep under one version.
   the control) and the slide together; the carousel now leaves the key alone there. Where it does
   take the key the page no longer scrolls along, and arrow keys held with Ctrl, Alt or the Command
   key are left to the browser.
+- **Carousel**: slides added or removed after the first render are counted. The dots and the
+  previous and next buttons kept the old count until the next scroll or resize.
 - **Theme**: the font knob leaves the app's own `font-*` classes on `<html>` alone. A font
   utility from your own `@theme` (`font-display`) or one with the important mark (`font-sans!`)
   was read as the selected font and removed when a font was applied, again on every load once

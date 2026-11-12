@@ -33,6 +33,7 @@ const OWN_ARROW_KEYS =
 
 class Carousel {
   private readonly resizeObs: ResizeObserver;
+  private readonly slidesObs: MutationObserver;
   private reportTimer = 0;
   private settleTimer = 0;
   private autoplayTimer = 0;
@@ -61,6 +62,10 @@ class Carousel {
     vp.addEventListener('click', this.onClickCapture, true);
     this.resizeObs = new ResizeObserver(this.scheduleReport);
     this.resizeObs.observe(vp);
+    // A slide added or removed later (a lazily loaded list) changes neither the viewport's size
+    // nor, on the first slide, its scroll position, so nothing else would report the new count.
+    this.slidesObs = new MutationObserver(this.scheduleReport);
+    this.slidesObs.observe(vp, { childList: true });
     this.report(); // initial state, synchronously (don't wait on a frame that a background tab won't paint)
     this.initAutoplay();
   }
@@ -323,6 +328,7 @@ class Carousel {
     if (this.reportTimer) clearTimeout(this.reportTimer);
     clearTimeout(this.settleTimer);
     this.resizeObs.disconnect();
+    this.slidesObs.disconnect();
     this.root.removeEventListener('keydown', this.onKeyDown);
     this.vp.removeEventListener('scroll', this.scheduleReport);
     this.vp.removeEventListener('scroll', this.scheduleSettle);
