@@ -85,6 +85,9 @@ class MessageScrollerController {
       this.update();
     });
     if (this.content) this.ro.observe(this.content);
+    // The viewport too: when it gets shorter (the composer grows a line, an on-screen keyboard
+    // opens) the content is the same size but the last line is now under the fold.
+    if (this.viewport) this.ro.observe(this.viewport);
 
     this.rememberFirst();
     this.update();

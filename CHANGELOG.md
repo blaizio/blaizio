@@ -16,6 +16,9 @@ lockstep under one version.
   key are left to the browser.
 - **Carousel**: slides added or removed after the first render are counted. The dots and the
   previous and next buttons kept the old count until the next scroll or resize.
+- **Message Scroller**: the transcript stays at the end when the viewport gets shorter (the
+  composer grows a line, an on-screen keyboard opens). Only the content was watched, so the last
+  lines slid under the fold.
 - **Message Scroller**: a wheel-up that scrolls nothing no longer switches follow off. In a
   transcript shorter than the viewport, at the very top, or over a scrolling block inside a
   message, the messages that came later were not followed.
