@@ -336,4 +336,177 @@ public sealed class ScriptModuleTests(DocsServerFixture fx)
         // pasted text stayed in it.
         await Assertions.Expect(input).ToHaveValueAsync("");
     }
+
+    [E2EFact]
+    public async Task Copy_leaves_out_what_is_marked_as_skipped()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+
+        // [a diff of removed lines only, a diff with one line that stays, text never split into lines]
+        var copied = await RunAsync<string[]>(page,
+            """
+            await load('clipboard');
+            const written = [];
+            Object.defineProperty(navigator.clipboard, 'writeText',
+                { configurable: true, value: text => { written.push(text); return Promise.resolve(); } });
+            const host = document.createElement('div');
+            host.innerHTML =
+                '<pre id="copy-removed"><span data-bz-copy-skip>old one</span><span data-bz-copy-skip>old two</span></pre>' +
+                '<pre id="copy-mixed"><span data-bz-copy-skip>old</span><span data-bz-copy-line>new</span></pre>' +
+                '<pre id="copy-plain">all of it</pre>' +
+                '<button data-bz-copy="a" data-bz-copy-from="#copy-removed"></button>' +
+                '<button data-bz-copy="b" data-bz-copy-from="#copy-mixed"></button>' +
+                '<button data-bz-copy="c" data-bz-copy-from="#copy-plain"></button>';
+            document.body.append(host);
+            for (const button of host.querySelectorAll('button')) button.click();
+            await sleep(50);
+            host.remove();
+            return written;
+            """);
+
+        // The removed lines used to be copied, run together ("old oneold two"): with no line marked
+        // for copying the script took the whole text, as it does for the plain block.
+        Assert.Equal(["", "new", "all of it"], copied);
+    }
+
+    [E2EFact]
+    public async Task Enter_and_Space_click_an_element_that_is_a_button_in_role_only()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+
+        await RunAsync<bool>(page,
+            """
+            await load('core'); // installs the delegated guards, as ICore.EnsureGuardsAsync does
+            const host = document.createElement('div');
+            host.innerHTML =
+                '<div id="row" role="button" tabindex="0" data-bz-key-click style="padding:8px">' +
+                'Open <button id="row-action" type="button">More</button> <input id="row-field" /></div>';
+            document.body.prepend(host);
+            window.__rowClicks = 0;
+            window.__spacePrevented = [];
+            host.querySelector('#row').addEventListener('click', () => window.__rowClicks++);
+            // Registered after the guard, on the way back up: it sees what the guard left of the key.
+            window.addEventListener('keydown', e => { if (e.key === ' ') window.__spacePrevented.push(e.defaultPrevented); });
+            return true;
+            """);
+        Task<int> Clicks() => page.EvaluateAsync<int>("() => window.__rowClicks");
+
+        // On the row itself both keys press it, as they would a native button.
+        await page.FocusAsync("#row");
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal(1, await Clicks());
+        await page.Keyboard.PressAsync("Space");
+        Assert.Equal(2, await Clicks());
+        // Space scrolls the page unless its default is taken.
+        var spacePrevented = await page.EvaluateAsync<bool[]>("() => window.__spacePrevented");
+        Assert.Equal([true], spacePrevented);
+
+        // A button inside keeps its own Enter: one click (its own, passing through the row), not two.
+        await page.FocusAsync("#row-action");
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal(3, await Clicks());
+
+        // A field inside keeps its keys entirely: the space is typed, the row is not pressed.
+        await page.FocusAsync("#row-field");
+        await page.Keyboard.PressAsync("Space");
+        Assert.Equal(3, await Clicks());
+        Assert.Equal(" ", await page.InputValueAsync("#row-field"));
+
+        // A disabled row is not pressed.
+        await page.EvaluateAsync("() => document.getElementById('row').setAttribute('aria-disabled', 'true')");
+        await page.FocusAsync("#row");
+        await page.Keyboard.PressAsync("Enter");
+        Assert.Equal(3, await Clicks());
+    }
+
+    [E2EFact]
+    public async Task Only_the_topmost_layer_answers_Escape_and_a_dialog_layer_ignores_outside_presses()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+
+        await RunAsync<bool>(page,
+            """
+            const { createDismissableLayer } = await load('dismissableLayer');
+            const host = document.createElement('div');
+            host.innerHTML = '<div id="layer-popover">popover</div><div id="layer-dialog"><button id="layer-inside">ok</button></div>';
+            document.body.prepend(host);
+            const popover = recorder(), dialog = recorder();
+            window.__popoverCalls = popover.calls;
+            window.__dialogCalls = dialog.calls;
+            // Opened in this order: the popover first, the dialog from it.
+            createDismissableLayer(host.querySelector('#layer-popover'), popover,
+                { anchorSelector: null, dismissOnEscape: true });
+            window.__dialogLayer = createDismissableLayer(host.querySelector('#layer-dialog'), dialog,
+                { anchorSelector: null, dismissOnEscape: true, dismissOnOutsidePress: false });
+            return true;
+            """);
+        // "popover calls,dialog calls"
+        Task<string> Calls() =>
+            page.EvaluateAsync<string>("() => `${window.__popoverCalls.length},${window.__dialogCalls.length}`");
+
+        // A press inside the dialog is outside the popover, but the popover is not on top.
+        await page.ClickAsync("#layer-inside");
+        Assert.Equal("0,0", await Calls());
+
+        // A press outside both: the dialog leaves that to its overlay, and still shields the popover.
+        await page.Mouse.ClickAsync(600, 400);
+        Assert.Equal("0,0", await Calls());
+
+        // One Escape, one surface: the dialog.
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Equal("0,1", await Calls());
+
+        // With the dialog gone the popover is on top again: the next Escape is its own.
+        await page.EvaluateAsync("() => window.__dialogLayer.dispose()");
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Equal("1,1", await Calls());
+    }
+
+    [E2EFact]
+    public async Task A_dialog_takes_its_place_above_a_surface_that_was_open_before_it()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/dialog");
+
+        // A surface that is already open when the dialog opens (a popover the dialog was opened
+        // from): a layer of the same module the docs page uses, so both sit in one stack.
+        await RunAsync<bool>(page,
+            """
+            const { createDismissableLayer } = await load('dismissableLayer');
+            const beneath = document.createElement('div');
+            beneath.id = 'beneath';
+            document.body.append(beneath);
+            const ref = recorder();
+            window.__beneathCalls = ref.calls;
+            createDismissableLayer(beneath, ref, { anchorSelector: null, dismissOnEscape: true });
+            return true;
+            """);
+        Task<int> BeneathCalls() => page.EvaluateAsync<int>("() => window.__beneathCalls.length");
+
+        var trigger = page.Locator("[data-slot=dialog-trigger]").First;
+        await trigger.ScrollIntoViewIfNeededAsync();
+        await trigger.EvaluateAsync("el => el.click()"); // not a pointer press: that one is the surface's to see
+        var dialog = DocsServerFixture.VisibleDialog(page);
+        await Assertions.Expect(dialog).ToBeVisibleAsync();
+        await DocsServerFixture.WaitForDialogFocusAsync(page);
+        await page.WaitForTimeoutAsync(300); // the dialog's layer is created after its first render
+
+        // A press inside the dialog used to be a press outside the surface beneath, which closed
+        // (and took a dialog declared inside it along).
+        await dialog.Locator("[data-slot=dialog-title]").First.ClickAsync();
+        Assert.Equal(0, await BeneathCalls());
+
+        // Escape closes the dialog and only the dialog.
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(dialog).Not.ToBeVisibleAsync();
+        Assert.Equal(0, await BeneathCalls());
+
+        // The surface beneath is on top again once the dialog is on its way out.
+        await page.WaitForTimeoutAsync(400);
+        await page.Keyboard.PressAsync("Escape");
+        Assert.Equal(1, await BeneathCalls());
+    }
 }
