@@ -8,6 +8,11 @@
     by BaseDialogTitle / described by BaseDialogDescription, dismissed with Escape (the overlay
     handles pointer-down outside). Modal dialogs lock body scroll via ts/scrollLock.ts while open.
 
+    Escape arrives through ts/dismissableLayer.ts, where the dialog is one layer among the popovers
+    and menus: the topmost surface takes the key, so an Escape that closes a list inside the dialog
+    does not close the dialog too, and a popover underneath no longer reads a press inside the
+    dialog as a press outside itself.
+
     Presence-managed like BaseDialogOverlay: stays rendered with data-state="closed" while the
     style's exit animation plays, removed on ts/presence.ts's animationend report. The focus
     scope element IS the content element - no extra wrapper.
@@ -68,6 +73,7 @@
     private ElementReference _element;
     private Task<IJSObjectReference>? _presenceTask;
     private Task<IJSObjectReference>? _portalTask;
+    private Task<IJSObjectReference>? _dismissTask;
     private Task? _scrollLockTask;
     private DotNetObjectReference<BaseDialogContent>? _selfRef;
 
@@ -103,8 +109,7 @@
             // Marks a surface that is on its way to <body>: blaizio.css keeps it invisible while it
             // still sits at its declaration site, so the entry animation the user sees is the one
             // that starts after the move (moving a node restarts its CSS animations).
-            .Data("bz-portal", Inline ? null : "")
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
+            .Data("bz-portal", Inline ? null : "");
 
         // Reference a title/description only when one is actually rendered - a dangling aria-labelledby/
         // describedby is worse than none (see AriaNameRegistry).
@@ -115,9 +120,12 @@
         return props.Merge(Attributes, Class, Style);
     }
 
-    private Task OnKeyDownAsync(KeyboardEventArgs e) =>
-        // Escape is an implicit dismissal - suppressed entirely when the dialog is locked.
-        e.Key == "Escape" && Dialog is { PreventDismiss: false } ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
+    /// <summary>Called by the dismissable layer when Escape is pressed while this dialog is the topmost surface.</summary>
+    [JSInvokable]
+    public Task OnDismissRequested() =>
+        // Escape is an implicit dismissal - suppressed entirely when the dialog is locked, and
+        // not news to one that is already on its way out.
+        Dialog is { PreventDismiss: false } && !_closing ? Dialog.SetOpen.InvokeAsync(false) : Task.CompletedTask;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -127,6 +135,10 @@
         // render, and a slow module import must not let a second pass create/lock twice.
         _presenceTask ??= CreatePresenceAsync();
         if (!Inline) _portalTask ??= CreatePortalAsync();
+        // A layer only while open: a dialog that is closing gives the top of the stack back at
+        // once, so the next Escape goes to the surface underneath, not into the exit animation.
+        if (_closing) await DisposeDismissAsync();
+        else _dismissTask ??= CreateDismissableLayerAsync();
         if (Modal && !_scrollLocked)
         {
             _scrollLocked = true;
@@ -183,6 +195,22 @@
         return await module.InvokeAsync<IJSObjectReference>("createPortal", _element);
     }
 
+    // The dialog's place in the stack of dismissable surfaces. Escape only: a press outside is
+    // the overlay's to judge (BaseDialogOverlay), and a dialog without one stays open under it.
+    private async Task<IJSObjectReference> CreateDismissableLayerAsync()
+    {
+        _selfRef ??= DotNetObjectReference.Create(this);
+        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
+        var options = new
+        {
+            anchorSelector = (string?)null,
+            dismissOnEscape = true,
+            dismissOnOutsidePress = false,
+        };
+        return await module.InvokeAsync<IJSObjectReference>(
+            "createDismissableLayer", _element, _selfRef, options);
+    }
+
     private async Task LockScrollAsync()
     {
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/scrollLock.js");
@@ -195,6 +223,7 @@
         if (!_closing) return;
         _present = false;
         _closing = false;
+        await DisposeDismissAsync();
         await DisposePresenceAsync();
         await UnlockScrollAsync();
         // Portal restore precedes the removal render: the node must be back at its placeholder
@@ -217,6 +246,28 @@
             var portal = await task;
             await portal.InvokeVoidAsync("dispose");
             await portal.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Already disposed by the concurrent caller.
+        }
+    }
+
+    private async Task DisposeDismissAsync()
+    {
+        // Claimed synchronously, like the portal above.
+        var task = _dismissTask;
+        _dismissTask = null;
+        if (task is null) return;
+        try
+        {
+            var dismiss = await task;
+            await dismiss.InvokeVoidAsync("dispose");
+            await dismiss.DisposeAsync();
         }
         catch (JSDisconnectedException)
         {
@@ -273,6 +324,7 @@
         try
         {
             // Instances only - the modules are shared via JsModules and outlive this component.
+            await DisposeDismissAsync();
             await DisposePresenceAsync();
             await UnlockScrollAsync();
             await DisposePortalAsync();

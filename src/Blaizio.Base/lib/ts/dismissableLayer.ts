@@ -1,12 +1,18 @@
 /**
- * DismissableLayer - closes a floating surface (popover, menu, ...) on an outside pointer-down,
- * and optionally on Escape. This is the dismissal half that focusScope.ts refers to ("Pairs with
+ * DismissableLayer - closes a surface (popover, menu, dialog, ...) on an outside pointer-down
+ * and, where asked, on Escape. This is the dismissal half that focusScope.ts refers to ("Pairs with
  * DismissableLayer ... a separate primitive"); FocusScope owns focus, this owns dismissal.
  *
  * Non-blocking by design: the outside-pointerdown listener never preventDefault/stopPropagation, so
  * a press both dismisses this layer AND reaches whatever was under it - the page stays interactive
  * (no overlay, no swallowed "first click"). Layers stack; only the topmost reacts, so nested
  * surfaces dismiss inner-first.
+ *
+ * Dialogs are layers too (outside presses off: their overlay owns those). That is what keeps a
+ * popover underneath from reading a press inside the dialog as "outside", and what makes one
+ * Escape close one surface: the key is taken here, from the document, by the topmost layer only -
+ * not by each surface's own key handler, where an Escape that a control inside had already used
+ * (a list it closed) went on to close the dialog around it as well.
  */
 
 import { invokeDotNet } from './core';
@@ -14,8 +20,16 @@ import { invokeDotNet } from './core';
 export interface DismissableLayerOptions {
   /** Selector for the trigger/anchor; a press on it is NOT "outside" - the trigger toggles itself. */
   anchorSelector: string | null;
-  /** Also dismiss on Escape from here. Popover leaves Escape to its C# onkeydown, so passes false. */
+  /**
+   * Also dismiss on Escape from here. Surfaces that close on other keys as well (menus and lists:
+   * Escape and Tab) keep both in their own key handler and pass false.
+   */
   dismissOnEscape: boolean;
+  /**
+   * Dismiss on a pointer-down outside the surface. On unless false: a dialog passes false, its
+   * overlay decides what a press outside means.
+   */
+  dismissOnOutsidePress?: boolean;
   /**
    * Also dismiss when anything outside the surface scrolls. For surfaces anchored to a fixed point
    * (the context menu's click position) a page scroll strands them; surfaces anchored to an element
@@ -36,7 +50,9 @@ class DismissableLayer {
     DismissableLayer.stack.push(this);
     // Capture phase: observe the press before the trigger's own click handler and before focus
     // shifts, so the topmost + anchor checks are reliable. The event is never consumed.
-    document.addEventListener('pointerdown', this.onPointerDown, true);
+    if (this.options.dismissOnOutsidePress !== false) {
+      document.addEventListener('pointerdown', this.onPointerDown, true);
+    }
     if (this.options.dismissOnEscape) document.addEventListener('keydown', this.onKeyDown, true);
     if (this.options.dismissOnScroll) {
       document.addEventListener('scroll', this.onScroll, { capture: true, passive: true });
@@ -63,7 +79,8 @@ class DismissableLayer {
   };
 
   private onKeyDown = (event: KeyboardEvent): void => {
-    if (this.isTopmost && event.key === 'Escape') {
+    // An Escape that ends a text composition belongs to the input method, not to the surface.
+    if (this.isTopmost && event.key === 'Escape' && !event.isComposing) {
       void invokeDotNet(this.dotNetRef, 'OnDismissRequested');
     }
   };

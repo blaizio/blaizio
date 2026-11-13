@@ -282,7 +282,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         {
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
             anchorSelector = AnchorSelector,
-            dismissOnEscape = false, // Escape is handled in C# OnKeyDown, like BaseDialogContent / BasePopoverContent.
+            dismissOnEscape = false, // Escape and Tab both close a menu: its own OnKeyDown handles the pair.
             dismissOnScroll = DismissOnScroll,
         };
         return await module.InvokeAsync<IJSObjectReference>(

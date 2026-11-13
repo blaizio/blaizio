@@ -18,6 +18,12 @@ lockstep under one version.
   snapped a value that sat off the step grid (2.5 with a `Step` of 1 became 3) and clamped one
   outside `Min` and `Max`, raising `ValueChanged` for an edit the user never made. A typed value
   is clamped and snapped on leaving, as before.
+- **Dialog, Alert Dialog, Sheet, Drawer, Popover**: one Escape closes one surface. An Escape that
+  a control inside had already used (a list it closed, a move it cancelled) went on to close the
+  dialog or popover around it. And a dialog opened from a popover no longer loses that popover,
+  and with it sometimes itself, to the first press inside the dialog. Dialogs now take their
+  place among the popovers and menus: the topmost surface answers Escape, wherever the focus is
+  (before, the focus had to be inside the surface).
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does

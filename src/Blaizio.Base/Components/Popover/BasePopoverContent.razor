@@ -11,8 +11,8 @@
     escaping to the page behind it - Escape or an outside click is how you leave. Anchored to the
     trigger via ts/positioning.ts (@floating-ui), presence-managed like a tooltip/dialog (stays
     rendered with data-state="closed" while the exit animation plays, removed on ts/presence.ts's
-    animationend report), and dismissed by Escape (onkeydown) or an outside pointer-down
-    (ts/dismissableLayer.ts). No overlay, no scroll lock. data-side/data-align reflect the resolved
+    animationend report), and dismissed by Escape or an outside pointer-down (both through
+    ts/dismissableLayer.ts, where the topmost surface answers). No overlay, no scroll lock. data-side/data-align reflect the resolved
     placement (JS reports flips back, so Blazor owns those attributes).
 *@
 
@@ -121,7 +121,6 @@
             // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
-            .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync))
             // Fixed + hidden from the first paint so the surface never renders in normal flow
             // during the gap before ts/positioning.js imports and places it (a first-open flash on
             // a cold load). The positioning module overwrites these inline values on placement;
@@ -135,10 +134,6 @@
 
         return props.Merge(Attributes, Class, Style);
     }
-
-    // Escape is an implicit dismissal. (Outside pointer-down is handled by the dismissable layer.)
-    private Task OnKeyDownAsync(KeyboardEventArgs e) =>
-        e.Key == "Escape" && Popover is not null ? Popover.SetOpen.InvokeAsync(false) : Task.CompletedTask;
 
     // The panel is a dialog, and a dialog needs an accessible name. Warn (a dev aid) when neither a
     // BasePopoverTitle nor a consumer-supplied aria-label/aria-labelledby is present once rendered.
@@ -225,7 +220,9 @@
         {
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
             anchorSelector = $"[data-bz-popover-anchor='{Popover?.AnchorId}']",
-            dismissOnEscape = false, // Escape is handled in C# OnKeyDownAsync, like BaseDialogContent.
+            // Escape comes through the layer, like BaseDialogContent: the topmost surface takes
+            // it, so a list or menu open inside the popover closes alone.
+            dismissOnEscape = true,
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);
@@ -241,7 +238,7 @@
         StateHasChanged();
     }
 
-    /// <summary>Called by the dismissable layer on an outside pointer-down.</summary>
+    /// <summary>Called by the dismissable layer on Escape or an outside pointer-down.</summary>
     [JSInvokable]
     public Task OnDismissRequested() =>
         Popover is null ? Task.CompletedTask : Popover.SetOpen.InvokeAsync(false);
