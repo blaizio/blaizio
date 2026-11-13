@@ -12,6 +12,8 @@
 //   data-bz-copy-from="<selector>"  the element whose text is copied. Inside it, elements marked
 //                                   data-bz-copy-line are copied one per line (a line holding only
 //                                   "\n" is a blank line); without any, its whole textContent is.
+//                                   Elements marked data-bz-copy-skip are left out: a source that
+//                                   holds skipped elements and no line copies as empty text.
 
 import { invokeDotNet } from './core';
 import type { DotNetObjectReference } from './core';
@@ -29,7 +31,11 @@ export function unregister(token: string): void {
 
 function textOf(source: Element): string {
   const lines = source.querySelectorAll('[data-bz-copy-line]');
-  if (lines.length === 0) return source.textContent ?? '';
+  if (lines.length === 0) {
+    // No marked line is how plain, unsplit text looks - unless something in it is marked as
+    // left out (a diff made of removed lines only), in which case nothing is what there is to copy.
+    return source.querySelector('[data-bz-copy-skip]') ? '' : (source.textContent ?? '');
+  }
   return Array.from(lines, (line) => (line.textContent === '\n' ? '' : (line.textContent ?? ''))).join(
     '\n',
   );

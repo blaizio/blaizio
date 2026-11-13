@@ -24,8 +24,11 @@
     private static readonly RenderFragment Newline = builder => builder.AddContent(0, "\n");
 
     // data-bz-copy-line marks what the copy button copies - a removed diff line is not part of
-    // the code the diff produces, so it carries no mark.
-    private RenderFragment Inner => @<span data-slot="code-block-line-content" data-bz-copy-line="@(Variant == CodeBlockLineVariant.Removed ? null : "")" class="min-w-0">@(ChildContent ?? Newline)</span>;
+    // the code the diff produces, so it is marked data-bz-copy-skip instead. The skip mark is what
+    // tells a diff of removed lines only (copies nothing) from plain text with no lines at all.
+    private RenderFragment Inner => @<span data-slot="code-block-line-content" data-bz-copy-line="@(Removed ? null : "")" data-bz-copy-skip="@(Removed ? "" : null)" class="min-w-0">@(ChildContent ?? Newline)</span>;
+
+    private bool Removed => Variant == CodeBlockLineVariant.Removed;
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder()

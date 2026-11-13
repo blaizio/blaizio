@@ -35,6 +35,9 @@ lockstep under one version.
 - **Tree**: with `Virtualize`, rows that are not `ItemSize` tall are reported to the app's error
   handling (an error boundary), as the parameter says. The exception went back to the script that
   measured the row and ended as a line in the browser console.
+- **Code Block**: copying a diff that holds only removed lines copies nothing. It copied the
+  removed lines, run together. Removed lines carry a new `data-bz-copy-skip` attribute, which the
+  copy script leaves out.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does
