@@ -38,6 +38,11 @@ lockstep under one version.
 - **Code Block**: copying a diff that holds only removed lines copies nothing. It copied the
   removed lines, run together. Removed lines carry a new `data-bz-copy-skip` attribute, which the
   copy script leaves out.
+- **Item, Marker** (`blaizio update item marker`): with `OnClick` set, the default element can be
+  reached and pressed from the keyboard. It was a `div` with a click handler and nothing else. It
+  now has `role="button"`, a tab stop, and Enter and Space press it (a new `data-bz-key-click`
+  attribute, served by `core.js`; both components now need Blaizio.Base 0.3.6). An element of
+  your own through `RenderAs` is left as it is.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does

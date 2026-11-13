@@ -153,6 +153,11 @@ export function matchesCombo(e: KeyboardEvent, combo: ParsedCombo): boolean {
 //   data-bz-prevent-keys="enter, mod+s"  suppress those combos' browser default (capture keydown;
 //                                        only preventDefault, never stopPropagation, so the event
 //                                        still reaches Blazor's root delegation)
+//   data-bz-key-click                    Enter and Space on the element click it, for an element
+//                                        that is a button in role only (role="button" on a div).
+//                                        Only when the key lands on the element itself: a control
+//                                        inside it keeps its own keys. The click is an ordinary
+//                                        one, so the element's onclick is all the C# side needs.
 //   data-bz-autoselect                   select the field's content whenever it gains focus
 //   data-bz-autofocus                    focus the element when it RENDERS (a MutationObserver, so
 //                                        content that appears later - a dialog's body - focuses
@@ -197,6 +202,21 @@ function onGuardKeydown(e: KeyboardEvent): void {
       return;
     }
   }
+}
+
+const KEY_CLICK_ATTR = 'data-bz-key-click';
+
+// What a native button does with Enter and Space, for an element that only has the role. Decided
+// here because both halves need the event itself: the target (a key pressed in a control inside
+// the element is that control's) and the default (Space would scroll the page).
+function onGuardKeyClick(e: KeyboardEvent): void {
+  if (e.defaultPrevented || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const target = e.target;
+  if (!(target instanceof HTMLElement) || !target.hasAttribute(KEY_CLICK_ATTR)) return;
+  if (target.getAttribute('aria-disabled') === 'true') return;
+  e.preventDefault();
+  target.click();
 }
 
 const AUTOFOCUS_ATTR = 'data-bz-autofocus';
@@ -266,6 +286,7 @@ export function installGuards(): void {
   if (w[GUARD_FLAG]) return;
   w[GUARD_FLAG] = true;
   document.addEventListener('keydown', onGuardKeydown, true);
+  document.addEventListener('keydown', onGuardKeyClick, true);
   document.addEventListener('focusin', onGuardFocusIn, true);
   new MutationObserver((records) => {
     for (const record of records) {

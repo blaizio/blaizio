@@ -1,4 +1,5 @@
 @namespace Blaizio.Ui
+@inject ICore Core
 @*
     Styled Item - a flex row for a piece of content: media, then title + description, then
     actions. Use it for lists of things (files, people, notifications, settings entries); reach
@@ -25,9 +26,10 @@
     [Parameter] public ItemSize Size { get; set; } = ItemSize.Default;
 
     /// <summary>
-    /// Raised on click (a splatted <c>@onclick</c> binds to this same parameter). For a
-    /// keyboard-operable item prefer <see cref="RenderAs"/> with a real link or button - the
-    /// default <c>&lt;div&gt;</c> only takes pointer clicks.
+    /// Raised on click (a splatted <c>@onclick</c> binds to this same parameter). With it set
+    /// the default <c>&lt;div&gt;</c> is a button to the keyboard and to assistive technology:
+    /// <c>role="button"</c>, a tab stop, and Enter or Space raise this too. For a destination
+    /// use <see cref="RenderAs"/> with a real link instead.
     /// </summary>
     [Parameter] public EventCallback<MouseEventArgs> OnClick { get; set; }
 
@@ -43,12 +45,38 @@
     /// <summary>Any other attributes, forwarded to the element.</summary>
     [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributes { get; set; }
 
+    // The default element with a click handler. Your own element (RenderAs) brings its own semantics.
+    private bool Pressable => RenderAs is null && OnClick.HasDelegate;
+
+    private bool _guards;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The key handling is one delegated listener in core.js; make sure it is loaded.
+        if (!Pressable || _guards) return;
+        _guards = true;
+        try
+        {
+            await Core.EnsureGuardsAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit went away mid-render.
+        }
+    }
+
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Data("slot", "item")
             .Data("variant", Variant.GetDescription())
             .Data("size", Size.GetDescription())
             .On("onclick", OnClick)
+            // A div that acts on a press is a button in everything but name: say so, make it
+            // reachable, and let core.js turn Enter and Space on it into the same click. Set
+            // before the merge, so a role or tabindex of your own still wins.
+            .Set("role", Pressable ? "button" : null)
+            .Set("tabindex", Pressable ? "0" : null)
+            .Data("bz-key-click", Pressable ? "" : null)
             .Merge(Attributes, Tw.Merge(BaseClasses, VariantClasses(Variant), SizeClasses(Size), Class));
 
     private const string BaseClasses =

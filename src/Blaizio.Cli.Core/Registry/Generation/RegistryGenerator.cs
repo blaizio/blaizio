@@ -85,6 +85,10 @@ public sealed class GeneratorOptions
             ["carousel"] = "0.3.6",
             ["sortable"] = "0.3.6",
             ["tree"] = "0.3.6",
+            // data-bz-key-click (Enter and Space on a div with OnClick, served by dist/core.js)
+            // arrived in 0.3.6; with an older Base the row would be a tab stop no key activates.
+            ["item"] = "0.3.6",
+            ["marker"] = "0.3.6",
         };
 
     /// <summary>
