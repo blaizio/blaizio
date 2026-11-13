@@ -27,6 +27,8 @@ lockstep under one version.
 - **Sidebar**: tooltips inside `BzSidebarProvider` wait the configured delay again. The provider
   set a delay of 0 for its whole content, which is usually the whole app, and that overrode the
   delay in `BlaizioOptions`. The tooltip of a menu button on a collapsed rail still opens at once.
+- **Input Date**: pressing the selected day in the calendar popup keeps the date and closes the
+  popup. It cleared the field.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does

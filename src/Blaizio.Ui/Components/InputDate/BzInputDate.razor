@@ -377,6 +377,15 @@
     // The value first, then the close: a listener on both sees the pick while the popup is still open.
     private async Task OnCalendarPicked(DateOnly? date)
     {
+        // The calendar reports null when the selected day is pressed again (a lone calendar
+        // toggles its date off). In a field that press means "this one": the date stays and the
+        // popup closes. The segments are how a date is cleared.
+        if (date is null)
+        {
+            await _calendar.SetAsync(false, CalendarOpenChanged);
+            return;
+        }
+
         _synced = date;
         _day = date?.Day;
         _month = date?.Month;
