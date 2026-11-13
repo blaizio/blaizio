@@ -615,29 +615,38 @@
         }
         else
         {
-            if (LoadChildren is not null && EffectiveChildrenOf(item) is null)
-            {
-                _loading.Add(value);
-                StateHasChanged();
-                try
-                {
-                    _loaded[value] = (await LoadChildren(item))?.ToList() ?? [];
-                }
-                catch
-                {
-                    _loading.Remove(value);
-                    Announce(TreeAnnouncementKind.LoadFailed, TextOf(item));
-                    await OnLoadChildrenError.InvokeAsync(item);
-                    StateHasChanged();
-                    return;
-                }
-                _loading.Remove(value);
-            }
+            if (!await EnsureChildrenLoadedAsync(item, value)) return;
 
             await SetExpandedAsync([.. _expanded.Value, value]);
         }
 
         StateHasChanged();
+    }
+
+    // Loads a lazy branch's children once (LoadChildren, nothing loaded yet). False when the load
+    // failed: the failure is announced and reported, and the caller stops there.
+    private async Task<bool> EnsureChildrenLoadedAsync(TItem item, string value)
+    {
+        if (LoadChildren is null || EffectiveChildrenOf(item) is not null) return true;
+
+        _loading.Add(value);
+        StateHasChanged();
+        try
+        {
+            _loaded[value] = (await LoadChildren(item))?.ToList() ?? [];
+        }
+        catch
+        {
+            _loading.Remove(value);
+            Announce(TreeAnnouncementKind.LoadFailed, TextOf(item));
+            await OnLoadChildrenError.InvokeAsync(item);
+            StateHasChanged();
+            return false;
+        }
+        _loading.Remove(value);
+        // The branch has children now: the cached row list (and what a filter matched) is stale.
+        Invalidate();
+        return true;
     }
 
     internal Task SetExpandedAsync(IReadOnlyList<string> next)
@@ -661,8 +670,20 @@
     {
         if (!Checkable || IsDisabledNode(item)) return;
 
+        var branch = IsBranchOf(item);
+        if (branch)
+        {
+            // The checked list holds leaves, so a branch whose children were never loaded has
+            // nothing to check yet: fetch them first (the branch stays collapsed), then check
+            // what arrived. One level only - a loaded child that is itself an unloaded branch
+            // waits for its own press.
+            if (_loading.Contains(value)) return;
+            if (!await EnsureChildrenLoadedAsync(item, value)) return;
+        }
+
+        // Read after the load: the checked list may have moved while it ran.
         var set = new HashSet<string>(_checked.Value, StringComparer.Ordinal);
-        if (!IsBranchOf(item))
+        if (!branch)
         {
             if (!set.Add(value)) set.Remove(value);
         }
@@ -670,9 +691,14 @@
         {
             var leaves = new List<string>();
             CollectEnabledLeaves(item, leaves);
-            // Nothing under it to check (a branch whose children are not loaded, or all disabled):
-            // the set is unchanged, so no change is raised for it.
-            if (leaves.Count == 0) return;
+            // Nothing under it to check (an empty branch, or every leaf disabled): the set is
+            // unchanged, so no change is raised for it. The row still renders again - a load
+            // just above may have left its busy state on screen.
+            if (leaves.Count == 0)
+            {
+                StateHasChanged();
+                return;
+            }
             if (leaves.TrueForAll(set.Contains)) set.ExceptWith(leaves);
             else set.UnionWith(leaves);
         }

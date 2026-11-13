@@ -29,6 +29,9 @@ lockstep under one version.
   delay in `BlaizioOptions`. The tooltip of a menu button on a collapsed rail still opens at once.
 - **Input Date**: pressing the selected day in the calendar popup keeps the date and closes the
   popup. It cleared the field.
+- **Tree**: the checkbox of a branch whose children are not loaded yet loads them (`LoadChildren`)
+  and checks them, leaving the branch collapsed. The press did nothing. A load that fails raises
+  `OnLoadChildrenError` and checks nothing.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does
