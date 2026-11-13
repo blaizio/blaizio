@@ -1093,12 +1093,16 @@
     {
         if (!Virtualize || _rowHeightChecked || rowHeight <= 0) return;
         _rowHeightChecked = true;
-        if (Math.Abs(rowHeight - ItemSize) > 2)
-            throw new InvalidOperationException(
-                $"BaseTree: virtualized rows render {rowHeight:0.#}px tall but ItemSize is {ItemSize:0.#}px. " +
-                "Windowing sizes its spacers from ItemSize, so every row must be exactly that tall - set " +
-                "ItemSize to the real row height and keep the rows a uniform height (e.g. avoid a NodeContent " +
-                "that wraps to two lines).");
+        if (Math.Abs(rowHeight - ItemSize) <= 2) return;
+
+        // Handed to the renderer, not thrown: an exception thrown here only travels back to the
+        // script that called, where it ends as a console line while the tree keeps rendering
+        // with wrong spacers. This way it reaches the app's error handling (an error boundary).
+        _ = DispatchExceptionAsync(new InvalidOperationException(
+            $"BaseTree: virtualized rows render {rowHeight:0.#}px tall but ItemSize is {ItemSize:0.#}px. " +
+            "Windowing sizes its spacers from ItemSize, so every row must be exactly that tall - set " +
+            "ItemSize to the real row height and keep the rows a uniform height (e.g. avoid a NodeContent " +
+            "that wraps to two lines)."));
     }
 
     /// <summary>JS reports a pointer drag began on the node with this value.</summary>

@@ -32,6 +32,9 @@ lockstep under one version.
 - **Tree**: the checkbox of a branch whose children are not loaded yet loads them (`LoadChildren`)
   and checks them, leaving the branch collapsed. The press did nothing. A load that fails raises
   `OnLoadChildrenError` and checks nothing.
+- **Tree**: with `Virtualize`, rows that are not `ItemSize` tall are reported to the app's error
+  handling (an error boundary), as the parameter says. The exception went back to the script that
+  measured the row and ended as a line in the browser console.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does
