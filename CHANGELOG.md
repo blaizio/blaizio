@@ -24,6 +24,9 @@ lockstep under one version.
   and with it sometimes itself, to the first press inside the dialog. Dialogs now take their
   place among the popovers and menus: the topmost surface answers Escape, wherever the focus is
   (before, the focus had to be inside the surface).
+- **Sidebar**: tooltips inside `BzSidebarProvider` wait the configured delay again. The provider
+  set a delay of 0 for its whole content, which is usually the whole app, and that overrode the
+  delay in `BlaizioOptions`. The tooltip of a menu button on a collapsed rail still opens at once.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does
