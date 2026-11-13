@@ -1,0 +1,44 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // The sidebar provider wraps the whole layout. It used to set a hover delay of 0 on its
+    // tooltip group, which every tooltip of the app inherited and which overrode the configured
+    // delay. The instant tooltip belongs to one place: a menu button on a collapsed rail, where
+    // it is the row's only label.
+
+    public SidebarTooltipDelayTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    [Fact]
+    public void A_tooltip_of_the_app_inside_the_provider_waits_the_configured_delay()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">
+            <BzTooltip>
+                <BzTooltipTrigger>Save</BzTooltipTrigger>
+                <BzTooltipContent>Save the file</BzTooltipContent>
+            </BzTooltip>
+        </BzSidebarProvider>);
+
+        cut.Find("[data-slot=tooltip-trigger]").PointerEnter();
+
+        // 400 ms out of the box: nothing on screen in the same breath as the hover.
+        Assert.Empty(cut.FindAll("[data-slot=tooltip-content]"));
+    }
+
+    [Fact]
+    public void A_menu_button_on_a_collapsed_rail_shows_its_tooltip_at_once()
+    {
+        var cut = Render(@<BzSidebarProvider DefaultOpen="false" PersistState="false">
+            <BzSidebarMenuButton Tooltip="Inbox">Inbox</BzSidebarMenuButton>
+        </BzSidebarProvider>);
+
+        cut.Find("[data-slot=sidebar-menu-button]").PointerEnter();
+
+        Assert.Equal("Inbox", cut.Find("[data-slot=tooltip-content]").TextContent.Trim());
+    }
+}

@@ -1,0 +1,23 @@
+@* Test host: a paged, provider-fed BzDataTable with a bound page, whose instance the test can reach. *@
+<BzDataTable @ref="Table" TItem="Person" ItemsProvider="Provider" PageSize="2"
+             Page="_page" PageChanged="OnPageChanged" RowKey="@(p => p.Id)">
+    <BzPropertyColumn Property="@(p => p.Name)" />
+</BzDataTable>
+
+@code {
+    [Parameter] public DataTableItemsProvider<Person>? Provider { get; set; }
+    [Parameter] public int StartPage { get; set; } = 1;
+
+    public BzDataTable<Person>? Table;
+    public List<int> Pages { get; } = [];
+
+    private int _page;
+
+    protected override void OnInitialized() => _page = StartPage;
+
+    private void OnPageChanged(int page)
+    {
+        _page = page;
+        Pages.Add(page);
+    }
+}

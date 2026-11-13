@@ -47,6 +47,26 @@ public class InputDateTests : BunitContext
     }
 
     [Fact]
+    public void Pressing_the_selected_day_again_keeps_the_date_and_closes_the_popup()
+    {
+        var events = new List<string>();
+        var open = true;
+        DateOnly? value = new DateOnly(2026, 11, 7);
+        var cut = Render<BzInputDate>(p => p
+            .Add(x => x.ShowCalendar, true)
+            .Add(x => x.Value, value)
+            .Add(x => x.ValueChanged, (DateOnly? v) => { value = v; events.Add($"value {v:yyyy-MM-dd}"); })
+            .Add(x => x.CalendarOpen, open)
+            .Add(x => x.CalendarOpenChanged, (bool o) => { open = o; events.Add($"open {o}"); }));
+
+        // A lone calendar toggles its date off on a second press; in a field that cleared the date.
+        cut.FindAll("[data-slot=popover-content] button").First(b => b.TextContent.Trim() == "7").Click();
+
+        Assert.Equal(["open False"], events);
+        Assert.Equal(new DateOnly(2026, 11, 7), value);
+    }
+
+    [Fact]
     public void The_trigger_reports_opening_through_CalendarOpenChanged()
     {
         bool? reported = null;
