@@ -73,6 +73,7 @@
     private EventCallback<decimal?> _emit;
     private bool _focused;
     private string _text = "";
+    private bool _typed; // the user typed since the field took focus: only then does leaving commit
     private decimal? _lastSeen;  // the value the previous sync carried, to spot an actual change
     private bool _selfEdited;    // we committed since the last sync - the next value in is our own echo
 
@@ -170,6 +171,7 @@
     {
         if (Disabled || ReadOnly) return;
         _text = text ?? "";
+        _typed = true;
 
         if (string.IsNullOrWhiteSpace(_text))
         {
@@ -183,6 +185,7 @@
     private async Task OnFocusAsync()
     {
         _focused = true;
+        _typed = false;
         _text = RawValue(_value.Value); // strip grouping/currency so it is cleanly editable
         await Task.CompletedTask;
     }
@@ -197,7 +200,12 @@
 
         // A field that cannot be edited has nothing to commit: leaving it must not clamp or snap
         // the value it was only showing.
-        if (Disabled || ReadOnly)
+        // Nor has a field the user only passed through: a bound value that sits off the step grid
+        // or outside the range stays as the app set it until someone types here. (The steppers
+        // and keys commit on their own, already clamped and snapped.)
+        var typed = _typed;
+        _typed = false;
+        if (Disabled || ReadOnly || !typed)
         {
             _text = FormatValue(_value.Value);
             return;

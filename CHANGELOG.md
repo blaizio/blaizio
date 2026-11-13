@@ -14,6 +14,10 @@ lockstep under one version.
   searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when
   the source has shrunk under the current page, the table moves to the last page and raises
   `PageChanged`; it used to show "No results." under a pager with no current page.
+- **Input Number**: leaving a field nobody typed in no longer changes its value. Tabbing through
+  snapped a value that sat off the step grid (2.5 with a `Step` of 1 became 3) and clamped one
+  outside `Min` and `Max`, raising `ValueChanged` for an edit the user never made. A typed value
+  is clamped and snapped on leaving, as before.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does
