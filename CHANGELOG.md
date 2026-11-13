@@ -9,6 +9,11 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Data Table**: a table fed by `ItemsProvider` can load its rows again. Identical requests are
+  deduplicated, so rows added, deleted or edited at the source stayed stale until the user sorted,
+  searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when
+  the source has shrunk under the current page, the table moves to the last page and raises
+  `PageChanged`; it used to show "No results." under a pager with no current page.
 - **Carousel**: the arrow keys inside a slide belong to what is focused there. An arrow pressed in
   a text field, select, slider, tab list, menu or radio group inside a slide moved the caret (or
   the control) and the slide together; the carousel now leaves the key alone there. Where it does

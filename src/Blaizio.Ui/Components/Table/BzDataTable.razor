@@ -784,6 +784,7 @@
         _loading = true;
         StateHasChanged();
 
+        var pastLastPage = false;
         try
         {
             var result = await ItemsProvider(new DataTableRequest<TItem>(start, count, _sort.Value, _filter.Value, cts.Token));
@@ -795,6 +796,9 @@
             // table had rows loaded and showed "No results.".
             if (!Paged) _view = result.Items as List<TItem> ?? [.. result.Items];
             _totalCount = result.TotalCount;
+            // The total is known now, and the source may have shrunk under the requested page
+            // (rows deleted, a narrower filter on the server): the page asked for no longer exists.
+            pastLastPage = Paged && _totalCount > 0 && CurrentPage > PageCount;
             _loading = false;
             StateHasChanged();
         }
@@ -824,6 +828,27 @@
 
             throw;
         }
+
+        // Outside the try: this request is finished, and a failure of the next one is its own.
+        if (pastLastPage)
+        {
+            await _page.SetAsync(PageCount, PageChanged);
+            // A controlled page moves with the parent's next render, which loads by itself.
+            if (CurrentPage <= PageCount) await LoadAsync();
+        }
+    }
+
+    /// <summary>
+    /// Requests the current page again from <see cref="ItemsProvider"/> - call when the data
+    /// behind the provider changed (a row added, deleted or edited at the source). When the
+    /// source shrank under the current page, the table moves to the last page. No-op in
+    /// <see cref="Items"/> mode: there you own the collection.
+    /// </summary>
+    public Task RefreshDataAsync()
+    {
+        if (!ServerDriven) return Task.CompletedTask;
+        _lastLoadKey = null;
+        return LoadAsync();
     }
 
     // The declared columns = data columns (Columns) then registered child columns, in declaration
