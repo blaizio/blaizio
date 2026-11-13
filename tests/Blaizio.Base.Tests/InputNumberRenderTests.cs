@@ -250,6 +250,47 @@ public class InputNumberRenderTests : BunitContext
         Assert.Equal(150d, bound);
     }
 
+    [Theory]
+    [InlineData(2.5, null)]  // off the default step grid of 1: used to become 3 (or 2)
+    [InlineData(150d, 100d)] // above Max: used to be clamped to 100
+    public async Task Passing_through_a_field_without_typing_commits_nothing(double start, double? max)
+    {
+        double? bound = start;
+        var raised = 0;
+        var cut = Render<BaseInputNumber<double?>>(p => p
+            .Add(x => x.Value, bound)
+            .Add(x => x.ValueChanged, EventCallback.Factory.Create<double?>(this, v => { bound = v; raised++; }))
+            .Add(x => x.Max, max)
+            .Add(x => x.ChildContent, Field()));
+
+        await cut.Find("input").FocusAsync();
+        await cut.Find("input").BlurAsync();
+
+        Assert.Equal(0, raised);
+        Assert.Equal(start, bound);
+    }
+
+    [Fact]
+    public async Task Leaving_a_field_after_typing_still_snaps_what_was_typed()
+    {
+        double? bound = 2.5;
+        var cut = Controlled(bound, EventCallback.Factory.Create<double?>(this, v => bound = v));
+
+        await cut.Find("input").FocusAsync();
+        await cut.Find("input").InputAsync("4.4");
+        Assert.Equal(4.4, bound); // live: clamped only
+        await cut.Find("input").BlurAsync();
+
+        Assert.Equal(4d, bound);
+
+        // And the next visit, with nothing typed, leaves it alone again.
+        cut.Render(p => p.Add(x => x.Value, 6.5));
+        bound = 6.5;
+        await cut.Find("input").FocusAsync();
+        await cut.Find("input").BlurAsync();
+        Assert.Equal(6.5, bound);
+    }
+
     [Fact]
     public async Task The_step_grid_starts_at_Min_and_keeps_its_decimals()
     {

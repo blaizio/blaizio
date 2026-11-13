@@ -335,6 +335,55 @@ public class TreeRenderTests : BunitContext
     }
 
     [Fact]
+    public void Checking_a_branch_that_was_never_loaded_loads_its_children_and_checks_them()
+    {
+        IReadOnlyList<string> checkedValues = [];
+        var loads = 0;
+        var cut = RenderTreeComponent([Leaf("lazy"), Leaf("readme")], configure: ps => ps
+            .Add(t => t.Checkable, true)
+            .Add(t => t.HasChildrenSelector, n => n.Value == "lazy")
+            .Add(t => t.LoadChildren, _ =>
+            {
+                loads++;
+                return Task.FromResult<IReadOnlyList<Node>>([Leaf("one"), Leaf("two")]);
+            })
+            .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => checkedValues = v)));
+
+        // The checked list holds leaves, and this branch has none yet: the press used to do nothing.
+        cut.Find("[data-part=branch-control][data-value=lazy] [data-part=checkbox]").Click();
+
+        Assert.Equal(1, loads);
+        Assert.Equal(["one", "two"], checkedValues.Order());
+        var branch = cut.Find("[data-part=branch][data-value=lazy]");
+        Assert.Equal("true", branch.GetAttribute("aria-checked"));
+        Assert.Equal("false", branch.GetAttribute("aria-expanded")); // loaded, not opened
+
+        // Loaded once: the next press only unchecks.
+        cut.Find("[data-part=branch-control][data-value=lazy] [data-part=checkbox]").Click();
+        Assert.Equal(1, loads);
+        Assert.Empty(checkedValues);
+    }
+
+    [Fact]
+    public void Checking_a_branch_whose_load_fails_checks_nothing_and_reports_the_failure()
+    {
+        var raised = 0;
+        Node? failed = null;
+        var cut = RenderTreeComponent([Leaf("lazy")], configure: ps => ps
+            .Add(t => t.Checkable, true)
+            .Add(t => t.HasChildrenSelector, n => n.Value == "lazy")
+            .Add(t => t.LoadChildren, _ => Task.FromException<IReadOnlyList<Node>>(new InvalidOperationException("offline")))
+            .Add(t => t.OnLoadChildrenError, EventCallback.Factory.Create<Node>(this, n => failed = n))
+            .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, _ => raised++)));
+
+        cut.Find("[data-part=branch-control][data-value=lazy] [data-part=checkbox]").Click();
+
+        Assert.Equal("lazy", failed?.Value);
+        Assert.Equal(0, raised);
+        Assert.Equal("false", cut.Find("[data-part=branch][data-value=lazy]").GetAttribute("aria-checked"));
+    }
+
+    [Fact]
     public void Space_toggles_the_check_when_checkable()
     {
         IReadOnlyList<string> checkedValues = [];
@@ -492,12 +541,33 @@ public class TreeRenderTests : BunitContext
     }
 
     [Fact]
-    public void Virtualize_row_height_mismatch_throws()
+    public async Task Virtualize_row_height_mismatch_reaches_the_error_boundary()
     {
-        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.Virtualize, true));
+        // The measurement comes from the script. An exception thrown back at it would end as a
+        // console line; the tree hands it to the renderer so the app's error handling shows it.
+        var cut = Render(b =>
+        {
+            b.OpenComponent<ErrorBoundary>(0);
+            b.AddComponentParameter(1, nameof(ErrorBoundary.ChildContent), (RenderFragment)(c =>
+            {
+                c.OpenComponent<BaseTree<Node>>(0);
+                c.AddComponentParameter(1, nameof(BaseTree<Node>.Items), Sample());
+                c.AddComponentParameter(2, nameof(BaseTree<Node>.ValueSelector), (Func<Node, string>)(n => n.Value));
+                c.AddComponentParameter(3, nameof(BaseTree<Node>.Virtualize), true);
+                c.CloseComponent();
+            }));
+            b.AddComponentParameter(2, nameof(ErrorBoundary.ErrorContent),
+                (RenderFragment<Exception>)(error => e => e.AddMarkupContent(0, $"<p data-reported>{error.GetType().Name}</p>")));
+            b.CloseComponent();
+        });
+        var tree = cut.FindComponent<BaseTree<Node>>();
 
-        // Default ItemSize is 36; a measured 50px row is a misconfiguration.
-        Assert.Throws<InvalidOperationException>(() => cut.Instance.OnVirtualMeasure(50));
+        // Default ItemSize is 36; a measured 50px row is a misconfiguration. The call itself
+        // returns: nothing is thrown back at the script.
+        await cut.InvokeAsync(() => tree.Instance.OnVirtualMeasure(50));
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal("InvalidOperationException", cut.Find("[data-reported]").TextContent));
     }
 
     [Fact]

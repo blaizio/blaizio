@@ -79,18 +79,41 @@ public class PopoverRenderTests : BunitContext
     }
 
     [Fact]
-    public void Escape_on_content_closes_via_handshake()
+    public void Escape_closes_via_handshake()
     {
         var cut = Render<BasePopover>(p => p.AddChildContent(Body()));
         cut.Find("button").Click(); // open (uncontrolled, so SetOpen drives the internal state)
         Assert.Single(cut.FindAll("[role=dialog]"));
 
-        cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        // Escape arrives through the dismissable layer: the script calls the topmost surface.
         var contentComponent = cut.FindComponent<BasePopoverContent>();
+        cut.InvokeAsync(() => contentComponent.Instance.OnDismissRequested());
         Assert.Equal("closed", contentComponent.Find("[role=dialog]").GetAttribute("data-state"));
 
         cut.InvokeAsync(() => contentComponent.Instance.OnCloseFinished());
         Assert.Empty(cut.FindAll("[role=dialog]"));
+    }
+
+    [Fact]
+    public void An_Escape_a_control_inside_already_used_does_not_close_the_popover()
+    {
+        var used = 0;
+        var cut = Render<BasePopover>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(b =>
+        {
+            b.OpenComponent<BasePopoverContent>(0);
+            b.AddComponentParameter(1, nameof(BasePopoverContent.ChildContent), (RenderFragment)(c =>
+            {
+                c.OpenElement(0, "input");
+                c.AddAttribute(1, "onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, _ => used++));
+                c.CloseElement();
+            }));
+            b.CloseComponent();
+        }));
+
+        cut.Find("input").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+
+        Assert.Equal(1, used);
+        Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
     }
 
     [Fact]

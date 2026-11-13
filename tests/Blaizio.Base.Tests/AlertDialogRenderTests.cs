@@ -63,7 +63,8 @@ public class AlertDialogRenderTests : BunitContext
         var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
-        cut.Find("[role=alertdialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        // Escape arrives through the dismissable layer, as for every dialog.
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
 
         Assert.Equal("closed", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
     }

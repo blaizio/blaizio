@@ -52,6 +52,11 @@ public class DialogRenderTests : BunitContext
         builder.CloseComponent();
     };
 
+    // Escape reaches a dialog through the dismissable layer (the script calls OnDismissRequested
+    // on the topmost surface), not through a key handler on the content.
+    private static void Escape(IRenderedComponent<BaseDialog> cut) =>
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+
     [Fact]
     public void Portaled_surfaces_carry_the_portal_marker_and_inline_ones_do_not()
     {
@@ -142,10 +147,68 @@ public class DialogRenderTests : BunitContext
         var cut = Render<BaseDialog>(p => p.AddChildContent(Parts()));
         cut.Find("button").Click();
 
-        cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        Escape(cut);
 
         Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
         Assert.Equal("false", cut.FindAll("button")[0].GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
+    public void An_Escape_a_control_inside_already_used_does_not_close_the_dialog()
+    {
+        // A field that keeps Escape for itself (a list it closes, an edit it cancels). The key
+        // still bubbles through the dialog's content, which used to close on any Escape it saw.
+        var used = 0;
+        var cut = Render<BaseDialog>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(b =>
+            {
+                b.OpenComponent<BaseDialogContent>(0);
+                b.AddComponentParameter(1, nameof(BaseDialogContent.ChildContent), (RenderFragment)(c =>
+                {
+                    c.OpenElement(0, "input");
+                    c.AddAttribute(1, "onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, _ => used++));
+                    c.CloseElement();
+                }));
+                b.CloseComponent();
+            }));
+
+        cut.Find("input").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+
+        Assert.Equal(1, used);
+        Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_dialog_joins_the_layer_stack_for_Escape_only()
+    {
+        var layers = JSInterop.SetupModule("./_content/blaizio.base/dist/dismissableLayer.js");
+        var cut = Render<BaseDialog>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Parts()));
+
+        // One layer, however often the open dialog renders again.
+        cut.Render();
+        var created = Assert.Single(layers.Invocations, i => i.Identifier == "createDismissableLayer");
+        var options = created.Arguments[2]!;
+        object? Option(string name) => options.GetType().GetProperty(name)!.GetValue(options);
+        Assert.Equal(true, Option("dismissOnEscape"));
+        // A press outside is the overlay's to judge; the layer only keeps a popover underneath
+        // from reading a press inside the dialog as a press outside itself.
+        Assert.Equal(false, Option("dismissOnOutsidePress"));
+    }
+
+    [Fact]
+    public void Escape_is_not_news_to_a_dialog_that_is_already_closing()
+    {
+        var changes = 0;
+        var cut = Render<BaseDialog>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.OpenChanged, (bool _) => changes++)
+            .AddChildContent(Parts()));
+
+        Escape(cut);
+        Escape(cut); // lands in the exit animation
+
+        Assert.Equal(1, changes);
     }
 
     [Fact]
@@ -167,7 +230,7 @@ public class DialogRenderTests : BunitContext
             .Add(x => x.DismissOnOutsideClick, false)
             .AddChildContent(Parts()));
 
-        cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        Escape(cut);
 
         Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
     }
@@ -262,7 +325,7 @@ public class DialogRenderTests : BunitContext
             }));
 
         // Begin closing (Escape); the exit "animation" is still playing, so nothing has fired yet.
-        cut.Find("[role=dialog]").KeyDown(new KeyboardEventArgs { Key = "Escape" });
+        Escape(cut);
         Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
         Assert.Equal(0, exited);
 
