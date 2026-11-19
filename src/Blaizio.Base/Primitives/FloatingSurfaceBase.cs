@@ -60,12 +60,6 @@ public abstract class FloatingSurfaceBase : PresenceSurfaceBase
     /// <summary>The factory of <c>ts/positioning.ts</c> that places this surface.</summary>
     private protected virtual string PositioningFactory => "createPositioning";
 
-    /// <summary>
-    /// Whether <c>data-side</c> and <c>data-align</c> start from what was asked for each time the
-    /// surface opens, instead of from what they held last.
-    /// </summary>
-    private protected virtual bool StartsFromRequestedPlacement => false;
-
     /// <summary>What <c>ts/dismissableLayer.ts</c> is created with.</summary>
     private protected virtual object DismissLayerOptions => new
     {
@@ -74,7 +68,9 @@ public abstract class FloatingSurfaceBase : PresenceSurfaceBase
         dismissOnEscape = DismissOnEscape,
     };
 
-    // Fields, as the menu surfaces declared them before this class existed.
+    // Fields, as the menu surfaces declared them before this class existed. The two values below
+    // are what a surface that is rendered while closed (the select listbox) says before it ever
+    // opened; every opening starts from the side and alignment that were asked for.
 
     /// <summary>The resolved placement side reported back by the positioning module (Blazor owns the attribute).</summary>
     protected string ResolvedSide = "bottom";
@@ -96,7 +92,6 @@ public abstract class FloatingSurfaceBase : PresenceSurfaceBase
 
     private protected override void OnOpening(bool reopened)
     {
-        if (!StartsFromRequestedPlacement) return;
         // Start from the side that was asked for: the first frame (the entry slide, the arrow)
         // is painted before the positioning script reports where the surface really landed.
         ResolvedSide = PreferredSide.ToAttribute();

@@ -9,6 +9,12 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Dropdown Menu, Context Menu, Menubar, Select, Combobox**: a surface says from its first frame
+  which side it opens to. `data-side` and `data-align` started as `bottom` and `start` whatever
+  was asked for (and, on a later opening, from wherever the last one ended up) until the
+  positioning script answered. A submenu, which opens to the side, or a menu with `Side="Top"`
+  began its entry slide from the wrong direction and changed it a moment later. Popover, Hover
+  Card and Tooltip already started from the side that was asked for.
 - **Dialog, Popover, Hover Card, Tooltip, Select, Combobox and the menus**: a surface taken off
   the page while one of its script modules was still loading no longer asks that module for an
   instance. The call was made for an element that was gone, and the error it ended in was raised
