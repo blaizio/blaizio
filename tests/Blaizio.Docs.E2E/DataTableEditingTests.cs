@@ -307,7 +307,7 @@ public sealed class DataTableEditingTests(DocsServerFixture fx)
     [E2EFact]
     public async Task A_tap_selects_and_a_tap_on_the_selected_cell_edits_it()
     {
-        var context = await fx.Browser.NewContextAsync(new()
+        var context = await fx.NewContextAsync(new BrowserNewContextOptions
         {
             ViewportSize = new ViewportSize { Width = 1280, Height = 800 },
             HasTouch = true,

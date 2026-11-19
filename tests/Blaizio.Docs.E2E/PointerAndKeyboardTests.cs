@@ -68,7 +68,7 @@ public sealed class PointerAndKeyboardTests(DocsServerFixture fx)
     {
         // A touch screen: the browser pans by itself unless the drawer refuses the move, and then
         // cancels the pointer after the first one.
-        await using var context = await fx.Browser.NewContextAsync(new()
+        await using var context = await fx.NewContextAsync(new BrowserNewContextOptions
         {
             ViewportSize = new ViewportSize { Width = 412, Height = 900 },
             HasTouch = true,
@@ -142,7 +142,7 @@ public sealed class PointerAndKeyboardTests(DocsServerFixture fx)
     [E2EFact]
     public async Task Menubar_tap_on_another_trigger_switches_menus_on_a_touch_screen()
     {
-        await using var context = await fx.Browser.NewContextAsync(new()
+        await using var context = await fx.NewContextAsync(new BrowserNewContextOptions
         {
             ViewportSize = new ViewportSize { Width = 900, Height = 900 },
             HasTouch = true,
