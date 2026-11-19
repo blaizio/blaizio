@@ -9,6 +9,15 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Select, Popover, Dialog, Alert Dialog, Sheet, Drawer**: a surface opened again while its exit
+  animation plays gets the keyboard focus back. The press that closed it (on its trigger, on the
+  page, on a dialog's backdrop) or the one that opened it again had moved focus out, and the
+  opening focus was placed only for a new surface. A select list reopened by a press on its
+  trigger was left with focus on the trigger: Escape and the arrows did nothing until the pointer
+  was used again. A popover or a dialog was open with focus behind it, so Tab started from the
+  page. Focus now goes where a first opening puts it (the selected option, the first field, or
+  the surface itself). Focus that is still inside stays where it is, and `OnOpenAutoFocus` is
+  raised again and can prevent the move. The menus already did this.
 - **Popover, Hover Card, Tooltip, Select, Combobox and the menus**: a surface opened again while
   its exit animation plays keeps the side it is really on. One that had flipped to stay in view
   (asked for the bottom, placed on top) went back to `data-side="bottom"` and kept saying so for

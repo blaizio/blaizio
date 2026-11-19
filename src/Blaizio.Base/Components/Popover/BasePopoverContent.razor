@@ -92,6 +92,10 @@
 
     protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
 
+    // Reopened while closing: the focus scope from the first opening stays and has placed its
+    // focus already. A press on the trigger or on the page had moved focus out since.
+    private protected override ValueTask RefocusAsync() => RefocusScopeAsync();
+
     protected override void OnInitialized() =>
         // The registry re-renders THIS content when a title/description (de)registers; guard against a
         // notify arriving after disposal.

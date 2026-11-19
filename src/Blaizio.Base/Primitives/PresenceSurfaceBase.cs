@@ -13,7 +13,10 @@ namespace Blaizio;
 /// <c>data-state="open"</c>. Closing: it stays rendered with <c>data-state="closed"</c> while the
 /// style's exit animation plays. Closed: <c>ts/presence.ts</c> reports the end of that animation
 /// (at once when the style has none) through <see cref="OnCloseFinished"/>, and the surface is
-/// removed. Opening again while it is closing keeps the same element and the same scripts.
+/// removed. Opening again while it is closing keeps the same element and the same scripts. Those
+/// place the opening focus once, so a surface that takes keyboard focus is then asked to take it
+/// back: the press that closed it, or the one that opened it again, has usually moved focus to
+/// the trigger or to the page.
 /// <para>
 /// Every script instance bound to the surface is held by a <see cref="JsInstance"/>: created
 /// once each time the surface appears, released when it has closed, and released for good with
@@ -28,6 +31,7 @@ namespace Blaizio;
 public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
 {
     private const string PresenceModule = "./_content/blaizio.base/dist/presence.js";
+    private const string FocusScopeModule = "./_content/blaizio.base/dist/focusScope.js";
 
     // Only the surfaces of this assembly build on the lifecycle.
     private protected PresenceSurfaceBase()
@@ -61,6 +65,8 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
 
     private IDisposable? _selfReference;
     private bool _releasePending;
+    // Opened again while closing, and not yet asked to take the focus back.
+    private bool _refocusPending;
 
     /// <summary>True once the component was disposed.</summary>
     private protected bool Disposed { get; private set; }
@@ -94,6 +100,8 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
             var reopened = Present;
             Present = true;
             Closing = false;
+            // Asked for after the render that shows the surface open again.
+            _refocusPending = reopened;
             OnOpening(reopened);
         }
         else if (!open && Present && !Closing)
@@ -101,6 +109,8 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
             // Stays rendered with data-state="closed" while the exit animation plays;
             // OnCloseFinished then removes it.
             Closing = true;
+            // Closed again before that render came: there is no open surface to put focus in.
+            _refocusPending = false;
         }
     }
 
@@ -123,11 +133,17 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
         Present = false;
         Closing = false;
         _releasePending = true;
+        _refocusPending = false;
     }
 
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // Taken before the first await: this method runs again on every render, and the request
+        // is made once.
+        var refocus = _refocusPending;
+        _refocusPending = false;
+
         if (_releasePending)
         {
             // The element went with the last render and the component stays. The instances were
@@ -142,6 +158,22 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
         // Claimed before any await: this method runs again on every render, and a slow module
         // import must not let a second pass create an instance twice.
         ClaimScripts();
+
+        if (refocus)
+        {
+            try
+            {
+                await RefocusAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already gone.
+            }
+            catch (ObjectDisposedException)
+            {
+                // The runtime was torn down under the call.
+            }
+        }
 
         await OnSurfaceRenderedAsync();
 
@@ -183,6 +215,32 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
     /// </summary>
     private protected virtual Task OnSurfaceRenderedAsync() => Task.CompletedTask;
 
+    /// <summary>
+    /// Puts keyboard focus back inside a surface that was opened again while it was closing,
+    /// where a first opening would put it. Runs once, after the render that shows the surface
+    /// open again and once its scripts are claimed. Not on a first opening (the scripts place
+    /// that focus when they are created), and not when the surface was closed again or taken
+    /// away before that render.
+    /// </summary>
+    /// <remarks>
+    /// Does nothing by default: a tooltip, a hover card and a combobox popup never hold focus,
+    /// and neither does a dialog's backdrop.
+    /// </remarks>
+    private protected virtual ValueTask RefocusAsync() => ValueTask.CompletedTask;
+
+    /// <summary>
+    /// <see cref="RefocusAsync"/> for a surface whose element is a <see cref="BaseFocusScope"/>:
+    /// the scope places its opening focus again. As on a first opening, focus that is inside
+    /// already stays where it is, and the handler that is asked before the opening focus can
+    /// prevent the rest.
+    /// </summary>
+    private protected async ValueTask RefocusScopeAsync()
+    {
+        var module = await JsModules.ImportAsync(Js, FocusScopeModule);
+        // By element: the scope instance belongs to the BaseFocusScope the surface renders.
+        if (!Disposed) await module.InvokeVoidAsync("refocus", Element);
+    }
+
     /// <summary>Called by the presence module once the exit animation has finished.</summary>
     [JSInvokable]
     public async Task OnCloseFinished()
@@ -216,6 +274,7 @@ public abstract class PresenceSurfaceBase : BzComponentBase, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         Disposed = true;
+        _refocusPending = false;
         // Instances only: the modules are shared through JsModules and outlive this component.
         await DisposeScriptsAsync();
         _selfReference?.Dispose();

@@ -79,6 +79,10 @@
 
     protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
 
+    // Reopened while closing: the focus scope from the first opening stays and has placed its
+    // focus already. A press on the backdrop had left focus on the page since.
+    private protected override ValueTask RefocusAsync() => RefocusScopeAsync();
+
     private protected override IDisposable CreateSelfReference() => DotNetObjectReference.Create(this);
 
     protected override void OnInitialized() =>

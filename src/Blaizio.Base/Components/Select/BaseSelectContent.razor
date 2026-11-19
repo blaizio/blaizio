@@ -187,6 +187,12 @@
         _focusScope.Claim(Js, FocusScopeModule, "createFocusScope", Element, SelfReference, options);
     }
 
+    // Reopened while closing: the list and its menu instance stay, and the instance places the
+    // opening focus once. A press on the trigger (the one that closed the list, or the one that
+    // opened it again) left focus on the trigger, which ignores Escape and the arrows while the
+    // list is open: the keyboard reached nothing until the pointer was used again.
+    private protected override ValueTask RefocusAsync() => _menu.InvokeVoidAsync("refocus");
+
     private protected override async Task FinishCloseAsync()
     {
         // Hide the surface again (options stay rendered for registration), then return focus to the
