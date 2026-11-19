@@ -635,6 +635,11 @@ lockstep under one version.
   the direction in their own `dir` attribute and charts follow it; they used to follow a provider
   only. Nothing is cascaded when the option is left unset, and `dir` is never put on the
   document: the page's direction stays the app's to set.
+- **Base**: `BaseHiddenInput` renders a control's value as hidden inputs under a form field name
+  (one per value; nothing without a name, for a disabled control, or for no value), and the Base
+  controls that own a value take `Name` and render it: Switch, Checkbox, Radio Group, Slider,
+  Toggle Group, Input Tags, Input Number, Select, Combobox. `BaseInputOtp` puts `Name` on its own
+  input.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with

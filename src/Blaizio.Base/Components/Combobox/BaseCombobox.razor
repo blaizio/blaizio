@@ -19,6 +19,11 @@
 <CascadingValue Value="@BuildContext()" IsFixed="false">
     @ChildContent
 </CascadingValue>
+@if (Name is not null)
+{
+    @* One input per value when several can be selected, else the one value. *@
+    <BaseHiddenInput Name="@Name" Value="@(Multiple ? null : _value.Value)" Values="@(Multiple ? _values.Value : null)" Disabled="@Disabled" />
+}
 
 @code {
     /// <summary>Controlled selected value (single-select). Leave <see langword="null"/> for uncontrolled; bind with <c>@bind-Value</c>.</summary>
@@ -88,6 +93,12 @@
 
     /// <summary>Disable the whole combobox.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the selected value (one input per value when several can be selected). The text in the input is the search, and is not posted, so the control
+    /// takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>The input (or chips), content, and the rest of the parts.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

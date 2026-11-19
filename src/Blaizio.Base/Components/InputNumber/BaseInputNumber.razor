@@ -23,6 +23,10 @@
 <CascadingValue Value="@BuildContext()" IsFixed="false">
     @ChildContent
 </CascadingValue>
+@if (Name is not null)
+{
+    <BaseHiddenInput Name="@Name" Value="@(_value.Value?.ToString(CultureInfo.InvariantCulture))" Disabled="@Disabled" />
+}
 
 @code {
     /// <summary>Controlled value. For a nullable <typeparamref name="TValue"/>, <see langword="null"/> is an empty field; bind with <c>@bind-Value</c>.</summary>
@@ -58,6 +62,12 @@
 
     /// <summary>Disables the whole field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the number, written the way a native number input writes it (<c>1234.5</c>: no grouping, no format, whatever the culture). The visible input shows formatted text and is not posted. An empty field posts nothing, so the control
+    /// takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Show the value but block any change.</summary>
     [Parameter] public bool ReadOnly { get; set; }

@@ -1,0 +1,42 @@
+@namespace Blaizio
+@*
+    What a control that keeps its state in C# contributes to a plain HTML form post: a hidden input
+    per value, under the control's Name. A switch, a select or a slider is built from buttons and
+    spans, which a browser leaves out of a submitted form; this is the part it does send.
+
+    Renders nothing without a Name, and nothing for a disabled control (a browser does not submit
+    a disabled field either). A control with no value renders no input, so the name is absent from
+    the post, as it is for an unchecked native checkbox.
+*@
+
+@if (!string.IsNullOrEmpty(Name) && !Disabled)
+{
+    if (Values is not null)
+    {
+        foreach (var value in Values)
+        {
+            <input type="hidden" name="@Name" value="@value" />
+        }
+    }
+    else if (Value is not null)
+    {
+        <input type="hidden" name="@Name" value="@Value" />
+    }
+}
+
+@code {
+    /// <summary>The form field name. Nothing is rendered while it is unset.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>The value to post. <see langword="null"/> posts nothing.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    /// <summary>
+    /// The values of a control that holds several (a multi-select, a range slider): one input each,
+    /// all under <see cref="Name"/>, which is how a form binds a collection. Wins over <see cref="Value"/>.
+    /// </summary>
+    [Parameter] public IReadOnlyList<string>? Values { get; set; }
+
+    /// <summary>The control is disabled: nothing is posted.</summary>
+    [Parameter] public bool Disabled { get; set; }
+}
