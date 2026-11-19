@@ -13,6 +13,7 @@
 
 <CascadingValue Value="@_data" IsFixed="false">
     <BaseCombobox Value="@BaseValue"
+                Name="@Name"
                 DefaultValue="@BaseDefaultValue"
                 ValueChanged="@(ValueControlled ? _onBaseValue : default)"
                 SelectionMode="@SelectionMode"
@@ -100,6 +101,13 @@
 
     /// <summary>Disable the whole combobox.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the selected item's value (one input per item when several can be selected); the text in the input is the search and is not posted,
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>The input (or chips), content, and the rest of the parts.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

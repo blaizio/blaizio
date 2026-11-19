@@ -10,6 +10,7 @@
 *@
 
 <BaseSlider Value="@BaseValue"
+             Name="@Name"
              DefaultValue="@BaseDefault"
              ValueChanged="@BaseValueChanged"
              OnValueCommit="@OnValueCommit"
@@ -83,6 +84,13 @@
 
     /// <summary>Disables the slider.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the value, one input per thumb, written like a native number input (<c>12.5</c>, whatever the culture),
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Accessible name applied to the thumb(s). Also honours a splatted <c>aria-label</c>.</summary>
     [Parameter] public string? AriaLabel { get; set; }

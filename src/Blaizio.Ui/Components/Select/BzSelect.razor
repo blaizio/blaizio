@@ -15,6 +15,7 @@
 *@
 
 <BaseSelect Value="@Value"
+             Name="@Name"
              DefaultValue="@DefaultValue"
              ValueChanged="@ValueChanged"
              SelectionMode="@SelectionMode"
@@ -63,6 +64,13 @@
 
     /// <summary>Disables the whole select: the trigger renders inert and the listbox cannot open.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the selected value (one input per value when several can be selected),
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

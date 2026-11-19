@@ -640,6 +640,17 @@ lockstep under one version.
   controls that own a value take `Name` and render it: Switch, Checkbox, Radio Group, Slider,
   Toggle Group, Input Tags, Input Number, Select, Combobox. `BaseInputOtp` puts `Name` on its own
   input.
+- **Form posts**: `Name` on the controls that keep their value in C#, so they take part in a
+  plain `<form method="post">` on a statically rendered page, where they used to post nothing:
+  `BzSwitch` and `BzCheckbox` (`true` while on, nothing while off, like a native checkbox),
+  `BzRadioGroup`, `BzSelect`, `BzCombobox` and `BzToggleGroup` (the value, or one input per value),
+  `BzSlider` (one per thumb), `BzInputTags` (one per tag), `BzInputNumber`, `BzInputDate`,
+  `BzInputTime`, `BzInputOtp` and `BzInputColor`. Numbers, dates and times are written as the
+  matching native input writes them (`1234.5`, `2026-11-19`, `14:30`), whatever the culture or
+  display format. Input OTP, Input Color and the `Auto` face of Input Time are native inputs
+  already and simply take the name; the others render a hidden input. Without `Name` the markup
+  is what it was. A `name` attribute written on one of these controls is now this parameter: it
+  used to land on the control's own element, where it posted nothing.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with

@@ -39,11 +39,16 @@
     {
         <input @ref="_root" type="time" step="@StepSeconds" value="@NativeValueString" disabled="@Disabled"
                data-slot="input-time-input" data-bz-autofocus="@(AutoFocus ? "" : null)"
-               class="@NativeInputClasses" aria-label="@AriaLabel"
+               class="@NativeInputClasses" aria-label="@AriaLabel" name="@Name"
                @onchange="OnNativeChanged" @attributes="Attributes" />
     }
     else
     {
+        @if (Name is not null)
+        {
+            @* The segments are separate inputs: the time itself is posted from here, as the native input writes it. *@
+            <BaseHiddenInput Name="@Name" Value="@NativeValueString" Disabled="@Disabled" />
+        }
         @* Time reads left-to-right even in RTL copy, so the segment row pins its direction. *@
         <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-time-input"
              data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
@@ -110,6 +115,13 @@
 
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, the time is posted the way a native time input writes it (<c>14:30</c>, or <c>14:30:05</c> with <see cref="ShowSeconds"/>): by the native input itself on the <c>Auto</c> face, by a hidden input on the 12- and 24-hour faces. An empty field posts nothing from those,
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Accessible name for the native time input (Auto hour cycle). Defaults to "Time";
     /// an aria-label passed through <see cref="Attributes"/> takes precedence.</summary>

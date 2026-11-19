@@ -89,6 +89,20 @@ public sealed class GeneratorOptions
             // arrived in 0.3.6; with an older Base the row would be a tab stop no key activates.
             ["item"] = "0.3.6",
             ["marker"] = "0.3.6",
+            // Name (the control's value in a plain form post) arrived in 0.3.6: the Base control
+            // renders the hidden input, and Input Date / Input Time render BaseHiddenInput
+            // themselves. An older Base would take Name as a plain HTML attribute and post nothing.
+            // (Select and Input OTP, which got it too, are listed above.)
+            ["switch"] = "0.3.6",
+            ["checkbox"] = "0.3.6",
+            ["radio-group"] = "0.3.6",
+            ["slider"] = "0.3.6",
+            ["toggle-group"] = "0.3.6",
+            ["input-tags"] = "0.3.6",
+            ["input-number"] = "0.3.6",
+            ["combobox"] = "0.3.6",
+            ["input-date"] = "0.3.6",
+            ["input-time"] = "0.3.6",
         };
 
     /// <summary>
