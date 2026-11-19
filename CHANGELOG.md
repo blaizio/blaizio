@@ -393,6 +393,8 @@ lockstep under one version.
   to reflect over the enum on every render of every component.
 
 ### Added
+- **Focus scope**: `BaseFocusScope.OnOpenAutoFocus` and `OnCloseAutoFocus`, the names Dialog and
+  Popover content already use for the same two moments.
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
   the nav on pages added in the last couple of months, and previous and next arrows next to each
   page's title.
@@ -632,6 +634,8 @@ lockstep under one version.
   needs the new name.
 - **Combobox**: `BaseComboboxItemIndicator.KeepMounted` is `[Obsolete]` and forwards to the new
   `KeepRendered`.
+- **Focus scope**: `BaseFocusScope.OnMountAutoFocus` and `OnUnmountAutoFocus` are `[Obsolete]` and
+  forward to `OnOpenAutoFocus` and `OnCloseAutoFocus`.
 
 ### Fixed
 - **Base**: a table of contents with more sections than its box can show keeps the active section
