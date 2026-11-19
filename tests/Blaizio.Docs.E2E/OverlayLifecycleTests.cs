@@ -5,9 +5,10 @@ namespace Blaizio.Docs.E2E;
 
 /// <summary>
 /// The life of an overlay surface in a real page, at the points where bUnit has no say: a surface
-/// opened again while its exit animation plays, and a surface whose page goes away under it (open,
-/// or on its way out). Dialog, Sheet, Popover, Select, Combobox, the menus, Tooltip and Hover Card
-/// share one lifecycle (PresenceSurfaceBase), so each case runs over all of them.
+/// opened again while its exit animation plays (the same element, and the keyboard focus back
+/// inside it), and a surface whose page goes away under it (open, or on its way out). Dialog,
+/// Sheet, Popover, Select, Combobox, the menus, Tooltip and Hover Card share one lifecycle
+/// (PresenceSurfaceBase), so each case runs over all of them.
 /// </summary>
 [Collection("docs-e2e")]
 public sealed class OverlayLifecycleTests(DocsServerFixture fx)
@@ -31,6 +32,9 @@ public sealed class OverlayLifecycleTests(DocsServerFixture fx)
 
     // An exit animation long enough that the next step is certain to land inside it.
     private const string SlowExit = "[data-state=closed] { animation-duration: 1200ms !important; }";
+
+    // And one with room for two presses and a look at the page in between.
+    private const string VerySlowExit = "[data-state=closed] { animation-duration: 4000ms !important; }";
 
     /// <summary>The page, once Blazor answers clicks: the "On This Page" rail renders only then.</summary>
     private static async Task<(IPage Page, List<string> Errors)> OpenAsync(IBrowserContext context, string route)
@@ -108,14 +112,14 @@ public sealed class OverlayLifecycleTests(DocsServerFixture fx)
     }
 
     [E2ETheory]
-    [InlineData("docs/components/dialog", "[data-slot=dialog-trigger]", "[data-slot=dialog-content]", "escape")]
-    [InlineData("docs/components/sheet", "[data-slot=sheet-trigger]", "[data-slot=sheet-content]", "escape")]
-    [InlineData("docs/components/popover", "[data-slot=popover-trigger]", "[data-slot=popover-content]", "escape")]
-    [InlineData("docs/components/select", "[data-slot=select-trigger]", "[data-slot=select-content]:not([hidden])", "trigger")]
-    [InlineData("docs/components/dropdown-menu", "[data-slot=dropdown-menu-trigger]", "[data-slot=dropdown-menu-content]", "escape")]
-    [InlineData("docs/components/menubar", "[data-slot=menubar-trigger]", "[data-slot=menubar-content]", "escape")]
+    [InlineData("docs/components/dialog", "[data-slot=dialog-trigger]", "[data-slot=dialog-content]")]
+    [InlineData("docs/components/sheet", "[data-slot=sheet-trigger]", "[data-slot=sheet-content]")]
+    [InlineData("docs/components/popover", "[data-slot=popover-trigger]", "[data-slot=popover-content]")]
+    [InlineData("docs/components/select", "[data-slot=select-trigger]", "[data-slot=select-content]:not([hidden])")]
+    [InlineData("docs/components/dropdown-menu", "[data-slot=dropdown-menu-trigger]", "[data-slot=dropdown-menu-content]")]
+    [InlineData("docs/components/menubar", "[data-slot=menubar-trigger]", "[data-slot=menubar-content]")]
     public async Task A_surface_opened_again_while_it_closes_is_the_same_surface_and_still_closes(
-        string route, string triggerSelector, string surfaceSelector, string closeAgainWith)
+        string route, string triggerSelector, string surfaceSelector)
     {
         await using var context = await NewAnimatedContextAsync();
         var (page, errors) = await OpenAsync(context, route);
@@ -143,11 +147,208 @@ public sealed class OverlayLifecycleTests(DocsServerFixture fx)
         await Assertions.Expect(surface).ToBeVisibleAsync();
 
         await slow.EvaluateAsync("el => el.remove()");
-        if (closeAgainWith == "trigger") await trigger.EvaluateAsync("el => el.click()");
-        else await page.Keyboard.PressAsync("Escape");
+        await page.Keyboard.PressAsync("Escape");
         await Assertions.Expect(surface).ToHaveCountAsync(0);
         Assert.Equal("", await LeftoversAsync(page, surfaceSelector));
         Assert.Empty(errors);
+    }
+
+    // ---- focus: a press took it out, the reopening brings it back ----
+
+    // A point of the window a press can land on: the backdrop of a dialog, or a spot of the page
+    // that is no control and no part of a surface.
+    private static async Task<(float X, float Y)> PointAsync(IPage page, string kind)
+    {
+        var point = await page.EvaluateAsync<float[]>(
+            """
+            kind => {
+                const backdrop = el => el.matches('[data-slot$=-overlay]');
+                const quiet = el => !el.closest(
+                    'a, button, input, textarea, select, label, summary, [tabindex], [role], ' +
+                    '[contenteditable], [data-state]');
+                for (let y = 30; y < innerHeight - 10; y += 30) {
+                    for (let x = 10; x < innerWidth - 10; x += 40) {
+                        const el = document.elementFromPoint(x, y);
+                        if (el && (kind === 'backdrop' ? backdrop(el) : quiet(el))) return [x, y];
+                    }
+                }
+                return [];
+            }
+            """,
+            kind);
+        Assert.Equal(2, point.Length);
+        return (point[0], point[1]);
+    }
+
+    // A press of the mouse where the trigger is, whatever lies over it at that moment.
+    private static async Task PressAsync(IPage page, ILocator trigger)
+    {
+        var box = (await trigger.BoundingBoxAsync())!;
+        await page.Mouse.ClickAsync(box.X + box.Width / 2, box.Y + box.Height / 2);
+    }
+
+    // The close is a press that takes the focus out of the surface: on the trigger (focus goes to
+    // the trigger), on the page (focus goes to the page), on a dialog's backdrop (the same). The
+    // reopening is a press on the trigger where the trigger can be reached, and a click made from
+    // code where it lies under the backdrop (an app that opens its dialog from a shortcut).
+    [E2ETheory]
+    [InlineData("docs/components/select", "[data-slot=select-trigger]", "[data-slot=select-content]:not([hidden])", "trigger", "press")]
+    [InlineData("docs/components/select", "[data-slot=select-trigger]", "[data-slot=select-content]:not([hidden])", "page", "code")]
+    [InlineData("docs/components/popover", "[data-slot=popover-trigger]", "[data-slot=popover-content]", "trigger", "press")]
+    [InlineData("docs/components/popover", "[data-slot=popover-trigger]", "[data-slot=popover-content]", "page", "code")]
+    [InlineData("docs/components/dialog", "[data-slot=dialog-trigger]", "[data-slot=dialog-content]", "backdrop", "code")]
+    [InlineData("docs/components/sheet", "[data-slot=sheet-trigger]", "[data-slot=sheet-content]", "backdrop", "code")]
+    [InlineData("docs/components/dropdown-menu", "[data-slot=dropdown-menu-trigger]", "[data-slot=dropdown-menu-content]", "trigger", "press")]
+    [InlineData("docs/components/menubar", "[data-slot=menubar-trigger]", "[data-slot=menubar-content]", "trigger", "press")]
+    public async Task A_surface_opened_again_while_it_closes_has_the_focus_inside_and_answers_Escape(
+        string route, string triggerSelector, string surfaceSelector, string closeWithAPressOn, string openAgainWith)
+    {
+        await using var context = await NewAnimatedContextAsync();
+        var (page, errors) = await OpenAsync(context, route);
+        var trigger = page.Locator($"main {triggerSelector}").First;
+        var surface = page.Locator(surfaceSelector);
+
+        await OpenSurfaceAsync(page, triggerSelector, surfaceSelector, "click");
+        await page.WaitForFunctionAsync(
+            "s => document.querySelector(s)?.contains(document.activeElement)", surfaceSelector);
+        await page.WaitForTimeoutAsync(400); // the entry animation, and the focus placed for good
+        // Where a first opening puts the focus: the selected option, the first field, the
+        // surface itself.
+        await page.EvaluateAsync("() => document.activeElement.setAttribute('data-opening-focus', '')");
+        var slow = await page.AddStyleTagAsync(new() { Content = VerySlowExit });
+        await surface.EvaluateAsync("el => el.setAttribute('data-first-opening', '')");
+
+        if (closeWithAPressOn == "trigger")
+        {
+            await PressAsync(page, trigger);
+        }
+        else
+        {
+            var (x, y) = await PointAsync(page, closeWithAPressOn);
+            await page.Mouse.ClickAsync(x, y);
+        }
+
+        await Assertions.Expect(surface).ToHaveAttributeAsync("data-state", "closed");
+        // What the case is about: the press took the focus out of the closing surface.
+        Assert.False(await page.EvaluateAsync<bool>(
+            "s => document.querySelector(s).contains(document.activeElement)", surfaceSelector));
+
+        if (openAgainWith == "press") await PressAsync(page, trigger);
+        else await trigger.EvaluateAsync("el => el.click()");
+        await Assertions.Expect(surface).ToHaveAttributeAsync("data-state", "open");
+        // The element from before, not a new one.
+        await Assertions.Expect(surface).ToHaveAttributeAsync("data-first-opening", "");
+
+        // The focus is back where the first opening had put it. It used to stay on the trigger or
+        // on the page: Tab started from behind the open surface, and an open select list took no
+        // key at all, Escape included.
+        await page.WaitForFunctionAsync(
+            "() => document.activeElement?.hasAttribute('data-opening-focus')", null, new() { Timeout = 5_000 });
+
+        await slow.EvaluateAsync("el => el.remove()");
+        await page.Keyboard.PressAsync("Escape");
+        await Assertions.Expect(surface).ToHaveCountAsync(0);
+        Assert.Equal("", await LeftoversAsync(page, surfaceSelector));
+        Assert.Empty(errors);
+    }
+
+    [E2EFact]
+    public async Task A_focus_scope_asked_again_places_the_focus_as_its_first_opening_would()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await DocsServerFixture.OpenAsync(context, "docs/components/button");
+
+        // The built module over markup made for the test, with a stand-in for the .NET reference
+        // that answers the question the scope asks before it places the focus.
+        var seen = await page.EvaluateAsync<string[]>(
+            """
+            async () => {
+                const { createFocusScope, refocus } =
+                    await import(new URL('_content/blaizio.base/dist/focusScope.js', document.baseURI).href);
+                const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+                const host = document.createElement('div');
+                host.innerHTML = `
+                    <button id="outside">outside</button>
+                    <div id="scope" tabindex="-1">
+                        <button id="first">first</button><button id="second">second</button>
+                    </div>
+                    <div id="bare" tabindex="-1"><p>nothing to tab to</p></div>
+                    <div id="other" tabindex="-1"><button id="inner">inner</button></div>`;
+                document.body.append(host);
+                const $ = id => document.getElementById(id);
+                const where = () =>
+                    document.activeElement === document.body ? 'page' : document.activeElement.id;
+                const net = {
+                    asked: 0,
+                    prevent: false,
+                    invokeMethodAsync() { this.asked++; return Promise.resolve(this.prevent); },
+                };
+                const silent = { invokeMethodAsync: () => Promise.resolve(false) };
+                const options = {
+                    loop: false, trapped: false, hasMountAutoFocus: true, hasUnmountAutoFocus: false,
+                };
+                const plain = { ...options, hasMountAutoFocus: false };
+                const seen = [];
+                const again = async id => { refocus($(id)); await sleep(80); };
+
+                $('outside').focus();
+                const scope = createFocusScope($('scope'), net, options);
+                await sleep(200);
+                seen.push(`first opening: ${where()}, asked ${net.asked}`);
+
+                $('outside').focus(); // a press on the trigger
+                await again('scope');
+                seen.push(`focus on the trigger: ${where()}, asked ${net.asked}`);
+
+                $('second').focus();
+                await again('scope');
+                seen.push(`focus inside already: ${where()}, asked ${net.asked}`);
+
+                net.prevent = true;
+                $('outside').focus();
+                await again('scope');
+                seen.push(`prevented by the handler: ${where()}, asked ${net.asked}`);
+                net.prevent = false;
+
+                const bare = createFocusScope($('bare'), silent, plain);
+                await sleep(200);
+                seen.push(`nothing to tab to, first opening: ${where()}`);
+                document.activeElement.blur(); // a press on the page
+                await again('bare');
+                seen.push(`nothing to tab to, focus on the page: ${where()}`);
+
+                $('outside').focus();
+                await again('scope'); // under the scope that was created after it
+                seen.push(`under another scope: ${where()}`);
+                $('outside').focus();
+                await bare.dispose();
+
+                const passive = createFocusScope($('other'), silent, { ...plain, passive: true });
+                await again('other');
+                seen.push(`passive scope: ${where()}`);
+                await passive.dispose();
+                await again('other');
+                seen.push(`no scope on the element: ${where()}`);
+
+                await scope.dispose();
+                host.remove();
+                return seen;
+            }
+            """);
+
+        Assert.Equal(
+            [
+                "first opening: first, asked 1",
+                "focus on the trigger: first, asked 2",
+                "focus inside already: second, asked 2",
+                "prevented by the handler: outside, asked 3",
+                "nothing to tab to, first opening: bare",
+                "nothing to tab to, focus on the page: bare",
+                "under another scope: outside",
+                "passive scope: outside",
+                "no scope on the element: outside",
+            ],
+            seen);
     }
 
     [E2ETheory]
