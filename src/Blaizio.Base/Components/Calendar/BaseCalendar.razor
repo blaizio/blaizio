@@ -171,11 +171,18 @@
 
     protected override void OnParametersSet()
     {
-        _single.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
-        _multiple.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
-        _range.Sync(RangeChanged.HasDelegate, Range, DefaultRange);
+        _single.Sync(ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null), Value, DefaultValue);
+        _multiple.Sync(
+            ControllableState.IsControlled(Values is not null, ValuesChanged.HasDelegate, DefaultValues is not null),
+            Values ?? [],
+            DefaultValues ?? []);
+        // A range cannot be null: it is set when it has a start or an end (it differs from the empty range).
+        _range.Sync(
+            ControllableState.IsControlled(ControllableState.IsSet(Range), RangeChanged.HasDelegate, ControllableState.IsSet(DefaultRange)),
+            Range,
+            DefaultRange);
         _month.Sync(
-            MonthChanged.HasDelegate,
+            ControllableState.IsControlled(Month is not null, MonthChanged.HasDelegate, DefaultMonth is not null),
             System.FirstOfMonth(Month ?? EffectiveToday),
             System.FirstOfMonth(DefaultMonth ?? InitialAnchor()));
     }
@@ -185,7 +192,7 @@
     {
         CalendarMode.Single => DefaultValue ?? Value ?? EffectiveToday,
         CalendarMode.Multiple => (DefaultValues ?? Values)?.OrderBy(d => d).FirstOrDefault() is { } d && d != default ? d : EffectiveToday,
-        CalendarMode.Range => (RangeChanged.HasDelegate ? Range.Start : DefaultRange.Start) ?? Range.Start ?? EffectiveToday,
+        CalendarMode.Range => (_range.IsControlled ? Range.Start : DefaultRange.Start) ?? Range.Start ?? EffectiveToday,
         _ => EffectiveToday,
     };
 

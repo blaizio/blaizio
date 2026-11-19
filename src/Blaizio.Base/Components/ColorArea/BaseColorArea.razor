@@ -45,7 +45,10 @@
     private ColorAreaContext Context => new(_state.Value.X, _state.Value.Y, Disabled);
 
     protected override void OnParametersSet() =>
-        _state.Sync(ValueChanged.HasDelegate, Value ?? default, DefaultValue ?? default);
+        _state.Sync(
+            ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null),
+            Value ?? default,
+            DefaultValue ?? default);
 
     /// <summary>ts/colorArea.ts calls this with a proposed pair; C# clamps both axes.</summary>
     [JSInvokable]

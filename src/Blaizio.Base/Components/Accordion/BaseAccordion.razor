@@ -68,11 +68,14 @@
 
     protected override void OnInitialized() => _baseId = Identifier.Create("accordion");
 
-    // Controlled when the consumer binds the active mode's value; both modes share one
-    // list-shaped state - single is the zero-or-one case (same approach as BaseToggleGroup).
+    // Controlled by the one rule (ControllableState.IsControlled), read off the active mode's
+    // parameters; both modes share one list-shaped state - single is the zero-or-one case (same
+    // approach as BaseToggleGroup).
     protected override void OnParametersSet() =>
         _state.Sync(
-            Single ? ValueChanged.HasDelegate : ValuesChanged.HasDelegate,
+            Single
+                ? ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null)
+                : ControllableState.IsControlled(Values is not null, ValuesChanged.HasDelegate, DefaultValues is not null),
             Single ? AsList(Value) : Values ?? [],
             Single ? AsList(DefaultValue) : DefaultValues ?? []);
 

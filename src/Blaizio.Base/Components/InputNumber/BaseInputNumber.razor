@@ -103,8 +103,11 @@
 
     protected override void OnParametersSet()
     {
+        // TValue may not be nullable, so "set" is "differs from the type's default" (null for a
+        // nullable TValue, zero otherwise): a one-way Value="0" on a plain int reads as unset.
         _value.Sync(
-            ValueChanged.HasDelegate,
+            ControllableState.IsControlled(
+                ControllableState.IsSet(Value), ValueChanged.HasDelegate, ControllableState.IsSet(DefaultValue)),
             InputNumberValue<TValue>.ToDecimal(Value),
             InputNumberValue<TValue>.ToDecimal(DefaultValue));
         var current = _value.Value;

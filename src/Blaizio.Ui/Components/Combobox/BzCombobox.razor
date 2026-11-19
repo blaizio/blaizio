@@ -14,11 +14,11 @@
 <CascadingValue Value="@_data" IsFixed="false">
     <BaseCombobox Value="@BaseValue"
                 DefaultValue="@BaseDefaultValue"
-                ValueChanged="@(ValueControlled ? _onBaseValue : default)"
+                ValueChanged="@(ValueChanged.HasDelegate ? _onBaseValue : default)"
                 SelectionMode="@SelectionMode"
                 Values="@BaseValues"
                 DefaultValues="@BaseDefaultValues"
-                ValuesChanged="@(ValuesControlled ? _onBaseValues : default)"
+                ValuesChanged="@(ValuesChanged.HasDelegate ? _onBaseValues : default)"
                 Open="@Open"
                 DefaultOpen="@DefaultOpen"
                 OpenChanged="@OpenChanged"
@@ -109,11 +109,18 @@
     private EventCallback<string?> _onBaseValue;
     private EventCallback<IReadOnlyList<string>> _onBaseValues;
 
-    private bool ValueControlled => ValueChanged.HasDelegate;
-    private bool ValuesControlled => ValuesChanged.HasDelegate;
+    // The one controlled rule (ControllableState.IsControlled), applied to the items here because
+    // the engine only sees their strings. An item is set when it differs from TItem's default: not
+    // null, or not zero for a value type.
+    private bool ValueControlled => ControllableState.IsControlled(
+        ControllableState.IsSet(Value), ValueChanged.HasDelegate, ControllableState.IsSet(DefaultValue));
+    private bool ValuesControlled =>
+        ControllableState.IsControlled(Values is not null, ValuesChanged.HasDelegate, DefaultValues is not null);
 
     // Bridge the controlled facets to the engine's strings; leave the rest for the engine to seed from
-    // Default* (a default ValueChanged means the engine owns the state uncontrolled, as usual).
+    // Default*. The engine applies the same rule to what it is handed, so each facet reaches it in a
+    // shape it reads the same way: a controlled one as a value with no default, an uncontrolled one
+    // as a default with no value.
     private string? BaseValue => ValueControlled && Value is { } v ? Str(v) : null;
     private string? BaseDefaultValue => ValueControlled || DefaultValue is not { } d ? null : Str(d);
     private IReadOnlyList<string>? BaseValues => ValuesControlled ? (Values ?? []).Select(Str).ToList() : null;

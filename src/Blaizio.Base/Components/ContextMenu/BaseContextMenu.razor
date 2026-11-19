@@ -62,7 +62,8 @@
 
     protected override void OnInitialized() => _baseId = Identifier.Create("context-menu");
 
-    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+    protected override void OnParametersSet() =>
+        _state.Sync(ControllableState.IsControlled(Open.HasValue, OpenChanged.HasDelegate, defaultSupplied: true), Open ?? false, DefaultOpen);
 
     private Task OpenAtPointAsync(MenuPoint point)
     {

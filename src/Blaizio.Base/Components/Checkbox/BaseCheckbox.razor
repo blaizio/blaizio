@@ -67,7 +67,10 @@ else
     private CheckboxContext Context => new(_state.Value, Disabled);
 
     protected override void OnParametersSet() =>
-        _state.Sync(Checked.HasValue, Checked ?? CheckedState.Unchecked, DefaultChecked);
+        _state.Sync(
+            ControllableState.IsControlled(Checked.HasValue, CheckedChanged.HasDelegate, defaultSupplied: true),
+            Checked ?? CheckedState.Unchecked,
+            DefaultChecked);
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

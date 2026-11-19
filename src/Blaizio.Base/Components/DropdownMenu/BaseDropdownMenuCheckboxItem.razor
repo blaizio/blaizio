@@ -42,7 +42,8 @@
     private readonly ControllableState<bool> _state = new();
     private bool IsChecked => _state.Value;
 
-    protected override void OnParametersSet() => _state.Sync(Checked.HasValue, Checked ?? false, DefaultChecked);
+    protected override void OnParametersSet() =>
+        _state.Sync(ControllableState.IsControlled(Checked.HasValue, CheckedChanged.HasDelegate, defaultSupplied: true), Checked ?? false, DefaultChecked);
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

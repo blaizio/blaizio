@@ -115,11 +115,13 @@
     // The multi-thumb surface (Values / DefaultValues / @bind-Values) versus the single-thumb one.
     private bool Multi => Values is not null || DefaultValues is not null || ValuesChanged.HasDelegate;
 
-    // Controlled when the consumer binds either surface; otherwise the primitive keeps its own state.
-    private bool Controlled => ValueChanged.HasDelegate || ValuesChanged.HasDelegate;
+    // Whether the consumer listens on either surface.
+    private bool ListenerBound => ValueChanged.HasDelegate || ValuesChanged.HasDelegate;
 
-    private IReadOnlyList<double>? BaseValue =>
-        !Controlled ? null : Multi ? (Values ?? [Min]) : [Value ?? Min];
+    // What the consumer set on the active surface, null when they set nothing there. The primitive
+    // decides controlled or not from this, the default and the listener (ControllableState.IsControlled),
+    // so the wrapper only has to hand all three over as they are.
+    private IReadOnlyList<double>? BaseValue => Multi ? Values : Value is double value ? [value] : null;
 
     private IReadOnlyList<double>? BaseDefault =>
         Multi ? (DefaultValues is { Count: > 0 } dv ? dv : null) : (DefaultValue is double d ? [d] : null);
@@ -128,7 +130,7 @@
     private int ThumbCount => Multi ? ((Values ?? DefaultValues)?.Count ?? 1) : 1;
 
     private EventCallback<IReadOnlyList<double>> BaseValueChanged =>
-        Controlled ? EventCallback.Factory.Create<IReadOnlyList<double>>(this, OnBaseValueChanged) : default;
+        ListenerBound ? EventCallback.Factory.Create<IReadOnlyList<double>>(this, OnBaseValueChanged) : default;
 
     private Task OnBaseValueChanged(IReadOnlyList<double> values) =>
         Multi ? ValuesChanged.InvokeAsync(values)

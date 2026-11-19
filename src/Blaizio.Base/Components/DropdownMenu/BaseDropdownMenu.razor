@@ -44,7 +44,8 @@
 
     protected override void OnInitialized() => _baseId = Identifier.Create("dropdown-menu");
 
-    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+    protected override void OnParametersSet() =>
+        _state.Sync(ControllableState.IsControlled(Open.HasValue, OpenChanged.HasDelegate, defaultSupplied: true), Open ?? false, DefaultOpen);
 
     // The trigger records HOW it opened (click vs ArrowDown vs ArrowUp); the content reads the intent
     // to decide whether to focus the surface, the first item, or the last.

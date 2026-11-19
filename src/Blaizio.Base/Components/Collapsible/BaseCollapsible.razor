@@ -35,7 +35,10 @@
     protected override void OnInitialized() => _contentId = $"{Identifier.Create("collapsible")}-content";
 
     protected override void OnParametersSet() =>
-        _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+        _state.Sync(
+            ControllableState.IsControlled(Open.HasValue, OpenChanged.HasDelegate, defaultSupplied: true),
+            Open ?? false,
+            DefaultOpen);
 
     private Task ToggleAsync() =>
         Disabled ? Task.CompletedTask : _state.SetAsync(!_state.Value, OpenChanged);

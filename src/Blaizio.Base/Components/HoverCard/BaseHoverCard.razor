@@ -65,7 +65,8 @@
         _coordinator = Services.GetService<HoverCardCoordinator>();
     }
 
-    protected override void OnParametersSet() => _state.Sync(Open.HasValue, Open ?? false, DefaultOpen);
+    protected override void OnParametersSet() =>
+        _state.Sync(ControllableState.IsControlled(Open.HasValue, OpenChanged.HasDelegate, defaultSupplied: true), Open ?? false, DefaultOpen);
 
     // Pointer entered / focus landed: open after the delay (cancelling any pending close). Already
     // open -> the cancel alone keeps it open (e.g. crossing from the trigger onto the content).

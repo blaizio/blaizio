@@ -664,11 +664,19 @@
             if (SelectedItems is not null) _selected = new HashSet<TItem>(SelectedItems, _rowComparer);
         }
 
-        _sort.Sync(SortChanged.HasDelegate, Sort, DefaultSort);
-        _filter.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
-        _page.Sync(PageChanged.HasDelegate, Page, DefaultPage);
-        _widths.Sync(ColumnWidthsChanged.HasDelegate, ColumnWidths, DefaultColumnWidths);
-        _order.Sync(ColumnOrderChanged.HasDelegate, ColumnOrder, DefaultColumnOrder);
+        _sort.Sync(ControllableState.IsControlled(Sort is not null, SortChanged.HasDelegate, DefaultSort is not null), Sort, DefaultSort);
+        _filter.Sync(ControllableState.IsControlled(Search is not null, SearchChanged.HasDelegate, DefaultSearch is not null), Search, DefaultSearch);
+        // Page cannot be null: pages are 1-based, so 0 is "not set", and a DefaultPage of 1 is the
+        // same as none.
+        _page.Sync(ControllableState.IsControlled(Page > 0, PageChanged.HasDelegate, DefaultPage != 1), Page, DefaultPage);
+        _widths.Sync(
+            ControllableState.IsControlled(ColumnWidths is not null, ColumnWidthsChanged.HasDelegate, DefaultColumnWidths is not null),
+            ColumnWidths,
+            DefaultColumnWidths);
+        _order.Sync(
+            ControllableState.IsControlled(ColumnOrder is not null, ColumnOrderChanged.HasDelegate, DefaultColumnOrder is not null),
+            ColumnOrder,
+            DefaultColumnOrder);
 
         // In-memory: run the filter/sort/page pipeline now. Server-driven: just refresh the column set;
         // the data is fetched asynchronously in OnParametersSetAsync (and on sort/filter/page changes).

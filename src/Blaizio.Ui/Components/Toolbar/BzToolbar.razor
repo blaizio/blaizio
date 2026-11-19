@@ -142,7 +142,10 @@
     private bool IsExpanded => _expanded.Value;
 
     protected override void OnParametersSet()
-        => _expanded.Sync(Expanded is not null, Expanded ?? false, DefaultExpanded);
+        => _expanded.Sync(
+            ControllableState.IsControlled(Expanded.HasValue, ExpandedChanged.HasDelegate, defaultSupplied: true),
+            Expanded ?? false,
+            DefaultExpanded);
 
     private Task SetExpandedAsync(bool expanded) => _expanded.SetAsync(expanded, ExpandedChanged);
 

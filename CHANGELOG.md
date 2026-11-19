@@ -337,6 +337,36 @@ lockstep under one version.
   added after the first render joins at the end of the order.
 
 ### Changed
+- **Controlled or uncontrolled: one rule for every component.** A value is controlled when it is
+  set, or when its change callback is bound and no default was given. Components followed one of
+  two older rules ("a callback is bound" or "the value is not null") and each got a case wrong.
+  What changes:
+  - A value passed one-way (`Value="x"` with no `ValueChanged`) is shown and held. It was ignored,
+    so the component showed nothing and kept its own state. This covers Tabs, Select, Combobox,
+    Accordion, Toggle Group, Radio Group, Menubar, the menu radio groups, Calendar, Color Area,
+    Slider, Input OTP, Input Tags, Input Number, Input Color, Input Date, Input Time, the search
+    text of Command, Combobox and Input Tags, and the Data Table's sort, search, page, column
+    widths and column order. For a starting value the user can change, pass `DefaultValue`.
+  - A default next to a callback (`DefaultValue="a" ValueChanged="Log"`) only listens: the
+    component starts from the default and moves on its own. It was controlled with no value, so
+    the selection never moved. Same components, plus Navigation Menu and the Tree's single
+    selection.
+  - Tree: `@bind-ExpandedValues`, `@bind-SelectedValues` and `@bind-CheckedValues` on a list that
+    is still null are controlled from the start, and passing null again empties the tree. The
+    binding started uncontrolled. The other side of it: a callback alone on those three
+    (`CheckedValuesChanged="Save"`, no value and no default) is now controlled, as it already was
+    on every component above, so nothing moves until the value comes back. To only listen, add
+    the default: `DefaultCheckedValues="@([])"`.
+  - Unchanged: `Open`, `Checked`, `Pressed`, `Expanded`, `SelectedIndex` and the Color Picker's
+    color. Only a value controls them, and a callback alone still only listens.
+  - A binding next to a default (`@bind-Value` with `DefaultValue`) starts from the default while
+    the bound field is empty. An Accordion or Toggle Group bound that way can still close its
+    last item. Limits: a parent cannot clear such a value by setting the field to null, and on a
+    number type that cannot be null a one-way `Value="0"` reads as not set.
+
+  The rule is `ControllableState.IsControlled` in Blaizio.Base, with `ControllableState.IsSet`
+  for values that cannot be null; both are public for your own components. Combobox, Color
+  Picker, Input Color, Input Date and Input Time call it and now need Blaizio.Base 0.3.6.
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
   components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
   style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset

@@ -52,7 +52,8 @@
 
     protected override void OnInitialized() => _copySource = Identifier.Create("code");
 
-    protected override void OnParametersSet() => _wrap.Sync(Wrap.HasValue, Wrap ?? false, false);
+    protected override void OnParametersSet() =>
+        _wrap.Sync(ControllableState.IsControlled(Wrap.HasValue, WrapChanged.HasDelegate, defaultSupplied: true), Wrap ?? false, false);
 
     private Task ToggleWrapAsync() => _wrap.SetAsync(!_wrap.Value, WrapChanged);
 

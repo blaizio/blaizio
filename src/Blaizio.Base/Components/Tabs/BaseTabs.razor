@@ -53,7 +53,10 @@
 
     // Controlled when the consumer binds the value; otherwise uncontrolled, seeded from DefaultValue.
     protected override void OnParametersSet() =>
-        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+        _state.Sync(
+            ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null),
+            Value,
+            DefaultValue);
 
     private Task SelectAsync(string tabValue) =>
         // Bridge the nullable internal state to the non-null public ValueChanged (tab values are never null).

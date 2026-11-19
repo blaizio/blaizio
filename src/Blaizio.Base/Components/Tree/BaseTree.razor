@@ -368,12 +368,20 @@
                 "near the viewport in the DOM, so a drag has no off-screen rows to hit-test or drop " +
                 "against. Turn off one of them.");
 
-        _expanded.Sync(ExpandedValues is not null, ExpandedValues ?? [], DefaultExpandedValues ?? []);
+        _expanded.Sync(
+            ControllableState.IsControlled(ExpandedValues is not null, ExpandedValuesChanged.HasDelegate, DefaultExpandedValues is not null),
+            ExpandedValues ?? [],
+            DefaultExpandedValues ?? []);
         _selection.Sync(
-            SelectionMode == SelectionMode.Single ? SelectedValue is not null || SelectedValueChanged.HasDelegate : SelectedValues is not null,
+            SelectionMode == SelectionMode.Single
+                ? ControllableState.IsControlled(SelectedValue is not null, SelectedValueChanged.HasDelegate, DefaultSelectedValue is not null)
+                : ControllableState.IsControlled(SelectedValues is not null, SelectedValuesChanged.HasDelegate, DefaultSelectedValues is not null),
             SelectionMode == SelectionMode.Single ? AsList(SelectedValue) : SelectedValues ?? [],
             SelectionMode == SelectionMode.Single ? AsList(DefaultSelectedValue) : DefaultSelectedValues ?? []);
-        _checked.Sync(CheckedValues is not null, CheckedValues ?? [], DefaultCheckedValues ?? []);
+        _checked.Sync(
+            ControllableState.IsControlled(CheckedValues is not null, CheckedValuesChanged.HasDelegate, DefaultCheckedValues is not null),
+            CheckedValues ?? [],
+            DefaultCheckedValues ?? []);
         Invalidate();
     }
 

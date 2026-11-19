@@ -38,7 +38,10 @@
     private readonly ControllableState<bool> _state = new();
 
     protected override void OnParametersSet() =>
-        _state.Sync(Pressed.HasValue, Pressed ?? false, DefaultPressed);
+        _state.Sync(
+            ControllableState.IsControlled(Pressed.HasValue, PressedChanged.HasDelegate, defaultSupplied: true),
+            Pressed ?? false,
+            DefaultPressed);
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

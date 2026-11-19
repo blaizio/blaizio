@@ -106,7 +106,10 @@
     private int _pendingTarget;
 
     protected override void OnParametersSet() =>
-        _index.Sync(SelectedIndex.HasValue, SelectedIndex ?? 0, DefaultSelectedIndex);
+        _index.Sync(
+            ControllableState.IsControlled(SelectedIndex.HasValue, SelectedIndexChanged.HasDelegate, defaultSupplied: true),
+            SelectedIndex ?? 0,
+            DefaultSelectedIndex);
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
