@@ -38,6 +38,7 @@
 
     private string _baseId = default!;
     private bool _closedWithRoot;
+    private bool _disposed;
     private readonly ControllableState<bool> _state = new();
     private MenuFocusIntent _focusIntent = MenuFocusIntent.None;
     private CancellationTokenSource? _openCts;
@@ -74,14 +75,18 @@
     // Immediate open (click / ArrowRight / Enter); cancels any pending hover-open first.
     private Task RequestOpenAsync(MenuFocusIntent intent)
     {
-        _openCts?.Cancel();
+        if (_disposed) return Task.CompletedTask;
+        CancelOpen();
         _focusIntent = intent;
         return _state.SetAsync(true, OpenChanged);
     }
 
+    // Also reached after this level is removed: the submenu panel's script outlives the component
+    // by a moment and reports the focus leaving the removed panel. Nothing is left to close then.
     private Task RequestCloseAsync()
     {
-        _openCts?.Cancel();
+        if (_disposed) return Task.CompletedTask;
+        CancelOpen();
         _focusIntent = MenuFocusIntent.None;
         return _state.SetAsync(false, OpenChanged);
     }
@@ -89,13 +94,21 @@
     // Fire-and-forget hover-open timer; the pointer leaving the trigger cancels it via CancelOpen.
     private void ScheduleOpen()
     {
-        if (_state.Value) return;
-        _openCts?.Cancel();
+        if (_disposed || _state.Value) return;
+        CancelOpen();
         _openCts = new CancellationTokenSource();
         _ = OpenAfterDelayAsync(_openCts.Token);
     }
 
-    private void CancelOpen() => _openCts?.Cancel();
+    // Each timer gets its own source, released here, so a cancelled one is never cancelled again.
+    private void CancelOpen()
+    {
+        var cts = _openCts;
+        _openCts = null;
+        if (cts is null) return;
+        cts.Cancel();
+        cts.Dispose();
+    }
 
     private async Task OpenAfterDelayAsync(CancellationToken token)
     {
@@ -120,7 +133,7 @@
 
     public void Dispose()
     {
-        _openCts?.Cancel();
-        _openCts?.Dispose();
+        _disposed = true;
+        CancelOpen();
     }
 }
