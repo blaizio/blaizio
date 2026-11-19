@@ -1,0 +1,114 @@
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Components.Forms
+@*
+    A form whose fields name their property each way BzField allows: For on the form's model, For
+    into a nested object, For through an indexer, Name alone, and For around a framework input that
+    notifies the EditContext by itself.
+*@
+
+<EditForm EditContext="@Context">
+    <DataAnnotationsValidator />
+
+    <BzField For="@(() => Model.Email)" data-testid="email">
+        <BzFieldControl Context="ctl">
+            <BzInputText @attributes="ctl" @bind-Value="Model.Email" />
+        </BzFieldControl>
+        <BzFieldError />
+    </BzField>
+
+    <BzField For="@(() => Model.Accept)" data-testid="accept">
+        <BzFieldControl Context="ctl">
+            <BzSwitch @attributes="ctl" @bind-Checked="Model.Accept" AriaLabel="Accept" />
+        </BzFieldControl>
+        <BzFieldError />
+    </BzField>
+
+    <BzField For="@(() => Model.Address.City)" data-testid="city">
+        <BzFieldControl Context="ctl">
+            <BzInputText @attributes="ctl" @bind-Value="Model.Address.City" />
+        </BzFieldControl>
+        <BzFieldError />
+    </BzField>
+
+    <BzField For="@(() => Model.Lines[0].Text)" data-testid="line">
+        <BzFieldControl Context="ctl">
+            <BzInputText @attributes="ctl" @bind-Value="Model.Lines[0].Text" />
+        </BzFieldControl>
+        <BzFieldError />
+    </BzField>
+
+    <BzField Name="@nameof(Signup.Nickname)" data-testid="nickname">
+        <BzFieldControl Context="ctl">
+            <BzInputText @attributes="ctl" @bind-Value="Model.Nickname" />
+        </BzFieldControl>
+        <BzFieldError />
+    </BzField>
+
+    <BzField For="@(() => Model.Phone)" data-testid="phone">
+        <InputText @bind-Value="Model.Phone" />
+        <BzFieldError />
+    </BzField>
+</EditForm>
+
+@code {
+    public Signup Model { get; private set; } = new();
+    public EditContext Context { get; private set; } = default!;
+
+    /// <summary>Every field the EditContext was told about, in order.</summary>
+    public List<string> Notified { get; } = [];
+
+    protected override void OnInitialized() => Use(Model);
+
+    /// <summary>Swaps the whole model, as loading another record does.</summary>
+    public void Load(Signup model)
+    {
+        Use(model);
+        StateHasChanged();
+    }
+
+    /// <summary>Writes a property from code and re-renders, as an app's own handler does.</summary>
+    public void Change(Action<Signup> change)
+    {
+        change(Model);
+        StateHasChanged();
+    }
+
+    private void Use(Signup model)
+    {
+        Model = model;
+        Context = new EditContext(model);
+        Context.OnFieldChanged += (_, e) => Notified.Add(e.FieldIdentifier.FieldName);
+    }
+
+    public class Signup
+    {
+        [Required(ErrorMessage = "Email is required.")]
+        [EmailAddress(ErrorMessage = "Email is not valid.")]
+        public string? Email { get; set; }
+
+        [Range(typeof(bool), "true", "true", ErrorMessage = "Accept the terms.")]
+        public bool Accept { get; set; }
+
+        public Address Address { get; set; } = new();
+
+        public List<Line> Lines { get; set; } = [new()];
+
+        [Required(ErrorMessage = "Nickname is required.")]
+        public string? Nickname { get; set; } = "ada";
+
+        [Required(ErrorMessage = "Phone is required.")]
+        public string? Phone { get; set; } = "555";
+    }
+
+    public class Address
+    {
+        [Required(ErrorMessage = "City is required.")]
+        public string? City { get; set; } = "Dubai";
+    }
+
+    public class Line
+    {
+        [Required(ErrorMessage = "Text is required.")]
+        public string? Text { get; set; } = "first";
+    }
+}
