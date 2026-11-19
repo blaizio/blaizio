@@ -1,0 +1,446 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzPanel: a side panel in normal flow that pushes its siblings. Closed it is zero-sized and
+    // inert; its size is a custom property, and a resize by the user wins over the Size parameter.
+
+    private const string PanelModule = "./_content/blaizio.base/dist/panel.js";
+
+    public PanelTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static readonly RenderFragment Parts =
+        @<text>
+            <BzPanelHeader><BzPanelTitle>Details</BzPanelTitle><BzPanelClose /></BzPanelHeader>
+            <BzPanelContent>Body</BzPanelContent>
+            <BzPanelFooter>Footer</BzPanelFooter>
+        </text>;
+
+    [Fact]
+    public void A_panel_is_closed_zero_sized_and_inert_until_it_is_opened()
+    {
+        var cut = Render<BzPanel>(p => p.AddChildContent(Parts));
+
+        var panel = cut.Find("aside[data-slot=panel]");
+        Assert.Equal("closed", panel.GetAttribute("data-state"));
+        // Nothing inside a closed panel can be tabbed to or read.
+        Assert.True(panel.HasAttribute("inert"));
+        Assert.Contains("w-0", panel.ClassList);
+        Assert.DoesNotContain("w-(--panel-size)", panel.ClassList);
+    }
+
+    [Fact]
+    public void An_open_panel_takes_its_size_and_is_reachable()
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Parts));
+
+        var panel = cut.Find("aside[data-slot=panel]");
+        Assert.Equal("open", panel.GetAttribute("data-state"));
+        Assert.False(panel.HasAttribute("inert"));
+        Assert.Contains("w-(--panel-size)", panel.ClassList);
+        Assert.DoesNotContain("w-0", panel.ClassList);
+        Assert.Equal("--panel-size:20rem", panel.GetAttribute("style"));
+    }
+
+    [Fact]
+    public void The_close_button_closes_an_uncontrolled_panel_and_reports_it()
+    {
+        var changes = new List<bool>();
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.OpenChanged, (bool open) => changes.Add(open))
+            .AddChildContent(Parts));
+
+        cut.Find("[data-slot=panel-close]").Click();
+
+        Assert.Equal([false], changes);
+        var panel = cut.Find("aside[data-slot=panel]");
+        Assert.Equal("closed", panel.GetAttribute("data-state"));
+        Assert.True(panel.HasAttribute("inert"));
+    }
+
+    [Fact]
+    public void A_controlled_panel_asks_to_close_and_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.Open, true)
+            .Add(x => x.OpenChanged, (bool open) => requests.Add(open))
+            .AddChildContent(Parts));
+
+        cut.Find("[data-slot=panel-close]").Click();
+        Assert.Equal([false], requests);
+        Assert.Equal("open", cut.Find("aside").GetAttribute("data-state"));
+
+        cut.Render(p => p.Add(x => x.Open, false));
+        Assert.Equal("closed", cut.Find("aside").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_close_button_is_a_named_ghost_icon_button()
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Parts));
+
+        var close = cut.Find("button[data-slot=panel-close]");
+        Assert.Equal("ghost", close.GetAttribute("data-variant"));
+        Assert.Equal("icon-sm", close.GetAttribute("data-size"));
+        Assert.Equal("button", close.GetAttribute("type"));
+        Assert.Equal("Close panel", close.QuerySelector(".sr-only")!.TextContent);
+        Assert.NotNull(close.QuerySelector("svg"));
+    }
+
+    [Fact]
+    public void The_close_button_takes_another_name_content_of_its_own_and_a_click_handler()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzPanel DefaultOpen="true">
+            <BzPanelClose id="named" Label="Hide details" Class="ms-auto" />
+            <BzPanelClose id="worded">Hide</BzPanelClose>
+            <BzPanelClose id="counted" @onclick="@(() => clicks++)" />
+        </BzPanel>);
+
+        var named = cut.Find("#named");
+        Assert.Equal("Hide details", named.QuerySelector(".sr-only")!.TextContent);
+        Assert.Contains("ms-auto", named.ClassList);
+        Assert.Contains("bz-panel-close", named.ClassList);
+        // Content of its own replaces the icon and the hidden label.
+        var worded = cut.Find("#worded");
+        Assert.Equal("Hide", worded.TextContent.Trim());
+        Assert.Null(worded.QuerySelector("svg"));
+
+        cut.Find("#counted").Click();
+        // The consumer's handler runs and the panel still closes.
+        Assert.Equal(1, clicks);
+        Assert.Equal("closed", cut.Find("aside").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_close_behaviour_renders_onto_another_element()
+    {
+        var cut = Render(@<BzPanel DefaultOpen="true">
+            <BzPanelClose>
+                <RenderAs Context="p"><a id="back" href="#" @attributes="p.Attributes">Back</a></RenderAs>
+            </BzPanelClose>
+        </BzPanel>);
+
+        cut.Find("a#back[data-slot=panel-close]").Click();
+
+        Assert.Equal("closed", cut.Find("aside").GetAttribute("data-state"));
+    }
+
+    [Theory]
+    [InlineData(PanelSide.Start, "start", "w-(--panel-size)", "h-full", "border-e")]
+    [InlineData(PanelSide.End, "end", "w-(--panel-size)", "h-full", "border-s")]
+    [InlineData(PanelSide.Top, "top", "h-(--panel-size)", "w-full", "border-b")]
+    [InlineData(PanelSide.Bottom, "bottom", "h-(--panel-size)", "w-full", "border-t")]
+    public void The_side_picks_the_axis_the_panel_pushes_along_and_the_edge_it_borders(
+        PanelSide side, string name, string size, string cross, string border)
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.DefaultOpen, true).Add(x => x.Side, side).AddChildContent(Parts));
+
+        var panel = cut.Find("aside");
+        Assert.Equal(name, panel.GetAttribute("data-side"));
+        Assert.Contains(size, panel.ClassList);
+        Assert.Contains(cross, panel.ClassList);
+        Assert.Contains(border, cut.Find("[data-slot=panel-inner]").ClassList);
+    }
+
+    [Theory]
+    [InlineData(PanelSide.Start, true)]
+    [InlineData(PanelSide.Top, true)]
+    [InlineData(PanelSide.End, false)]
+    [InlineData(PanelSide.Bottom, false)]
+    public void The_surface_is_pinned_to_the_edge_that_faces_the_content(PanelSide side, bool pinnedToEnd)
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.Side, side).AddChildContent(Parts));
+
+        Assert.Equal(pinnedToEnd, cut.Find("[data-slot=panel-clip]").ClassList.Contains("justify-end"));
+    }
+
+    [Theory]
+    [InlineData(PanelSide.End, "w-0")]
+    [InlineData(PanelSide.Bottom, "h-0")]
+    public void A_closed_panel_collapses_along_its_own_axis(PanelSide side, string collapsed)
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.Side, side).AddChildContent(Parts));
+
+        Assert.Contains(collapsed, cut.Find("aside").ClassList);
+    }
+
+    [Theory]
+    [InlineData("24rem", "--panel-size:24rem")]
+    [InlineData("300", "--panel-size:300px")]
+    [InlineData("42.5", "--panel-size:42.5px")]
+    [InlineData("min(30vw, 28rem)", "--panel-size:min(30vw, 28rem)")]
+    public void Size_is_any_css_length_and_a_bare_number_means_pixels(string size, string expected)
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.Size, size).AddChildContent(Parts));
+
+        Assert.Equal(expected, cut.Find("aside").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_floating_panel_is_an_inset_card_and_its_wrapper_makes_room_for_the_inset()
+    {
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.Variant, PanelVariant.Floating)
+            .AddChildContent(Parts));
+
+        var panel = cut.Find("aside");
+        Assert.Equal("floating", panel.GetAttribute("data-variant"));
+        Assert.Contains("w-[calc(var(--panel-size)+1rem)]", panel.ClassList);
+        var inner = cut.Find("[data-slot=panel-inner]").ClassList;
+        Assert.Contains("m-2", inner);
+        Assert.Contains("rounded-lg", inner);
+        Assert.Contains("shadow-sm", inner);
+        // A full border, not the single shared one of the attached variant.
+        Assert.Contains("border", inner);
+        Assert.DoesNotContain("border-s", inner);
+    }
+
+    [Fact]
+    public void The_attached_variant_is_the_default()
+    {
+        var cut = Render<BzPanel>(p => p.AddChildContent(Parts));
+
+        Assert.Equal("attached", cut.Find("aside").GetAttribute("data-variant"));
+        Assert.DoesNotContain("m-2", cut.Find("[data-slot=panel-inner]").ClassList);
+    }
+
+    [Fact]
+    public void Classes_and_extra_attributes_reach_the_panel_element()
+    {
+        var cut = Render(@<BzPanel DefaultOpen="true" Class="border-l-2" aria-label="Details" id="details">x</BzPanel>);
+
+        var panel = cut.Find("aside#details");
+        Assert.Equal("Details", panel.GetAttribute("aria-label"));
+        Assert.Contains("border-l-2", panel.ClassList);
+        Assert.Contains("bz-panel", panel.ClassList);
+    }
+
+    [Fact]
+    public void A_panel_has_no_resize_handle_and_starts_no_script_unless_it_is_resizable()
+    {
+        var module = JSInterop.SetupModule(PanelModule);
+        module.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render<BzPanel>(p => p.Add(x => x.DefaultOpen, true).AddChildContent(Parts));
+
+        Assert.Empty(cut.FindAll("[data-slot=panel-handle]"));
+        Assert.Empty(module.Invocations);
+    }
+
+    [Theory]
+    [InlineData(PanelSide.End, "vertical")]
+    [InlineData(PanelSide.Start, "vertical")]
+    [InlineData(PanelSide.Top, "horizontal")]
+    [InlineData(PanelSide.Bottom, "horizontal")]
+    public void The_resize_handle_is_a_focusable_separator_across_the_push_axis(PanelSide side, string orientation)
+    {
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Side, side)
+            .AddChildContent(Parts));
+
+        var handle = cut.Find("[data-slot=panel-handle]");
+        Assert.Equal("separator", handle.GetAttribute("role"));
+        Assert.Equal("0", handle.GetAttribute("tabindex"));
+        Assert.Equal(orientation, handle.GetAttribute("aria-orientation"));
+        Assert.Equal("0", handle.GetAttribute("aria-valuemin"));
+        Assert.Equal("100", handle.GetAttribute("aria-valuemax"));
+        Assert.Equal("Resize panel", handle.GetAttribute("aria-label"));
+        // The live value belongs to the script: a render must not write over it.
+        Assert.False(handle.HasAttribute("aria-valuenow"));
+    }
+
+    [Fact]
+    public void The_handle_takes_a_name_a_class_and_a_cursor()
+    {
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.Resizable, true)
+            .Add(x => x.ResizeLabel, "Resize details")
+            .Add(x => x.HandleClass, "bg-red-500")
+            .Add(x => x.Cursor, "col-resize")
+            .AddChildContent(Parts));
+
+        var handle = cut.Find("[data-slot=panel-handle]");
+        Assert.Equal("Resize details", handle.GetAttribute("aria-label"));
+        Assert.Contains("bg-red-500", handle.ClassList);
+        Assert.Equal("cursor:col-resize", handle.GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_bare_handle_is_a_thin_strip_and_a_grip_widens_it()
+    {
+        var bare = Render<BzPanel>(p => p.Add(x => x.Resizable, true).AddChildContent(Parts));
+        var strip = bare.Find("[data-slot=panel-handle]");
+        Assert.Contains("w-1", strip.ClassList);
+        Assert.Equal(0, strip.ChildElementCount);
+        Assert.False(strip.HasAttribute("style"));
+
+        var gripped = Render<BzPanel>(p => p
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Handle, PanelHandleVariant.Grip)
+            .AddChildContent(Parts));
+        var wide = gripped.Find("[data-slot=panel-handle]");
+        Assert.Contains("w-5", wide.ClassList);
+        Assert.DoesNotContain("w-1", wide.ClassList);
+        Assert.NotNull(wide.QuerySelector("div svg"));
+    }
+
+    [Theory]
+    [InlineData(PanelHandleVariant.None, 0, false)]
+    [InlineData(PanelHandleVariant.Line, 0, true)]
+    [InlineData(PanelHandleVariant.Grip, 1, true)]
+    [InlineData(PanelHandleVariant.Dots, 1, true)]
+    [InlineData(PanelHandleVariant.Knob, 1, true)]
+    [InlineData(PanelHandleVariant.Pill, 1, true)]
+    public void Each_handle_variant_draws_its_grip_and_all_but_none_reveal_the_hover_line(
+        PanelHandleVariant variant, int grips, bool line)
+    {
+        var cut = Render<BzPanel>(p => p.Add(x => x.Resizable, true).Add(x => x.Handle, variant).AddChildContent(Parts));
+
+        var handle = cut.Find("[data-slot=panel-handle]");
+        Assert.Equal(grips, handle.ChildElementCount);
+        Assert.Equal(line, handle.ClassList.Contains("hover:after:bg-border"));
+    }
+
+    [Fact]
+    public void Handle_content_of_the_consumer_is_drawn_in_the_handle_and_counts_as_a_grip()
+    {
+        var cut = Render(@<BzPanel Resizable="true" Side="PanelSide.Top">
+            <HandleContent><span id="mine">drag</span></HandleContent>
+            <ChildContent>Body</ChildContent>
+        </BzPanel>);
+
+        var handle = cut.Find("[data-slot=panel-handle]");
+        Assert.NotNull(handle.QuerySelector("#mine"));
+        // Wide enough to hold it, along the block axis for a top panel.
+        Assert.Contains("h-5", handle.ClassList);
+        Assert.Contains("hover:after:bg-border", handle.ClassList);
+    }
+
+    [Fact]
+    public void The_grip_can_stay_hidden_until_the_handle_is_used()
+    {
+        var hidden = Render<BzPanel>(p => p
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Handle, PanelHandleVariant.Grip)
+            .Add(x => x.RevealOnHover, true)
+            .AddChildContent(Parts));
+        Assert.Contains("[&>div]:opacity-0", hidden.Find("[data-slot=panel-handle]").ClassList);
+
+        var shown = Render<BzPanel>(p => p
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Handle, PanelHandleVariant.Grip)
+            .AddChildContent(Parts));
+        Assert.DoesNotContain("[&>div]:opacity-0", shown.Find("[data-slot=panel-handle]").ClassList);
+    }
+
+    [Theory]
+    [InlineData(PanelSide.End, PanelVariant.Attached, "start-0")]
+    [InlineData(PanelSide.End, PanelVariant.Floating, "start-2")]
+    [InlineData(PanelSide.Start, PanelVariant.Attached, "end-0")]
+    [InlineData(PanelSide.Top, PanelVariant.Attached, "bottom-0")]
+    [InlineData(PanelSide.Bottom, PanelVariant.Floating, "top-2")]
+    public void The_handle_sits_on_the_edge_that_faces_the_content(PanelSide side, PanelVariant variant, string edge)
+    {
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Side, side)
+            .Add(x => x.Variant, variant)
+            .AddChildContent(Parts));
+
+        Assert.Contains(edge, cut.Find("[data-slot=panel-handle]").ClassList);
+    }
+
+    [Fact]
+    public void The_resize_script_gets_the_side_and_the_limits_as_css_lengths()
+    {
+        var module = JSInterop.SetupModule(PanelModule);
+        module.Mode = JSRuntimeMode.Loose;
+
+        Render<BzPanel>(p => p
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Side, PanelSide.Start)
+            .Add(x => x.MinSize, "200")
+            .Add(x => x.MaxSize, "50vw")
+            .Add(x => x.DragCursor, "grabbing")
+            .AddChildContent(Parts));
+
+        // createPanelResize(root, handle, ref, side, min, max, dragCursor)
+        var created = Assert.Single(module.Invocations, i => i.Identifier == "createPanelResize");
+        Assert.Equal("start", created.Arguments[3]);
+        Assert.Equal("200px", created.Arguments[4]);
+        Assert.Equal("50vw", created.Arguments[5]);
+        Assert.Equal("grabbing", created.Arguments[6]);
+    }
+
+    [Fact]
+    public void The_resize_limits_default_to_twelve_and_thirty_six_rem()
+    {
+        var module = JSInterop.SetupModule(PanelModule);
+        module.Mode = JSRuntimeMode.Loose;
+
+        Render<BzPanel>(p => p.Add(x => x.Resizable, true).AddChildContent(Parts));
+
+        var created = Assert.Single(module.Invocations, i => i.Identifier == "createPanelResize");
+        Assert.Equal("end", created.Arguments[3]);
+        Assert.Equal("12rem", created.Arguments[4]);
+        Assert.Equal("36rem", created.Arguments[5]);
+        Assert.Null(created.Arguments[6]);
+    }
+
+    [Fact]
+    public async Task A_finished_resize_is_reported_in_pixels_and_wins_over_Size_from_then_on()
+    {
+        var sizes = new List<double>();
+        var cut = Render<BzPanel>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.Resizable, true)
+            .Add(x => x.Size, "20rem")
+            .Add(x => x.SizeChanged, (double px) => sizes.Add(px))
+            .AddChildContent(Parts));
+
+        await cut.InvokeAsync(() => cut.Instance.OnResizeEnd(412.6));
+
+        Assert.Equal([412.6], sizes);
+        cut.Render();
+        Assert.Equal("--panel-size:413px", cut.Find("aside").GetAttribute("style"));
+
+        // A parent that re-renders with the same Size must not throw the user's width away.
+        cut.Render(p => p.Add(x => x.Size, "20rem"));
+        Assert.Equal("--panel-size:413px", cut.Find("aside").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Header_title_content_and_footer_keep_their_slots_and_merge_classes()
+    {
+        var cut = Render(@<BzPanel DefaultOpen="true">
+            <BzPanelHeader Class="flex-row" id="head"><BzPanelTitle Class="text-lg" id="title">Details</BzPanelTitle></BzPanelHeader>
+            <BzPanelContent Class="p-0" id="body">Body</BzPanelContent>
+            <BzPanelFooter Class="flex-row" id="foot">Footer</BzPanelFooter>
+        </BzPanel>);
+
+        var header = cut.Find("#head[data-slot=panel-header]");
+        Assert.Contains("flex-row", header.ClassList);
+        Assert.DoesNotContain("flex-col", header.ClassList);
+        var title = cut.Find("#title[data-slot=panel-title]");
+        Assert.Contains("text-lg", title.ClassList);
+        Assert.DoesNotContain("text-base", title.ClassList);
+        var body = cut.Find("#body[data-slot=panel-content]");
+        Assert.Contains("p-0", body.ClassList);
+        Assert.DoesNotContain("p-4", body.ClassList);
+        Assert.Contains("scrollbar-thin", body.ClassList);
+        Assert.Contains("flex-row", cut.Find("#foot[data-slot=panel-footer]").ClassList);
+        // All of it sits in the fixed-size inner surface.
+        Assert.Equal(3, cut.Find("[data-slot=panel-inner]").ChildElementCount);
+    }
+}

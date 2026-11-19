@@ -1,0 +1,192 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzAccordion: headings whose buttons open a region each. One at a time by default, several
+    // in Multiple mode; the heading rank and the region role are the consumer's to set.
+
+    public AccordionTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static readonly RenderFragment Items =
+        @<text>
+            <BzAccordionItem Value="shipping">
+                <BzAccordionTrigger>Shipping</BzAccordionTrigger>
+                <BzAccordionContent>Two days.</BzAccordionContent>
+            </BzAccordionItem>
+            <BzAccordionItem Value="returns">
+                <BzAccordionTrigger>Returns</BzAccordionTrigger>
+                <BzAccordionContent>Thirty days.</BzAccordionContent>
+            </BzAccordionItem>
+            <BzAccordionItem Value="warranty" Disabled="true">
+                <BzAccordionTrigger>Warranty</BzAccordionTrigger>
+                <BzAccordionContent>One year.</BzAccordionContent>
+            </BzAccordionItem>
+        </text>;
+
+    private static string Expanded(IRenderedComponent<IComponent> cut) =>
+        string.Join(' ', cut.FindAll("[data-slot=accordion-trigger]").Select(t => t.GetAttribute("aria-expanded")));
+
+    [Fact]
+    public void Each_item_is_a_heading_with_a_button_and_starts_closed()
+    {
+        var cut = Render(@<BzAccordion Class="max-w-md" id="faq">@Items</BzAccordion>);
+
+        var root = cut.Find("#faq[data-slot=accordion]");
+        Assert.Contains("max-w-md", root.ClassList);
+        Assert.Equal(3, cut.FindAll("[data-slot=accordion-item][data-state=closed]").Count);
+        var headers = cut.FindAll("h3[data-slot=accordion-header]");
+        Assert.Equal(3, headers.Count);
+        var trigger = headers[0].QuerySelector("button[data-slot=accordion-trigger]")!;
+        Assert.Equal("button", trigger.GetAttribute("type"));
+        Assert.Equal("false", trigger.GetAttribute("aria-expanded"));
+        // One chevron for each state; the styles show the one that applies.
+        Assert.Equal(2, trigger.QuerySelectorAll("[data-slot=accordion-trigger-icon]").Length);
+        Assert.Equal("false false false", Expanded(cut));
+        Assert.Empty(cut.FindAll("[data-slot=accordion-content]"));
+    }
+
+    [Fact]
+    public void A_press_opens_an_item_as_a_region_named_by_its_button()
+    {
+        var cut = Render(@<BzAccordion>@Items</BzAccordion>);
+
+        cut.FindAll("[data-slot=accordion-trigger]")[0].Click();
+
+        Assert.Equal("true false false", Expanded(cut));
+        var trigger = cut.FindAll("[data-slot=accordion-trigger]")[0];
+        var region = cut.Find("[data-slot=accordion-content]");
+        Assert.Equal("region", region.GetAttribute("role"));
+        Assert.Equal(trigger.Id, region.GetAttribute("aria-labelledby"));
+        Assert.Equal(region.Id, trigger.GetAttribute("aria-controls"));
+        Assert.Equal("Two days.", region.TextContent.Trim());
+        Assert.Equal("open", cut.FindAll("[data-slot=accordion-item]")[0].GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Opening_another_item_closes_the_first_and_the_open_one_stays_open_when_pressed_again()
+    {
+        var cut = Render(@<BzAccordion DefaultValue="shipping">@Items</BzAccordion>);
+        Assert.Equal("true false false", Expanded(cut));
+
+        cut.FindAll("[data-slot=accordion-trigger]")[1].Click();
+        Assert.Equal("false true false", Expanded(cut));
+
+        // Not collapsible: one item is always open.
+        cut.FindAll("[data-slot=accordion-trigger]")[1].Click();
+        Assert.Equal("false true false", Expanded(cut));
+    }
+
+    [Fact]
+    public void A_collapsible_accordion_closes_its_open_item_on_a_second_press()
+    {
+        var cut = Render(@<BzAccordion DefaultValue="shipping" Collapsible="true">@Items</BzAccordion>);
+
+        cut.FindAll("[data-slot=accordion-trigger]")[0].Click();
+
+        Assert.Equal("false false false", Expanded(cut));
+    }
+
+    [Fact]
+    public void Multiple_mode_keeps_several_items_open_and_reports_the_list()
+    {
+        IReadOnlyList<string> open = ["shipping"];
+        var cut = Render<BzAccordion>(p => p
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.Values, open)
+            .Add(x => x.ValuesChanged, (IReadOnlyList<string> v) => open = v)
+            .AddChildContent(Items));
+
+        cut.FindAll("[data-slot=accordion-trigger]")[1].Click();
+        cut.Render(p => p.Add(x => x.Values, open));
+
+        Assert.Equal(["shipping", "returns"], open);
+        Assert.Equal("true true false", Expanded(cut));
+
+        cut.FindAll("[data-slot=accordion-trigger]")[0].Click();
+        cut.Render(p => p.Add(x => x.Values, open));
+        Assert.Equal(["returns"], open);
+        Assert.Equal("false true false", Expanded(cut));
+    }
+
+    [Fact]
+    public void A_disabled_item_cannot_be_opened_and_a_disabled_accordion_disables_them_all()
+    {
+        var one = Render(@<BzAccordion>@Items</BzAccordion>);
+        var warranty = one.FindAll("[data-slot=accordion-trigger]")[2];
+        Assert.True(warranty.HasAttribute("disabled"));
+        warranty.Click();
+        Assert.Equal("false false false", Expanded(one));
+
+        var all = Render(@<BzAccordion Disabled="true">@Items</BzAccordion>);
+        Assert.All(all.FindAll("[data-slot=accordion-trigger]"), t => Assert.True(t.HasAttribute("disabled")));
+        Assert.True(all.Find("[data-slot=accordion]").HasAttribute("data-disabled"));
+    }
+
+    [Theory]
+    [InlineData(2, "h2")]
+    [InlineData(4, "h4")]
+    [InlineData(9, "h6")]
+    [InlineData(0, "h1")]
+    public void The_heading_rank_follows_the_page_outline_and_stays_a_real_heading(int level, string tag)
+    {
+        var cut = Render(@<BzAccordion HeadingLevel="level">@Items</BzAccordion>);
+
+        Assert.Equal(3, cut.FindAll($"{tag}[data-slot=accordion-header]").Count);
+    }
+
+    [Fact]
+    public void Many_panels_can_drop_the_region_role()
+    {
+        var cut = Render(@<BzAccordion DefaultValue="shipping" Region="false">@Items</BzAccordion>);
+
+        var panel = cut.Find("[data-slot=accordion-content]");
+        Assert.False(panel.HasAttribute("role"));
+        Assert.False(panel.HasAttribute("aria-labelledby"));
+    }
+
+    [Fact]
+    public void A_bound_value_is_asked_for_and_followed()
+    {
+        var requests = new List<string?>();
+        var cut = Render<BzAccordion>(p => p
+            .Add(x => x.Value, "shipping")
+            .Add(x => x.ValueChanged, (string? v) => requests.Add(v))
+            .Add(x => x.Collapsible, true)
+            .AddChildContent(Items));
+
+        cut.FindAll("[data-slot=accordion-trigger]")[1].Click();
+        Assert.Equal(["returns"], requests);
+        Assert.Equal("true false false", Expanded(cut));
+
+        // Closing the open item asks for no value at all.
+        cut.FindAll("[data-slot=accordion-trigger]")[0].Click();
+        Assert.Equal(["returns", null], requests);
+    }
+
+    [Fact]
+    public void Classes_and_attributes_reach_item_trigger_and_the_inner_content()
+    {
+        var cut = Render(@<BzAccordion DefaultValue="a">
+            <BzAccordionItem Value="a" Class="border-b" id="item">
+                <BzAccordionTrigger Class="py-6" data-testid="trigger">Question</BzAccordionTrigger>
+                <BzAccordionContent Class="pb-6" data-testid="panel"><p>Answer</p></BzAccordionContent>
+            </BzAccordionItem>
+        </BzAccordion>);
+
+        Assert.Contains("border-b", cut.Find("#item[data-slot=accordion-item]").ClassList);
+        Assert.Contains("py-6", cut.Find("button[data-testid=trigger]").ClassList);
+        var panel = cut.Find("[data-testid=panel][data-slot=accordion-content]");
+        // The panel itself is the clipping box that animates; padding belongs to the box inside it,
+        // or the height animation would end short of the padding.
+        Assert.DoesNotContain("pb-6", panel.ClassList);
+        Assert.Contains("overflow-hidden", panel.ClassList);
+        var inner = panel.QuerySelector(".bz-accordion-content-inner")!;
+        Assert.Contains("pb-6", inner.ClassList);
+        Assert.Equal("Answer", inner.TextContent.Trim());
+    }
+}

@@ -1,0 +1,12 @@
+@*
+    Test host: renders its content again on demand. Markup handed to Render reads the test's
+    locals once; inside this host a call to Refresh reads them again, as a parent that re-renders
+    after changing its own state would.
+*@
+@ChildContent
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    public Task Refresh() => InvokeAsync(StateHasChanged);
+}

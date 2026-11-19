@@ -1,0 +1,513 @@
+@using System.Globalization
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzContextMenu: a menu opened by a right-click, at the point that was clicked. It has no
+    // trigger edge to hang from, so it is anchored to an invisible marker parked at that point.
+
+    private const string PositioningModule = "./_content/blaizio.base/dist/positioning.js";
+    private const string MenuModule = "./_content/blaizio.base/dist/menu.js";
+    private const string LayerModule = "./_content/blaizio.base/dist/dismissableLayer.js";
+
+    public ContextMenuTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+
+    private static string? State(IRenderedComponent<IComponent> cut) =>
+        cut.Find("[data-slot=context-menu-content]").GetAttribute("data-state");
+
+    private static readonly RenderFragment Region =
+        @<BzContextMenuTrigger Class="h-32 rounded-md border" id="region">Right-click here</BzContextMenuTrigger>;
+
+    [Fact]
+    public void A_right_click_opens_the_menu_at_the_pointer()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzContextMenu OpenChanged="@((bool open) => changes.Add(open))">
+            @Region
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+        Assert.Empty(cut.FindAll("[role=menu]"));
+
+        cut.Find("#region").ContextMenu(new MouseEventArgs { ClientX = 120.5, ClientY = 48 });
+
+        Assert.Equal([true], changes);
+        Assert.Equal("open", State(cut));
+        var marker = cut.Find("[data-bz-context-menu-anchor]");
+        Assert.Contains("left:120.5px;top:48px", marker.GetAttribute("style"));
+    }
+
+    [Fact]
+    public void The_anchor_marker_is_always_there_invisible_and_out_of_the_way()
+    {
+        var cut = Render(@<BzContextMenu>
+            @Region
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        // Rendered while closed too, so a closing menu never loses what it is anchored to.
+        var marker = cut.Find("[data-bz-context-menu-anchor]");
+        Assert.Equal("true", marker.GetAttribute("aria-hidden"));
+        var style = marker.GetAttribute("style")!;
+        Assert.Contains("position:fixed", style);
+        Assert.Contains("width:0;height:0", style);
+        Assert.Contains("pointer-events:none", style);
+    }
+
+    [Fact]
+    public void The_point_is_written_with_a_dot_whatever_the_culture()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+        try
+        {
+            var cut = Render(@<BzContextMenu>
+                @Region
+                <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+            </BzContextMenu>);
+
+            cut.Find("#region").ContextMenu(new MouseEventArgs { ClientX = 10.25, ClientY = 20.75 });
+
+            // A comma would make the whole declaration invalid and park the menu at the origin.
+            Assert.Contains("left:10.25px;top:20.75px", cut.Find("[data-bz-context-menu-anchor]").GetAttribute("style"));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public void A_right_click_somewhere_else_moves_the_open_menu_there()
+    {
+        var cut = Render(@<BzContextMenu>
+            @Region
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        cut.Find("#region").ContextMenu(new MouseEventArgs { ClientX = 10, ClientY = 10 });
+        cut.Find("#region").ContextMenu(new MouseEventArgs { ClientX = 300, ClientY = 200 });
+
+        Assert.Equal("open", State(cut));
+        Assert.Contains("left:300px;top:200px", cut.Find("[data-bz-context-menu-anchor]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void The_region_keeps_text_from_being_selected_and_takes_classes_and_attributes()
+    {
+        var cut = Render(@<BzContextMenu>
+            <BzContextMenuTrigger Class="p-4" id="canvas" aria-label="Canvas">Area</BzContextMenuTrigger>
+        </BzContextMenu>);
+
+        var region = cut.Find("div#canvas[data-slot=context-menu-trigger]");
+        Assert.Contains("select-none", region.ClassList);
+        Assert.Contains("p-4", region.ClassList);
+        Assert.Equal("Canvas", region.GetAttribute("aria-label"));
+        Assert.True(region.HasAttribute("data-bz-context-menu-trigger"));
+        Assert.Equal("Area", region.TextContent);
+    }
+
+    [Fact]
+    public void A_region_outside_a_context_menu_ignores_the_right_click()
+    {
+        var cut = Render(@<BzContextMenuTrigger id="lonely">Area</BzContextMenuTrigger>);
+
+        cut.Find("#lonely").ContextMenu(new MouseEventArgs { ClientX = 5, ClientY = 5 });
+
+        Assert.Empty(cut.FindAll("[role=menu]"));
+    }
+
+    [Fact]
+    public void The_menu_has_no_trigger_to_be_named_by_and_takes_a_name_from_the_consumer()
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent Class="w-52" aria-label="Page actions" data-testid="actions">
+                <BzContextMenuItem>Back</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        var menu = cut.Find("[role=menu][data-testid=actions]");
+        Assert.Equal("context-menu-content", menu.GetAttribute("data-slot"));
+        Assert.False(menu.HasAttribute("aria-labelledby"));
+        Assert.Equal("Page actions", menu.GetAttribute("aria-label"));
+        Assert.Contains("w-52", menu.ClassList);
+        Assert.Contains("bz-context-menu-content", menu.ClassList);
+        Assert.Equal("vertical", menu.GetAttribute("aria-orientation"));
+    }
+
+    [Fact]
+    public void The_menu_hangs_from_the_marker_with_its_top_start_corner_at_the_pointer()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        var created = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning");
+        var anchor = cut.Find("[data-bz-context-menu-anchor]").GetAttribute("data-bz-context-menu-anchor");
+        Assert.Equal($"[data-bz-context-menu-anchor='{anchor}']", created.Arguments[0]);
+        var options = created.Arguments[2]!;
+        Assert.Equal("bottom", Option(options, "side"));
+        Assert.Equal("start", Option(options, "align"));
+        // Flush with the pointer unless a gap is asked for.
+        Assert.Equal(0d, Option(options, "sideOffset"));
+        Assert.Equal(false, Option(options, "inline"));
+    }
+
+    [Fact]
+    public void A_gap_and_inline_rendering_reach_the_positioning_script()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent SideOffset="6" Inline="true"><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        var options = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[2]!;
+        Assert.Equal(6d, Option(options, "sideOffset"));
+        Assert.Equal(true, Option(options, "inline"));
+    }
+
+    [Fact]
+    public void A_scroll_of_the_page_dismisses_a_menu_that_hangs_from_a_point()
+    {
+        var layers = JSInterop.SetupModule(LayerModule);
+        layers.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        var options = Assert.Single(layers.Invocations, i => i.Identifier == "createDismissableLayer").Arguments[2]!;
+        Assert.Equal(true, Option(options, "dismissOnScroll"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Loop_tells_the_menu_script_whether_the_arrows_wrap(bool loop)
+    {
+        var script = JSInterop.SetupModule(MenuModule);
+        script.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent Loop="loop"><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        var options = Assert.Single(script.Invocations, i => i.Identifier == "createMenu").Arguments[1]!;
+        Assert.Equal(loop, Option(options, "loop"));
+        // Opened by the pointer: nothing is highlighted until an arrow is pressed.
+        Assert.Equal("none", Option(options, "initialFocus"));
+    }
+
+    [Fact]
+    public void Selecting_an_item_reports_it_and_closes_the_menu()
+    {
+        var events = new List<string>();
+        var cut = Render(@<BzContextMenu DefaultOpen="true" OpenChanged="@((bool open) => events.Add($"open {open}"))">
+            <BzContextMenuContent>
+                <BzContextMenuItem OnSelect="@((MenuSelectEventArgs _) => events.Add("back"))">Back</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        cut.Find("[data-slot=context-menu-item]").Click();
+
+        Assert.Equal(["back", "open False"], events);
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void An_item_that_prevents_the_default_keeps_the_menu_open_and_a_disabled_one_does_nothing()
+    {
+        var selected = new List<string>();
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuItem id="pin" OnSelect="@((MenuSelectEventArgs e) => { selected.Add("pin"); e.PreventDefault(); })">Pin</BzContextMenuItem>
+                <BzContextMenuItem id="cut" Disabled="true" OnSelect="@((MenuSelectEventArgs _) => selected.Add("cut"))">Cut</BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        Assert.Equal("true", cut.Find("#cut").GetAttribute("aria-disabled"));
+        cut.Find("#cut").Click();
+        cut.Find("#pin").Click();
+
+        Assert.Equal(["pin"], selected);
+        Assert.Equal("open", State(cut));
+    }
+
+    [Fact]
+    public void Inset_variant_classes_and_a_link_element_reach_the_item()
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuItem id="plain">Back</BzContextMenuItem>
+                <BzContextMenuItem id="styled" Inset="true" Variant="ContextMenuItemVariant.Destructive" Class="font-medium">Delete</BzContextMenuItem>
+                <BzContextMenuItem>
+                    <RenderAs Context="p"><a id="link" href="/source" @attributes="p.Attributes">View source</a></RenderAs>
+                </BzContextMenuItem>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        var plain = cut.Find("#plain[data-slot=context-menu-item]");
+        Assert.Equal("menuitem", plain.GetAttribute("role"));
+        Assert.False(plain.HasAttribute("data-inset"));
+        Assert.False(plain.HasAttribute("data-variant"));
+        var styled = cut.Find("#styled");
+        Assert.True(styled.HasAttribute("data-inset"));
+        Assert.Equal("destructive", styled.GetAttribute("data-variant"));
+        Assert.Contains("font-medium", styled.ClassList);
+        var link = cut.Find("a#link[data-slot=context-menu-item]");
+        Assert.Equal("menuitem", link.GetAttribute("role"));
+        Assert.Equal("/source", link.GetAttribute("href"));
+    }
+
+    [Fact]
+    public void A_checkbox_item_toggles_reports_and_shows_its_check_only_while_checked()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuCheckboxItem DefaultChecked="true" CheckedChanged="@((bool c) => changes.Add(c))"
+                                           OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())" Class="pe-10">Show bookmarks</BzContextMenuCheckboxItem>
+                <BzContextMenuCheckboxItem id="off" Disabled="true" CheckedChanged="@((bool c) => changes.Add(c))">Show full URLs</BzContextMenuCheckboxItem>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+        var box = cut.Find("[data-slot=context-menu-checkbox-item]");
+        Assert.Equal("menuitemcheckbox", box.GetAttribute("role"));
+        Assert.Equal("true", box.GetAttribute("aria-checked"));
+        Assert.NotNull(box.QuerySelector("svg"));
+        Assert.Contains("pe-10", box.ClassList);
+        Assert.DoesNotContain("pe-8", box.ClassList);
+
+        box.Click();
+        cut.Find("#off").Click();
+
+        Assert.Equal([false], changes);
+        box = cut.Find("[data-slot=context-menu-checkbox-item]");
+        Assert.Equal("false", box.GetAttribute("aria-checked"));
+        Assert.Null(box.QuerySelector("svg"));
+        Assert.Equal("open", State(cut));
+    }
+
+    [Fact]
+    public void A_controlled_checkbox_item_asks_and_keeps_the_state_it_is_given()
+    {
+        var requests = new List<bool>();
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuCheckboxItem Checked="true" CheckedChanged="@((bool c) => requests.Add(c))"
+                                           OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Show bookmarks</BzContextMenuCheckboxItem>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        cut.Find("[data-slot=context-menu-checkbox-item]").Click();
+
+        Assert.Equal([false], requests);
+        Assert.Equal("true", cut.Find("[data-slot=context-menu-checkbox-item]").GetAttribute("aria-checked"));
+    }
+
+    [Fact]
+    public void A_radio_group_marks_its_default_value_and_moves_it_on_selection()
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuRadioGroup DefaultValue="ada" id="people">
+                    <BzContextMenuRadioItem Value="ada">Ada</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="grace" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Grace</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="alan" Disabled="true">Alan</BzContextMenuRadioItem>
+                </BzContextMenuRadioGroup>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+        Assert.Equal("group", cut.Find("#people[data-slot=context-menu-radio-group]").GetAttribute("role"));
+        var items = cut.FindAll("[data-slot=context-menu-radio-item]");
+        Assert.All(items, i => Assert.Equal("menuitemradio", i.GetAttribute("role")));
+        Assert.Equal(["true", "false", "false"], items.Select(i => i.GetAttribute("aria-checked")));
+        Assert.Equal([true, false, false], items.Select(i => i.QuerySelector("svg") is not null));
+
+        items[2].Click();
+        Assert.Equal("true", cut.FindAll("[data-slot=context-menu-radio-item]")[0].GetAttribute("aria-checked"));
+
+        cut.FindAll("[data-slot=context-menu-radio-item]")[1].Click();
+        Assert.Equal(["false", "true", "false"],
+            cut.FindAll("[data-slot=context-menu-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+    }
+
+    [Fact]
+    public void A_controlled_radio_group_asks_and_keeps_the_value_it_is_given()
+    {
+        var requests = new List<string>();
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuRadioGroup Value="ada" ValueChanged="@((string v) => requests.Add(v))">
+                    <BzContextMenuRadioItem Value="ada">Ada</BzContextMenuRadioItem>
+                    <BzContextMenuRadioItem Value="grace" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Grace</BzContextMenuRadioItem>
+                </BzContextMenuRadioGroup>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        cut.FindAll("[data-slot=context-menu-radio-item]")[1].Click();
+
+        Assert.Equal(["grace"], requests);
+        Assert.Equal(["true", "false"],
+            cut.FindAll("[data-slot=context-menu-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+    }
+
+    [Fact]
+    public void A_label_names_its_group_and_separator_and_shortcut_keep_their_parts()
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuGroup>
+                    <BzContextMenuLabel Inset="true" Class="uppercase">People</BzContextMenuLabel>
+                    <BzContextMenuItem>Ada<BzContextMenuShortcut Class="opacity-60">Ctrl+1</BzContextMenuShortcut></BzContextMenuItem>
+                </BzContextMenuGroup>
+                <BzContextMenuSeparator Class="my-2" />
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        var label = cut.Find("[data-slot=context-menu-label]");
+        Assert.True(label.HasAttribute("data-inset"));
+        Assert.Contains("uppercase", label.ClassList);
+        var group = cut.Find("[data-slot=context-menu-group]");
+        Assert.Equal("group", group.GetAttribute("role"));
+        Assert.Equal(label.Id, group.GetAttribute("aria-labelledby"));
+        var separator = cut.Find("[data-slot=context-menu-separator]");
+        Assert.Equal("separator", separator.GetAttribute("role"));
+        Assert.Contains("my-2", separator.ClassList);
+        var shortcut = cut.Find("span[data-slot=context-menu-shortcut]");
+        Assert.Equal("Ctrl+1", shortcut.TextContent);
+        Assert.Contains("opacity-60", shortcut.ClassList);
+    }
+
+    [Fact]
+    public void A_submenu_opens_from_its_item_and_selecting_inside_closes_everything()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuSub OpenChanged="@((bool open) => changes.Add(open))">
+                    <BzContextMenuSubTrigger Inset="true">More tools</BzContextMenuSubTrigger>
+                    <BzContextMenuSubContent Class="w-44" data-testid="tools">
+                        <BzContextMenuItem id="save">Save page</BzContextMenuItem>
+                    </BzContextMenuSubContent>
+                </BzContextMenuSub>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+        var subTrigger = cut.Find("[data-slot=context-menu-sub-trigger]");
+        Assert.Equal("menu", subTrigger.GetAttribute("aria-haspopup"));
+        Assert.True(subTrigger.HasAttribute("data-inset"));
+        Assert.NotNull(subTrigger.QuerySelector("svg"));
+
+        subTrigger.Click();
+
+        Assert.Equal([true], changes);
+        var sub = cut.Find("[data-testid=tools][data-slot=context-menu-sub-content]");
+        Assert.Equal("menu", sub.GetAttribute("role"));
+        Assert.Contains("w-44", sub.ClassList);
+        Assert.Equal("true", cut.Find("[data-slot=context-menu-sub-trigger]").GetAttribute("aria-expanded"));
+
+        cut.Find("#save").Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void A_disabled_submenu_item_does_not_open()
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent>
+                <BzContextMenuSub>
+                    <BzContextMenuSubTrigger Disabled="true">More tools</BzContextMenuSubTrigger>
+                    <BzContextMenuSubContent><BzContextMenuItem>Save page</BzContextMenuItem></BzContextMenuSubContent>
+                </BzContextMenuSub>
+            </BzContextMenuContent>
+        </BzContextMenu>);
+
+        cut.Find("[data-slot=context-menu-sub-trigger]").Click();
+
+        Assert.Empty(cut.FindAll("[data-slot=context-menu-sub-content]"));
+    }
+
+    [Theory]
+    [InlineData("Escape", "closed")]
+    [InlineData("Tab", "closed")]
+    [InlineData("ArrowDown", "open")]
+    public void Escape_and_Tab_close_the_menu_and_other_keys_are_the_scripts(string key, string state)
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+
+        cut.Find("[role=menu]").KeyDown(new KeyboardEventArgs { Key = key });
+
+        Assert.Equal(state, State(cut));
+    }
+
+    [Fact]
+    public async Task A_press_outside_closes_the_menu_and_its_exit_is_reported()
+    {
+        var cut = Render(@<BzContextMenu DefaultOpen="true">
+            <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+        </BzContextMenu>);
+        var content = cut.FindComponent<BaseContextMenuContent>();
+
+        await cut.InvokeAsync(() => content.Instance.OnDismissRequested());
+        Assert.Equal("closed", State(cut));
+
+        await cut.InvokeAsync(() => content.Instance.OnCloseFinished());
+        Assert.Empty(cut.FindAll("[data-slot=context-menu-content]"));
+    }
+
+    [Fact]
+    public void A_controlled_menu_asks_to_open_and_close_and_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzContextMenu>(p => p
+            .Add(x => x.Open, false)
+            .Add(x => x.OpenChanged, (bool open) => requests.Add(open))
+            .AddChildContent(@<text>
+                <BzContextMenuTrigger id="region">Area</BzContextMenuTrigger>
+                <BzContextMenuContent><BzContextMenuItem>Back</BzContextMenuItem></BzContextMenuContent>
+            </text>));
+
+        cut.Find("#region").ContextMenu(new MouseEventArgs { ClientX = 40, ClientY = 60 });
+        Assert.Equal([true], requests);
+        Assert.Empty(cut.FindAll("[role=menu]"));
+
+        cut.Render(p => p.Add(x => x.Open, true));
+        // The point of the request was kept for when the parent agrees.
+        Assert.Contains("left:40px;top:60px", cut.Find("[data-bz-context-menu-anchor]").GetAttribute("style"));
+        cut.Find("[data-slot=context-menu-item]").Click();
+        Assert.Equal([true, false], requests);
+        Assert.Equal("open", cut.Find("[role=menu]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Inside_a_raised_dialog_the_menu_lifts_itself_above_the_window()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ZIndex="60">
+                <BzDialogTitle>Edit</BzDialogTitle>
+                <BzContextMenu DefaultOpen="true">
+                    <BzContextMenuContent>
+                        <BzContextMenuSub DefaultOpen="true">
+                            <BzContextMenuSubTrigger>More tools</BzContextMenuSubTrigger>
+                            <BzContextMenuSubContent><BzContextMenuItem>Save page</BzContextMenuItem></BzContextMenuSubContent>
+                        </BzContextMenuSub>
+                    </BzContextMenuContent>
+                </BzContextMenu>
+            </BzDialogContent>
+        </BzDialog>);
+
+        Assert.Contains("z-index:65", cut.Find("[data-slot=context-menu-content]").GetAttribute("style"));
+        Assert.Contains("z-index:65", cut.Find("[data-slot=context-menu-sub-content]").GetAttribute("style"));
+    }
+}

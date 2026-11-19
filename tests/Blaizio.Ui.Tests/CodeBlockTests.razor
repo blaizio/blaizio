@@ -1,0 +1,495 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzCodeBlock: plain text stays one text node; line numbers, a diff, highlighted lines and a
+    // language split the text into lines. The wrap and copy buttons act on the block they sit in.
+
+    public CodeBlockTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static string[] Variants(IRenderedComponent<IComponent> cut) =>
+        cut.FindAll("[data-slot=code-block-line]").Select(l => l.GetAttribute("data-variant")!).ToArray();
+
+    private static string[] Texts(IRenderedComponent<IComponent> cut) =>
+        cut.FindAll("[data-slot=code-block-line-content]").Select(l => l.TextContent).ToArray();
+
+    // The block ----------------------------------------------------------------------------------
+
+    [Fact]
+    public void The_block_marks_its_tone_and_density_and_takes_classes_and_attributes()
+    {
+        var plain = Render(@<BzCodeBlock>x</BzCodeBlock>);
+        var block = plain.Find("[data-slot=code-block]");
+        Assert.Equal("default", block.GetAttribute("data-variant"));
+        Assert.Equal("default", block.GetAttribute("data-size"));
+        Assert.Contains("bz-code-block-variant-default", block.ClassList);
+
+        var styled = Render(@<BzCodeBlock Variant="CodeBlockVariant.Destructive" Size="CodeBlockSize.Sm" Class="rounded-none" id="err">x</BzCodeBlock>);
+        block = styled.Find("#err[data-slot=code-block]");
+        Assert.Equal("destructive", block.GetAttribute("data-variant"));
+        Assert.Equal("sm", block.GetAttribute("data-size"));
+        Assert.Contains("bz-code-block-variant-destructive", block.ClassList);
+        Assert.DoesNotContain("bz-code-block-variant-default", block.ClassList);
+        Assert.Contains("rounded-none", block.ClassList);
+    }
+
+    [Fact]
+    public void Header_title_actions_and_footer_keep_their_slots_and_merge_classes()
+    {
+        var cut = Render(@<BzCodeBlock>
+            <BzCodeBlockHeader Class="px-2" id="head">
+                <BzCodeBlockTitle Class="font-mono" id="title">Program.cs</BzCodeBlockTitle>
+                <BzCodeBlockActions Class="gap-1" id="actions">x</BzCodeBlockActions>
+            </BzCodeBlockHeader>
+            <BzCodeBlockFooter Class="text-xs" id="foot">12 lines</BzCodeBlockFooter>
+        </BzCodeBlock>);
+
+        Assert.Contains("px-2", cut.Find("#head[data-slot=code-block-header]").ClassList);
+        var title = cut.Find("#title[data-slot=code-block-title]");
+        Assert.Equal("Program.cs", title.TextContent);
+        Assert.Contains("font-mono", title.ClassList);
+        Assert.Contains("gap-1", cut.Find("#actions[data-slot=code-block-actions]").ClassList);
+        Assert.Contains("text-xs", cut.Find("#foot[data-slot=code-block-footer]").ClassList);
+    }
+
+    // Content ------------------------------------------------------------------------------------
+
+    [Fact]
+    public void Plain_code_is_one_text_node_read_left_to_right_and_reachable_by_keyboard()
+    {
+        var cut = Render(@<BzCodeBlock><BzCodeBlockContent Code="@("line one\nline <two>")" /></BzCodeBlock>);
+
+        var pre = cut.Find("pre[data-slot=code-block-content]");
+        // Code reads left to right whatever the page direction; the tab stop lets a keyboard scroll it.
+        Assert.Equal("ltr", pre.GetAttribute("dir"));
+        Assert.Equal("0", pre.GetAttribute("tabindex"));
+        Assert.False(pre.HasAttribute("data-numbered"));
+        Assert.False(pre.HasAttribute("data-wrap"));
+        var code = cut.Find("code[data-slot=code-block-code]");
+        Assert.Equal("line one\nline <two>", code.TextContent);
+        Assert.Equal(1, code.ChildNodes.Length);
+        Assert.Empty(cut.FindAll("[data-slot=code-block-line]"));
+    }
+
+    [Fact]
+    public void The_tab_stop_can_be_removed_and_other_attributes_reach_the_pre()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="x" tabindex="-1" id="out" Class="max-h-72" />);
+
+        var pre = cut.Find("pre#out");
+        Assert.Equal("-1", pre.GetAttribute("tabindex"));
+        Assert.Contains("max-h-72", pre.ClassList);
+        Assert.Contains("bz-code-block-content", pre.ClassList);
+    }
+
+    [Fact]
+    public void Lines_of_the_consumer_render_when_there_is_no_code_string_and_the_string_wins_when_there_is()
+    {
+        var own = Render(@<BzCodeBlockContent>
+            <BzCodeBlockLine Variant="CodeBlockLineVariant.Added" Class="font-bold" id="first">var x = 1;</BzCodeBlockLine>
+            <BzCodeBlockLine />
+        </BzCodeBlockContent>);
+        var lines = own.FindAll("[data-slot=code-block-line]");
+        Assert.Equal(2, lines.Count);
+        Assert.Equal("added", lines[0].GetAttribute("data-variant"));
+        Assert.Contains("font-bold", lines[0].ClassList);
+        Assert.Equal("first", lines[0].Id);
+        // A blank line still holds its newline, so a copied selection keeps it.
+        Assert.Equal("\n", lines[1].TextContent);
+
+        var both = Render(@<BzCodeBlockContent Code="from the string"><BzCodeBlockLine>from a line</BzCodeBlockLine></BzCodeBlockContent>);
+        Assert.Equal("from the string", both.Find("code").TextContent);
+    }
+
+    [Fact]
+    public void Line_numbers_split_the_code_into_lines_and_start_the_counter()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("a\nb\nc")" LineNumbers="true" />);
+
+        var pre = cut.Find("pre");
+        Assert.True(pre.HasAttribute("data-numbered"));
+        // The numbers are generated content counted from here: never part of a copied selection.
+        Assert.Equal("counter-reset: line 0", pre.GetAttribute("style"));
+        Assert.Equal(["a", "b", "c"], Texts(cut));
+        Assert.Equal(["default", "default", "default"], Variants(cut));
+    }
+
+    [Fact]
+    public void A_snippet_from_the_middle_of_a_file_numbers_from_its_first_line()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("a\nb")" LineNumbers="true" StartLine="40" />);
+
+        Assert.Equal("counter-reset: line 39", cut.Find("pre").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Windows_line_ends_and_a_trailing_newline_do_not_add_lines_and_an_empty_line_keeps_its_newline()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("a\r\n\r\nb\r\n")" LineNumbers="true" />);
+
+        Assert.Equal(["a", "\n", "b"], Texts(cut));
+    }
+
+    [Fact]
+    public void A_diff_reads_the_first_character_of_each_line_as_its_marker()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("+added\n-removed\n kept\nno marker\n")" Diff="true" />);
+
+        Assert.Equal(["added", "removed", "default", "default"], Variants(cut));
+        // The marker is drawn by the style: it is not part of the text any more.
+        Assert.Equal(["added", "removed", "kept", "no marker"], Texts(cut));
+        var contents = cut.FindAll("[data-slot=code-block-line-content]");
+        // The copy button leaves the removed line out.
+        Assert.Equal([false, true, false, false], contents.Select(c => c.HasAttribute("data-bz-copy-skip")));
+        Assert.Equal([true, false, true, true], contents.Select(c => c.HasAttribute("data-bz-copy-line")));
+    }
+
+    [Fact]
+    public void An_empty_line_in_a_diff_stays_a_plain_empty_line()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("+a\n\n-b")" Diff="true" />);
+
+        Assert.Equal(["added", "default", "removed"], Variants(cut));
+        Assert.Equal(["a", "\n", "b"], Texts(cut));
+    }
+
+    [Fact]
+    public void Highlighted_lines_are_counted_from_the_start_line()
+    {
+        IEnumerable<int> highlighted = [11, 13];
+        var cut = Render(@<BzCodeBlockContent Code="@("a\nb\nc\nd")" StartLine="10" HighlightedLines="highlighted" />);
+
+        Assert.Equal(["default", "highlighted", "default", "highlighted"], Variants(cut));
+    }
+
+    [Fact]
+    public void A_diff_marker_wins_over_a_highlight_on_the_same_line()
+    {
+        IEnumerable<int> highlighted = [1, 2];
+        var cut = Render(@<BzCodeBlockContent Code="@("+a\n b")" Diff="true" HighlightedLines="highlighted" />);
+
+        Assert.Equal(["added", "highlighted"], Variants(cut));
+    }
+
+    [Fact]
+    public void An_empty_list_of_highlighted_lines_leaves_plain_code_unsplit()
+    {
+        IEnumerable<int> none = [];
+        var cut = Render(@<BzCodeBlockContent Code="@("a\nb")" HighlightedLines="none" />);
+
+        Assert.Empty(cut.FindAll("[data-slot=code-block-line]"));
+    }
+
+    // Languages ----------------------------------------------------------------------------------
+
+    [Theory]
+    [InlineData("csharp")]
+    [InlineData("cs")]
+    [InlineData("CSharp")]
+    public void A_known_language_or_its_alias_colors_the_code_by_token(string language)
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("var answer = 42; // why")" Language="@language" />);
+
+        var pre = cut.Find("pre");
+        Assert.Equal(language.ToLowerInvariant(), pre.GetAttribute("data-language"));
+        Assert.Contains("bz-code-block-syntax", pre.ClassList);
+        Assert.Equal("var", cut.Find("[data-token=keyword]").TextContent);
+        Assert.Equal("42", cut.Find("[data-token=number]").TextContent);
+        Assert.Equal("// why", cut.Find("[data-token=comment]").TextContent);
+        // Coloring adds spans, never characters.
+        Assert.Equal(["var answer = 42; // why"], Texts(cut));
+    }
+
+    [Fact]
+    public void An_unknown_language_is_written_down_and_leaves_the_text_plain()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("var answer = 42;")" Language="Klingon" />);
+
+        var pre = cut.Find("pre");
+        Assert.Equal("klingon", pre.GetAttribute("data-language"));
+        Assert.DoesNotContain("bz-code-block-syntax", pre.ClassList);
+        Assert.Empty(cut.FindAll("[data-token]"));
+        Assert.Equal(1, cut.Find("code").ChildNodes.Length);
+    }
+
+    [Fact]
+    public void Markup_characters_in_colored_code_stay_text()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("var s = \"<b>&amp;</b>\"; if (a < b && c > d) { }")" Language="csharp" />);
+
+        Assert.Empty(cut.FindAll("b"));
+        Assert.Equal(["var s = \"<b>&amp;</b>\"; if (a < b && c > d) { }"], Texts(cut));
+    }
+
+    [Fact]
+    public void A_diff_with_a_language_colors_the_code_after_the_markers()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("-var a = 1;\n+var a = 2;")" Diff="true" Language="csharp" />);
+
+        Assert.Equal(["removed", "added"], Variants(cut));
+        Assert.Equal(["var a = 1;", "var a = 2;"], Texts(cut));
+        Assert.Equal(2, cut.FindAll("[data-token=keyword]").Count);
+    }
+
+    [Fact]
+    public void Code_that_grows_renders_only_its_new_lines_again()
+    {
+        var cut = Render<BzCodeBlockContent>(p => p.Add(x => x.Code, "var a = 1;\nvar b = 2;").Add(x => x.Language, "csharp"));
+        var before = cut.FindComponents<BzCodeBlockLine>();
+        var counts = before.Select(l => l.RenderCount).ToArray();
+
+        // A streamed response: the same text, one more line.
+        cut.Render(p => p.Add(x => x.Code, "var a = 1;\nvar b = 2;\nvar c = 3;"));
+
+        var after = cut.FindComponents<BzCodeBlockLine>();
+        Assert.Equal(3, after.Count);
+        Assert.Equal(counts, after.Take(2).Select(l => l.RenderCount));
+        Assert.Equal(["var a = 1;", "var b = 2;", "var c = 3;"],
+            cut.FindAll("[data-slot=code-block-line-content]").Select(l => l.TextContent));
+    }
+
+    [Fact]
+    public void A_line_that_changes_or_empties_shows_its_new_text()
+    {
+        var cut = Render<BzCodeBlockContent>(p => p.Add(x => x.Code, "one\ntwo\nthree").Add(x => x.LineNumbers, true));
+
+        cut.Render(p => p.Add(x => x.Code, "one\n\nTHREE"));
+
+        Assert.Equal(["one", "\n", "THREE"],
+            cut.FindAll("[data-slot=code-block-line-content]").Select(l => l.TextContent));
+    }
+
+    // Terminal output ----------------------------------------------------------------------------
+
+    [Fact]
+    public void Ansi_colors_and_styles_become_theme_classes_and_plain_runs_stay_bare_text()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("\u001b[31mFAIL\u001b[0m plain \u001b[1;32mok\u001b[0m")" Language="ansi" />);
+
+        var spans = cut.FindAll("[data-slot=code-block-line-content] span");
+        Assert.Equal(2, spans.Count);
+        Assert.Equal("FAIL", spans[0].TextContent);
+        Assert.Contains("text-destructive", spans[0].ClassList);
+        Assert.Equal("ok", spans[1].TextContent);
+        Assert.Contains("font-bold", spans[1].ClassList);
+        // The escape sequences themselves are gone from the text.
+        Assert.Equal(["FAIL plain ok"], Texts(cut));
+        // Terminal colors are not token colors.
+        Assert.DoesNotContain("bz-code-block-syntax", cut.Find("pre").ClassList);
+    }
+
+    [Fact]
+    public void Inverse_video_fills_with_the_color_and_an_exact_color_is_written_inline()
+    {
+        var cut = Render(@<BzCodeBlockContent Code="@("\u001b[7;32m PASS \u001b[0m \u001b[38;2;255;100;0mexact\u001b[0m \u001b[4;9mmarked\u001b[0m")" Language="ansi" />);
+
+        var spans = cut.FindAll("[data-slot=code-block-line-content] span");
+        Assert.Equal(3, spans.Count);
+        // A badge as test runners draw it: the color is the fill, with the label color made for it.
+        Assert.Contains("bg-success", spans[0].ClassList);
+        Assert.Contains("text-success-foreground", spans[0].ClassList);
+        Assert.Contains("255", spans[1].GetAttribute("style"));
+        Assert.StartsWith("color:", spans[1].GetAttribute("style"));
+        Assert.Contains("underline", spans[2].ClassList);
+        Assert.Contains("line-through", spans[2].ClassList);
+    }
+
+    // Wrapping -----------------------------------------------------------------------------------
+
+    [Fact]
+    public void Content_wraps_when_it_or_its_block_says_so()
+    {
+        var own = Render(@<BzCodeBlock><BzCodeBlockContent Code="x" Wrap="true" /></BzCodeBlock>);
+        Assert.True(own.Find("pre").HasAttribute("data-wrap"));
+
+        var block = Render(@<BzCodeBlock Wrap="true">
+            <BzCodeBlockContent Code="x" id="one" />
+            <BzCodeBlockContent Code="y" id="two" />
+        </BzCodeBlock>);
+        Assert.True(block.Find("#one").HasAttribute("data-wrap"));
+        Assert.True(block.Find("#two").HasAttribute("data-wrap"));
+    }
+
+    [Fact]
+    public void The_wrap_button_is_a_pressed_state_button_that_flips_the_block()
+    {
+        var changes = new List<bool>();
+        var cut = Render<BzCodeBlock>(p => p
+            .Add(x => x.WrapChanged, (bool w) => changes.Add(w))
+            .AddChildContent(@<text><BzCodeBlockWrapButton /><BzCodeBlockContent Code="a long line" /></text>));
+        var button = cut.Find("button[data-slot=code-block-wrap-button]");
+        Assert.Equal("Wrap lines", button.GetAttribute("aria-label"));
+        Assert.Equal("false", button.GetAttribute("aria-pressed"));
+        Assert.Equal("ghost", button.GetAttribute("data-variant"));
+        Assert.NotNull(button.QuerySelector("svg"));
+
+        button.Click();
+
+        Assert.Equal([true], changes);
+        Assert.Equal("true", cut.Find("[data-slot=code-block-wrap-button]").GetAttribute("aria-pressed"));
+        Assert.True(cut.Find("pre").HasAttribute("data-wrap"));
+
+        cut.Find("[data-slot=code-block-wrap-button]").Click();
+        Assert.Equal([true, false], changes);
+        Assert.False(cut.Find("pre").HasAttribute("data-wrap"));
+    }
+
+    [Fact]
+    public void A_controlled_block_asks_to_wrap_and_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzCodeBlock>(p => p
+            .Add(x => x.Wrap, false)
+            .Add(x => x.WrapChanged, (bool w) => requests.Add(w))
+            .AddChildContent(@<text><BzCodeBlockWrapButton /><BzCodeBlockContent Code="a long line" /></text>));
+
+        cut.Find("[data-slot=code-block-wrap-button]").Click();
+        Assert.Equal([true], requests);
+        Assert.False(cut.Find("pre").HasAttribute("data-wrap"));
+
+        cut.Render(p => p.Add(x => x.Wrap, true));
+        Assert.True(cut.Find("pre").HasAttribute("data-wrap"));
+        Assert.Equal("true", cut.Find("[data-slot=code-block-wrap-button]").GetAttribute("aria-pressed"));
+    }
+
+    [Fact]
+    public void The_wrap_buttons_tooltip_follows_the_state_and_its_name_does_not()
+    {
+        var cut = Render(@<BzCodeBlock>
+            <BzCodeBlockWrapButton AriaLabel="Wrap" UnwrapLabel="Unwrap" />
+        </BzCodeBlock>);
+
+        cut.Find("[data-slot=code-block-wrap-button]").Click();
+        cut.Find("[data-slot=code-block-wrap-button]").PointerEnter();
+
+        var button = cut.Find("[data-slot=code-block-wrap-button]");
+        // The name stays what the button does; pressed says whether it is on.
+        Assert.Equal("Wrap", button.GetAttribute("aria-label"));
+        Assert.Equal("true", button.GetAttribute("aria-pressed"));
+        // The tooltip waits its hover delay.
+        cut.WaitForAssertion(
+            () => Assert.Equal("Unwrap", cut.Find("[data-slot=tooltip-content]").TextContent.Trim()), TimeSpan.FromSeconds(3));
+    }
+
+    [Fact]
+    public void A_wrap_button_with_text_takes_the_state_and_needs_no_tooltip()
+    {
+        var cut = Render(@<BzCodeBlock>
+            <BzCodeBlockWrapButton Tooltip="false" Size="ButtonSize.Xs" Variant="ButtonVariant.Outline" Class="px-2">
+                <ChildContent Context="wrapped">@(wrapped ? "Wrapped" : "Wrap")</ChildContent>
+            </BzCodeBlockWrapButton>
+        </BzCodeBlock>);
+        var button = cut.Find("button[data-slot=code-block-wrap-button]");
+        Assert.Equal("Wrap", button.TextContent.Trim());
+        Assert.Equal("outline", button.GetAttribute("data-variant"));
+        Assert.Equal("xs", button.GetAttribute("data-size"));
+        Assert.Contains("px-2", button.ClassList);
+        Assert.Null(button.QuerySelector("svg"));
+
+        button.Click();
+
+        Assert.Equal("Wrapped", cut.Find("[data-slot=code-block-wrap-button]").TextContent.Trim());
+        Assert.Empty(cut.FindAll("[data-slot=tooltip-content]"));
+    }
+
+    [Fact]
+    public void A_wrap_button_outside_a_block_does_nothing_and_does_not_throw()
+    {
+        var cut = Render(@<BzCodeBlockWrapButton Tooltip="false" />);
+
+        cut.Find("[data-slot=code-block-wrap-button]").Click();
+
+        Assert.Equal("false", cut.Find("[data-slot=code-block-wrap-button]").GetAttribute("aria-pressed"));
+    }
+
+    // Copying ------------------------------------------------------------------------------------
+
+    [Fact]
+    public void The_copy_button_points_at_the_code_of_its_own_block()
+    {
+        var cut = Render(@<div>
+            <BzCodeBlock><BzCodeBlockCopyButton /><BzCodeBlockContent Code="first" /></BzCodeBlock>
+            <BzCodeBlock><BzCodeBlockCopyButton /><BzCodeBlockContent Code="second" /></BzCodeBlock>
+        </div>);
+
+        var buttons = cut.FindAll("button[data-slot=code-block-copy-button]");
+        var codes = cut.FindAll("code[data-slot=code-block-code]");
+        Assert.Equal(2, buttons.Count);
+        for (var i = 0; i < 2; i++)
+        {
+            var source = codes[i].GetAttribute("data-bz-copy-source");
+            Assert.Equal($"[data-bz-copy-source=\"{source}\"]", buttons[i].GetAttribute("data-bz-copy-from"));
+            Assert.False(buttons[i].HasAttribute("data-bz-copy-text"));
+            Assert.Equal("Copy", buttons[i].GetAttribute("aria-label"));
+            // The marker the clipboard script finds the button by.
+            Assert.True(buttons[i].HasAttribute("data-bz-copy"));
+        }
+        Assert.NotEqual(codes[0].GetAttribute("data-bz-copy-source"), codes[1].GetAttribute("data-bz-copy-source"));
+    }
+
+    [Fact]
+    public void A_value_of_its_own_is_copied_instead_of_the_code()
+    {
+        var cut = Render(@<BzCodeBlock>
+            <BzCodeBlockCopyButton Value="dotnet add package Blaizio" AriaLabel="Copy command" />
+            <BzCodeBlockContent Code="$ dotnet add package Blaizio" />
+        </BzCodeBlock>);
+
+        var button = cut.Find("[data-slot=code-block-copy-button]");
+        Assert.Equal("dotnet add package Blaizio", button.GetAttribute("data-bz-copy-text"));
+        Assert.False(button.HasAttribute("data-bz-copy-from"));
+        Assert.Equal("Copy command", button.GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public async Task The_copy_button_shows_and_announces_the_outcome_of_the_copy()
+    {
+        var outcomes = new List<bool>();
+        var cut = Render(@<BzCodeBlock>
+            <BzCodeBlockCopyButton Tooltip="false" OnCopied="@((bool ok) => outcomes.Add(ok))" CopiedLabel="Done" FailedLabel="Refused">
+                <ChildContent Context="state">@state</ChildContent>
+            </BzCodeBlockCopyButton>
+            <BzCodeBlockContent Code="x" />
+        </BzCodeBlock>);
+        var copy = cut.FindComponent<BaseCopyButton>();
+        Assert.Equal("Idle", cut.Find("[data-slot=code-block-copy-button]").TextContent.Trim());
+
+        // The clipboard script reports back; the two seconds of feedback are not waited out here.
+        _ = cut.InvokeAsync(() => copy.Instance.OnCopyResult(true));
+        cut.WaitForAssertion(() => Assert.Equal("Copied", cut.Find("[data-slot=code-block-copy-button]").TextContent.Trim()));
+        Assert.Equal("copied", cut.Find("[data-slot=code-block-copy-button]").GetAttribute("data-copy-state"));
+        Assert.Contains("Done", cut.Markup);
+
+        _ = cut.InvokeAsync(() => copy.Instance.OnCopyResult(false));
+        cut.WaitForAssertion(() => Assert.Equal("Failed", cut.Find("[data-slot=code-block-copy-button]").TextContent.Trim()));
+        Assert.Contains("Refused", cut.Markup);
+        Assert.Equal([true, false], outcomes);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public void The_copy_button_keeps_its_slot_and_copy_markers_under_a_tooltip_and_takes_a_style()
+    {
+        var cut = Render(@<BzCodeBlock>
+            <BzCodeBlockCopyButton Variant="ButtonVariant.Outline" Size="ButtonSize.IconSm" Class="rounded-full" id="copy" />
+            <BzCodeBlockContent Code="x" />
+        </BzCodeBlock>);
+
+        var button = cut.Find("button#copy");
+        Assert.Equal("code-block-copy-button", button.GetAttribute("data-slot"));
+        Assert.True(button.HasAttribute("data-bz-copy"));
+        Assert.Equal("outline", button.GetAttribute("data-variant"));
+        Assert.Equal("icon-sm", button.GetAttribute("data-size"));
+        Assert.Contains("rounded-full", button.ClassList);
+        Assert.NotNull(button.QuerySelector("svg"));
+
+        button.PointerEnter();
+        cut.WaitForAssertion(
+            () => Assert.Equal("Copy", cut.Find("[data-slot=tooltip-content]").TextContent.Trim()), TimeSpan.FromSeconds(3));
+    }
+}

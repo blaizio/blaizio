@@ -1,0 +1,587 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzCombobox<TItem>: the engine works in strings, the consumer in items. What the consumer
+    // binds, picks and renders is typed; filtering, chips and the popup follow the engine.
+
+    private const string PositioningModule = "./_content/blaizio.base/dist/positioning.js";
+
+    public ComboboxTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private sealed record Fruit(int Id, string Name);
+
+    private static readonly Fruit Apple = new(1, "Apple");
+    private static readonly Fruit Banana = new(2, "Banana");
+    private static readonly Fruit Cherry = new(3, "Cherry");
+    private static readonly IReadOnlyList<Fruit> Fruits = [Apple, Banana, Cherry];
+    private static readonly Func<Fruit, string> Name = fruit => fruit.Name;
+
+    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+
+    // The input-with-a-list shape, single or multiple by what the root is given.
+    private static readonly RenderFragment Parts =
+        @<text>
+            <BzComboboxInput Placeholder="Pick a fruit" ShowClear="true" />
+            <BzComboboxContent>
+                <BzComboboxEmpty>No fruit found.</BzComboboxEmpty>
+                <BzComboboxList TItem="Fruit" Context="fruit">
+                    <BzComboboxItem Value="fruit">@fruit.Name (@fruit.Id)</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </text>;
+
+    private static string[] Visible(IRenderedComponent<IComponent> cut) =>
+        cut.FindAll("[role=option]:not([hidden])").Select(o => o.GetAttribute("data-value")!).ToArray();
+
+    private static AngleSharp.Dom.IElement Input(IRenderedComponent<IComponent> cut) => cut.Find("[data-bz-combobox-input]");
+
+    // Single selection ---------------------------------------------------------------------------
+
+    [Fact]
+    public void The_list_renders_one_option_per_item_from_the_typed_template()
+    {
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        var options = cut.FindAll("[role=option][data-slot=combobox-item]");
+        Assert.Equal(["Apple (1)", "Banana (2)", "Cherry (3)"], options.Select(o => o.TextContent.Trim()));
+        // The engine's key for each option is the item's string.
+        Assert.Equal(["Apple", "Banana", "Cherry"], options.Select(o => o.GetAttribute("data-value")));
+        Assert.All(options, o => Assert.Equal("false", o.GetAttribute("aria-selected")));
+    }
+
+    [Fact]
+    public void Picking_an_option_hands_back_the_item_closes_the_list_and_shows_its_text_in_the_field()
+    {
+        Fruit? picked = null;
+        var changes = 0;
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.Value, picked)
+            .Add(x => x.ValueChanged, (Fruit? f) => { picked = f; changes++; })
+            .AddChildContent(Parts));
+        Input(cut).Click();
+        Assert.Equal("true", Input(cut).GetAttribute("aria-expanded"));
+
+        cut.FindAll("[role=option]")[1].Click();
+
+        Assert.Same(Banana, picked);
+        Assert.Equal(1, changes);
+        Assert.Equal("false", Input(cut).GetAttribute("aria-expanded"));
+
+        cut.Render(p => p.Add(x => x.Value, picked));
+        Assert.Equal("Banana", Input(cut).GetAttribute("value"));
+    }
+
+    [Fact]
+    public void An_uncontrolled_combobox_starts_from_its_default_item_and_marks_it_with_a_check()
+    {
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.DefaultValue, Cherry)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        Assert.Equal("Cherry", Input(cut).GetAttribute("value"));
+        var options = cut.FindAll("[role=option]");
+        Assert.Equal(["false", "false", "true"], options.Select(o => o.GetAttribute("aria-selected")));
+        Assert.Equal([false, false, true], options.Select(o => o.QuerySelector("[data-bz-combobox-item-indicator] svg") is not null));
+
+        options[0].Click();
+        Assert.Equal("Apple", Input(cut).GetAttribute("value"));
+    }
+
+    [Fact(Skip = "bug: BzCombobox reads a ValueChanged listener as controlled, so DefaultValue with ValueChanged starts empty and no pick sticks")]
+    public void A_combobox_that_is_only_listened_to_still_starts_from_its_default_item()
+    {
+        var heard = new List<Fruit?>();
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.DefaultValue, Cherry)
+            .Add(x => x.ValueChanged, (Fruit? f) => heard.Add(f))
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+        Assert.Equal("Cherry", Input(cut).GetAttribute("value"));
+
+        cut.FindAll("[role=option]")[0].Click();
+
+        Assert.Equal([Apple], heard);
+        Assert.Equal("Apple", Input(cut).GetAttribute("value"));
+    }
+
+    [Fact]
+    public void The_clear_button_appears_with_a_selection_and_hands_back_nothing()
+    {
+        Fruit? picked = Banana;
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.Value, picked)
+            .Add(x => x.ValueChanged, (Fruit? f) => picked = f)
+            .AddChildContent(Parts));
+
+        var clear = cut.Find("button[data-slot=combobox-clear]");
+        Assert.Equal("Clear", clear.GetAttribute("aria-label"));
+        clear.Click();
+        Assert.Null(picked);
+
+        cut.Render(p => p.Add(x => x.Value, picked));
+        Assert.Empty(cut.FindAll("[data-slot=combobox-clear]"));
+        Assert.Equal("", Input(cut).GetAttribute("value") ?? "");
+    }
+
+    [Fact]
+    public void Items_without_a_string_function_use_their_own_text()
+    {
+        string? picked = null;
+        IReadOnlyList<string> sizes = ["Small", "Large"];
+        var cut = Render(@<BzCombobox TItem="string" Items="sizes" Value="picked" ValueChanged="@((string? s) => picked = s)" DefaultOpen="true">
+            <BzComboboxInput />
+            <BzComboboxContent>
+                <BzComboboxList TItem="string" Context="size"><BzComboboxItem Value="size">@size</BzComboboxItem></BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>);
+
+        cut.FindAll("[role=option]")[1].Click();
+
+        Assert.Equal("Large", picked);
+    }
+
+    // Multiple selection -------------------------------------------------------------------------
+
+    private static RenderFragment Chips =>
+        @<text>
+            <BzComboboxChips Class="min-h-10" id="chips">
+                <BzComboboxValue TItem="Fruit">
+                    <Selection Context="fruits">
+                        @foreach (var fruit in fruits)
+                        {
+                            <BzComboboxChip Value="fruit">@fruit.Name #@fruit.Id</BzComboboxChip>
+                        }
+                    </Selection>
+                </BzComboboxValue>
+                <BzComboboxChipsInput Placeholder="Add fruit" />
+            </BzComboboxChips>
+            <BzComboboxContent>
+                <BzComboboxList TItem="Fruit" Context="fruit"><BzComboboxItem Value="fruit">@fruit.Name</BzComboboxItem></BzComboboxList>
+            </BzComboboxContent>
+        </text>;
+
+    [Fact]
+    public void Multiple_selection_hands_back_the_items_in_pick_order_and_keeps_the_list_open()
+    {
+        IReadOnlyList<Fruit> picked = [];
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.Values, picked)
+            .Add(x => x.ValuesChanged, (IReadOnlyList<Fruit> v) => picked = v)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Chips));
+
+        cut.FindAll("[role=option]")[2].Click();
+        cut.Render(p => p.Add(x => x.Values, picked));
+        cut.FindAll("[role=option]")[0].Click();
+        cut.Render(p => p.Add(x => x.Values, picked));
+
+        Assert.Equal([Cherry, Apple], picked);
+        Assert.Equal("true", Input(cut).GetAttribute("aria-expanded"));
+        // The typed template got the items back, not their keys.
+        Assert.Equal(["Cherry #3", "Apple #1"], cut.FindAll("[data-slot=combobox-chip]").Select(c => c.TextContent.Trim()));
+        Assert.Equal("true", cut.Find("[data-slot=combobox-content]").GetAttribute("data-chips"));
+    }
+
+    [Fact]
+    public void A_chip_removes_its_item_and_can_do_without_the_button()
+    {
+        IReadOnlyList<Fruit> picked = [Apple, Banana];
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.Values, picked)
+            .Add(x => x.ValuesChanged, (IReadOnlyList<Fruit> v) => picked = v)
+            .AddChildContent(Chips));
+        var chips = cut.FindAll("[data-slot=combobox-chip]");
+        Assert.Equal(["Apple", "Banana"], chips.Select(c => c.GetAttribute("data-value")));
+        var remove = chips[0].QuerySelector("button[data-slot=combobox-chip-remove]")!;
+        Assert.Equal("Remove", remove.GetAttribute("aria-label"));
+
+        remove.Click();
+
+        Assert.Equal([Banana], picked);
+
+        var bare = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name" SelectionMode="SelectionMode.Multiple">
+            <BzComboboxChip Value="Apple" ShowRemove="false" Class="rounded-full">Apple</BzComboboxChip>
+        </BzCombobox>);
+        var chip = bare.Find("[data-slot=combobox-chip]");
+        Assert.Null(chip.QuerySelector("button"));
+        Assert.Contains("rounded-full", chip.ClassList);
+    }
+
+    [Fact]
+    public void Default_values_seed_an_uncontrolled_multiple_selection()
+    {
+        IReadOnlyList<Fruit> defaults = [Banana, Cherry];
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.DefaultValues, defaults)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Chips));
+
+        Assert.Equal(["Banana #2", "Cherry #3"], cut.FindAll("[data-slot=combobox-chip]").Select(c => c.TextContent.Trim()));
+        Assert.Equal(["false", "true", "true"], cut.FindAll("[role=option]").Select(o => o.GetAttribute("aria-selected")));
+
+        // Picking a selected option takes it out again.
+        cut.FindAll("[role=option]")[1].Click();
+        Assert.Equal(["Cherry #3"], cut.FindAll("[data-slot=combobox-chip]").Select(c => c.TextContent.Trim()));
+    }
+
+    [Fact]
+    public async Task A_key_the_items_do_not_have_is_dropped_instead_of_becoming_a_default_value()
+    {
+        // Value-type items: a miss must not come back as 0.
+        IReadOnlyList<int> picked = [];
+        IReadOnlyList<int> numbers = [10, 20, 30];
+        var cut = Render<BzCombobox<int>>(p => p
+            .Add(x => x.Items, numbers)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.Values, picked)
+            .Add(x => x.ValuesChanged, (IReadOnlyList<int> v) => picked = v));
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseCombobox>().Instance.ValuesChanged.InvokeAsync(["20", "99", "30"]));
+
+        Assert.Equal([20, 30], picked);
+    }
+
+    // Filtering ----------------------------------------------------------------------------------
+
+    [Fact]
+    public void Typing_filters_the_options_and_shows_the_empty_message_when_nothing_is_left()
+    {
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        Input(cut).Input(new ChangeEventArgs { Value = "an" });
+        Assert.Equal(["Banana"], Visible(cut));
+
+        Input(cut).Input(new ChangeEventArgs { Value = "zzz" });
+        Assert.Empty(Visible(cut));
+        Assert.Equal("No fruit found.", cut.Find("[data-slot=combobox-empty]").TextContent.Trim());
+    }
+
+    [Fact]
+    public void A_bound_search_reports_what_is_typed_and_filters_by_what_the_parent_hands_back()
+    {
+        string? search = "";
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.Search, search)
+            .Add(x => x.SearchChanged, (string? s) => search = s)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        Input(cut).Input(new ChangeEventArgs { Value = "ch" });
+        Assert.Equal("ch", search);
+
+        cut.Render(p => p.Add(x => x.Search, search));
+        Assert.Equal("ch", Input(cut).GetAttribute("value"));
+        Assert.Equal(["Cherry"], Visible(cut));
+
+        // The parent can set the text too, with nobody typing.
+        cut.Render(p => p.Add(x => x.Search, "ban"));
+        Assert.Equal(["Banana"], Visible(cut));
+    }
+
+    [Fact]
+    public void With_filtering_off_every_item_handed_in_stays_listed()
+    {
+        // Server-side search: the items are already the matches.
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.ShouldFilter, false)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        Input(cut).Input(new ChangeEventArgs { Value = "zzz" });
+
+        Assert.Equal(["Apple", "Banana", "Cherry"], Visible(cut));
+    }
+
+    [Fact]
+    public void A_filter_of_the_consumer_decides_what_matches()
+    {
+        // (search, value, keywords)
+        Func<string, string, IReadOnlyList<string>?, bool> startsWith =
+            (search, value, _) => value.StartsWith(search, StringComparison.OrdinalIgnoreCase);
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.FilterPredicate, startsWith)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        // "an" is inside Banana but starts none of them; "ch" starts Cherry.
+        Input(cut).Input(new ChangeEventArgs { Value = "an" });
+        Assert.Empty(Visible(cut));
+        Input(cut).Input(new ChangeEventArgs { Value = "ch" });
+        Assert.Equal(["Cherry"], Visible(cut));
+    }
+
+    [Fact]
+    public void Keywords_let_an_item_match_text_it_does_not_show()
+    {
+        IReadOnlyList<string> yellow = ["yellow"];
+        var cut = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name" DefaultOpen="true">
+            <BzComboboxInput />
+            <BzComboboxContent>
+                <BzComboboxList TItem="Fruit" Context="fruit">
+                    <BzComboboxItem Value="fruit" Keywords="@(fruit == Banana ? yellow : null)">@fruit.Name</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>);
+
+        Input(cut).Input(new ChangeEventArgs { Value = "yell" });
+
+        Assert.Equal(["Banana"], Visible(cut));
+    }
+
+    [Fact(Skip = "bug: DefaultSearch is shown in the field but the list is not filtered by it until the user types (BaseCombobox filters only while typing or when Search is bound)")]
+    public void A_seeded_search_filters_from_the_start()
+    {
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.SelectionMode, SelectionMode.Multiple)
+            .Add(x => x.DefaultSearch, "ch")
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Chips));
+
+        Assert.Equal("ch", Input(cut).GetAttribute("value"));
+        Assert.Equal(["Cherry"], Visible(cut));
+    }
+
+    // The field and its popup --------------------------------------------------------------------
+
+    [Fact]
+    public void The_field_is_the_anchor_of_the_popup_and_carries_placeholder_name_and_a_named_trigger()
+    {
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.Label, "Fruit")
+            .AddChildContent(Parts));
+
+        var input = Input(cut);
+        Assert.Equal("combobox", input.GetAttribute("role"));
+        Assert.Equal("Pick a fruit", input.GetAttribute("placeholder"));
+        Assert.Equal("Fruit", input.GetAttribute("aria-label"));
+        Assert.Equal("list", input.GetAttribute("aria-autocomplete"));
+        Assert.Equal("input-group-control", input.GetAttribute("data-slot"));
+        // The bordered group is what the popup lines up with, not the bare input inside it.
+        var group = cut.Find("[data-slot=input-group]");
+        Assert.True(group.HasAttribute("data-bz-combobox-anchor"));
+        Assert.False(input.HasAttribute("data-bz-combobox-anchor"));
+        var trigger = cut.Find("button[data-slot=combobox-trigger]");
+        Assert.Equal("Show options", trigger.GetAttribute("aria-label"));
+        Assert.NotNull(trigger.QuerySelector("svg"));
+
+        trigger.Click();
+        Assert.Equal("true", Input(cut).GetAttribute("aria-expanded"));
+        Assert.Equal("Fruit", cut.Find("[role=listbox]").GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void The_field_can_drop_its_trigger_and_give_the_anchor_role_away()
+    {
+        var cut = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name">
+            <BzComboboxInput ShowTrigger="false" Anchor="false" Class="w-64" id="search" />
+        </BzCombobox>);
+
+        Assert.Empty(cut.FindAll("[data-slot=combobox-trigger]"));
+        var group = cut.Find("[data-slot=input-group]");
+        Assert.False(group.HasAttribute("data-bz-combobox-anchor"));
+        Assert.Contains("w-64", group.ClassList);
+        // Other attributes belong to the input itself.
+        Assert.Equal("search", Input(cut).Id);
+    }
+
+    [Fact]
+    public void A_trigger_with_content_of_its_own_is_named_by_it_and_can_be_the_anchor()
+    {
+        var cut = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name" DefaultValue="Banana">
+            <BzComboboxTrigger Anchor="true" Class="w-48 justify-between">
+                <BzComboboxValue TItem="Fruit" Placeholder="Pick a fruit" />
+            </BzComboboxTrigger>
+            <BzComboboxTrigger AriaLabel="Open the list" id="icon" />
+        </BzCombobox>);
+
+        var triggers = cut.FindAll("button[data-slot=combobox-trigger]");
+        Assert.False(triggers[0].HasAttribute("aria-label"));
+        Assert.True(triggers[0].HasAttribute("data-bz-combobox-anchor"));
+        Assert.Contains("w-48", triggers[0].ClassList);
+        Assert.Contains("Banana", triggers[0].TextContent);
+        Assert.Equal("Open the list", triggers[1].GetAttribute("aria-label"));
+        Assert.False(triggers[1].HasAttribute("data-bz-combobox-anchor"));
+    }
+
+    [Fact]
+    public void The_value_part_shows_a_placeholder_until_something_is_selected()
+    {
+        var cut = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name">
+            <span id="text"><BzComboboxValue TItem="Fruit" Placeholder="Nothing yet" /></span>
+            <span id="rich"><BzComboboxValue TItem="Fruit"><PlaceholderContent><em>Choose</em></PlaceholderContent></BzComboboxValue></span>
+        </BzCombobox>);
+
+        Assert.Equal("Nothing yet", cut.Find("#text").TextContent);
+        Assert.Equal("Choose", cut.Find("#rich em").TextContent);
+    }
+
+    [Fact]
+    public void A_disabled_combobox_disables_its_field_and_its_buttons()
+    {
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.DefaultValue, Apple)
+            .Add(x => x.Disabled, true)
+            .AddChildContent(Parts));
+
+        Assert.True(Input(cut).HasAttribute("disabled"));
+        Assert.True(cut.Find("[data-slot=combobox-trigger]").HasAttribute("disabled"));
+        Assert.True(cut.Find("[data-slot=combobox-clear]").HasAttribute("disabled"));
+    }
+
+    [Fact]
+    public void The_popup_opens_below_the_field_with_a_gap_of_six_and_says_which_mode_it_is_in()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.DefaultOpen, true)
+            .AddChildContent(Parts));
+
+        var popup = cut.Find("[data-slot=combobox-content]");
+        Assert.Equal("false", popup.GetAttribute("data-chips"));
+        var options = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[2]!;
+        Assert.Equal("bottom", Option(options, "side"));
+        Assert.Equal("start", Option(options, "align"));
+        Assert.Equal(6d, Option(options, "sideOffset"));
+    }
+
+    [Fact]
+    public void Placement_classes_and_attributes_reach_the_popup_and_the_list()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name" DefaultOpen="true">
+            <BzComboboxInput />
+            <BzComboboxContent Side="Side.Top" Align="Align.End" SideOffset="2" AlignOffset="4" Inline="true" Class="w-72" data-testid="popup">
+                <BzComboboxList TItem="Fruit" Class="max-h-40" id="list" Context="fruit">
+                    <BzComboboxItem Value="fruit" Class="py-2" Disabled="@(fruit == Cherry)">@fruit.Name</BzComboboxItem>
+                </BzComboboxList>
+            </BzComboboxContent>
+        </BzCombobox>);
+
+        var options = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[2]!;
+        Assert.Equal("top", Option(options, "side"));
+        Assert.Equal("end", Option(options, "align"));
+        Assert.Equal(2d, Option(options, "sideOffset"));
+        Assert.Equal(4d, Option(options, "alignOffset"));
+        Assert.Equal(true, Option(options, "inline"));
+        Assert.Contains("w-72", cut.Find("[data-testid=popup]").ClassList);
+        var list = cut.Find("#list[data-slot=combobox-list]");
+        Assert.Equal("listbox", list.GetAttribute("role"));
+        Assert.Contains("max-h-40", list.ClassList);
+        var items = cut.FindAll("[data-slot=combobox-item]");
+        Assert.All(items, i => Assert.Contains("py-2", i.ClassList));
+        Assert.Equal("true", items[2].GetAttribute("aria-disabled"));
+        Assert.False(items[0].HasAttribute("aria-disabled"));
+    }
+
+    [Fact]
+    public void Inside_a_raised_dialog_the_popup_lifts_itself_above_the_window()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ZIndex="60">
+                <BzDialogTitle>Edit</BzDialogTitle>
+                <BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name" DefaultOpen="true">@Parts</BzCombobox>
+            </BzDialogContent>
+        </BzDialog>);
+
+        Assert.Contains("z-index:65", cut.Find("[data-slot=combobox-content]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_controlled_open_state_is_asked_for_and_followed()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzCombobox<Fruit>>(p => p
+            .Add(x => x.Items, Fruits)
+            .Add(x => x.ItemToStringValue, Name)
+            .Add(x => x.Open, false)
+            .Add(x => x.OpenChanged, (bool o) => requests.Add(o))
+            .AddChildContent(Parts));
+
+        Input(cut).Click();
+        Assert.Equal([true], requests);
+        Assert.Equal("false", Input(cut).GetAttribute("aria-expanded"));
+
+        cut.Render(p => p.Add(x => x.Open, true));
+        Assert.Equal("true", Input(cut).GetAttribute("aria-expanded"));
+    }
+
+    // Groups -------------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_collection_lists_a_group_of_its_own_items_under_a_label_that_names_the_group()
+    {
+        IReadOnlyList<Fruit> berries = [new(7, "Raspberry"), new(8, "Blueberry")];
+        Fruit? picked = null;
+        var cut = Render(@<BzCombobox TItem="Fruit" Items="Fruits" ItemToStringValue="Name" DefaultOpen="true"
+                                      Value="picked" ValueChanged="@((Fruit? f) => picked = f)">
+            <BzComboboxInput />
+            <BzComboboxContent>
+                <BzComboboxGroup Class="pb-1" id="berries">
+                    <BzComboboxLabel Class="uppercase">Berries</BzComboboxLabel>
+                    <BzComboboxCollection TItem="Fruit" Items="berries" ItemToStringValue="Name" Context="fruit">
+                        <BzComboboxItem Value="fruit">@fruit.Name</BzComboboxItem>
+                    </BzComboboxCollection>
+                </BzComboboxGroup>
+                <BzComboboxSeparator />
+            </BzComboboxContent>
+        </BzCombobox>);
+
+        var group = cut.Find("#berries[data-slot=combobox-group]");
+        var label = cut.Find("[data-slot=combobox-label]");
+        Assert.Equal(label.Id, group.GetAttribute("aria-labelledby"));
+        Assert.Contains("uppercase", label.ClassList);
+        Assert.Contains("pb-1", group.ClassList);
+        Assert.Equal(["Raspberry", "Blueberry"], group.QuerySelectorAll("[role=option]").Select(o => o.GetAttribute("data-value")));
+        Assert.NotNull(cut.Find("[data-slot=combobox-separator]"));
+    }
+}
