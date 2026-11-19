@@ -1,0 +1,27 @@
+<div class="w-full space-y-3">
+    <BzButton Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" OnClick="@(() => _showFiles = !_showFiles)">
+        @(_showFiles ? "Hide files" : "Show files")
+    </BzButton>
+    <div class="h-[240px] w-full">
+        <BzResizablePanelGroup Orientation="Orientation.Horizontal" Class="rounded-lg border">
+            @if (_showFiles)
+            {
+                <BzResizablePanel DefaultSize="25" MinSize="15">
+                    <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Files</span></div>
+                </BzResizablePanel>
+                <BzResizableHandle AriaLabel="Resize files" />
+            }
+            <BzResizablePanel DefaultSize="50">
+                <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Editor</span></div>
+            </BzResizablePanel>
+            <BzResizableHandle AriaLabel="Resize preview" />
+            <BzResizablePanel DefaultSize="25" MinSize="15">
+                <div class="flex h-full items-center justify-center p-6"><span class="font-semibold">Preview</span></div>
+            </BzResizablePanel>
+        </BzResizablePanelGroup>
+    </div>
+</div>
+
+@code {
+    private bool _showFiles = true;
+}
