@@ -346,4 +346,42 @@ public class DropdownMenuRenderTests : BunitContext
         Assert.Single(cut.FindAll("[role=menu]"));
         Assert.Equal("false", cut.Find("[data-bz-dropdown-menu-sub-anchor]").GetAttribute("aria-expanded"));
     }
+
+    [Fact]
+    public async Task A_close_request_after_the_menu_is_removed_is_ignored()
+    {
+        var subOpenChanges = 0;
+        RenderFragment items = b =>
+        {
+            b.OpenComponent<BaseDropdownMenuSub>(0);
+            b.AddComponentParameter(1, nameof(BaseDropdownMenuSub.OpenChanged),
+                EventCallback.Factory.Create<bool>(this, _ => subOpenChanges++));
+            b.AddComponentParameter(2, nameof(BaseDropdownMenuSub.ChildContent), (RenderFragment)(s =>
+            {
+                s.OpenComponent<BaseDropdownMenuSubTrigger>(0);
+                s.AddComponentParameter(1, nameof(BaseDropdownMenuSubTrigger.ChildContent), (RenderFragment)(x => x.AddContent(0, "Share")));
+                s.CloseComponent();
+                s.OpenComponent<BaseDropdownMenuSubContent>(2);
+                s.AddComponentParameter(3, nameof(BaseDropdownMenuSubContent.ChildContent), Item("Email"));
+                s.CloseComponent();
+            }));
+            b.CloseComponent();
+        };
+        var cut = Render<BaseDropdownMenu>(p => p.Add(x => x.Open, true).AddChildContent(Body(items)));
+
+        // Hovering the sub-trigger starts the delayed open, the timer the removed level used to re-cancel.
+        cut.Find("[data-bz-dropdown-menu-sub-anchor]").TriggerEvent("onpointerenter", new PointerEventArgs());
+        var subContent = cut.FindComponent<BaseDropdownMenuSubContent>().Instance;
+
+        // The menu closes and finishes its exit: the whole level, submenu included, is removed.
+        cut.Render(p => p.Add(x => x.Open, false));
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDropdownMenuContent>().Instance.OnCloseFinished());
+        Assert.Empty(cut.FindComponents<BaseDropdownMenuSub>());
+        var changesBefore = subOpenChanges;
+
+        // The submenu panel's script reports the focus leaving the removed panel a moment later.
+        await cut.InvokeAsync(() => subContent.OnSubCloseRequested());
+
+        Assert.Equal(changesBefore, subOpenChanges);
+    }
 }
