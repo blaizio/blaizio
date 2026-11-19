@@ -29,6 +29,12 @@ internal sealed class SurfaceScriptRuntime : IJSRuntime
 
     public int Count(string entry) => Log.Count(line => line == entry);
 
+    /// <summary>
+    /// Every call made on a module itself (not on an instance, and no factory), with what it was
+    /// given: <c>focusScope.js::refocus</c>.
+    /// </summary>
+    public List<(string Call, object?[] Arguments)> ModuleCalls { get; } = [];
+
     /// <summary>Calls to <paramref name="factory"/> stay unanswered until <see cref="Land"/>.</summary>
     public void HoldFactory(string factory) => _heldFactories.Add(factory);
 
@@ -86,6 +92,7 @@ internal sealed class SurfaceScriptRuntime : IJSRuntime
             if (typeof(TValue) != typeof(IJSObjectReference))
             {
                 runtime.Log.Add($"{name}::{identifier}");
+                runtime.ModuleCalls.Add(($"{name}::{identifier}", args ?? []));
                 return new ValueTask<TValue>(default(TValue)!);
             }
 

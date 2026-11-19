@@ -653,6 +653,8 @@ public class OverlaySurfaceScriptTests : BunitContext
         public bool Show = true;
         public Side? Side;
         public Align? Align;
+        // A second change, made while the render of the first is still under way.
+        public Action<Stage>? ThenInTheSameBatch;
     }
 
     private sealed class Host : ComponentBase
@@ -663,7 +665,26 @@ public class OverlaySurfaceScriptTests : BunitContext
         protected override void BuildRenderTree(RenderTreeBuilder builder)
         {
             if (Stage.Show) builder.AddContent(0, Body(Stage));
+            if (Stage.ThenInTheSameBatch is not { } then) return;
+
+            builder.OpenComponent<DuringTheRender>(1);
+            builder.AddComponentParameter(2, nameof(DuringTheRender.Do), (Action)(() =>
+            {
+                Stage.ThenInTheSameBatch = null;
+                then(Stage);
+                StateHasChanged();
+            }));
+            builder.CloseComponent();
         }
+    }
+
+    // Runs its action as it joins the page: inside the render batch that put it there, before
+    // any component of that batch has been told that it was rendered.
+    private sealed class DuringTheRender : ComponentBase
+    {
+        [Parameter] public Action Do { get; set; } = default!;
+
+        protected override void OnInitialized() => Do();
     }
 
     private static RenderFragment Text(string text) => b => b.AddContent(0, text);
@@ -968,5 +989,164 @@ public class OverlaySurfaceScriptTests : BunitContext
         // The parts around the surface have scripts of their own; none of the surface's was made.
         Assert.DoesNotContain(_js.Instances, i => Factories.Contains(i.Factory) && i.Factory != "createFocusScope");
         AssertNothingLeaked();
+    }
+
+    // ---- focus, for a surface opened again while it closes ----
+
+    // How a surface asks for the focus back: a menu and the select list ask their menu script,
+    // a popover and a dialog ask the focus scope on their element.
+    private const string ScopeRequest = "focusScope.js::refocus";
+
+    private int FocusRequests() =>
+        _js.Count(ScopeRequest) +
+        _js.Of("createMenu").Sum(menu => menu.Calls.Count(call => call == "refocus"));
+
+    /// <summary>Each family, and how many requests one reopening makes.</summary>
+    public static TheoryData<string, int> FocusFamilies => new()
+    {
+        { "select", 1 },
+        { "popover", 1 },
+        { "dialog", 1 }, // the window; its backdrop holds no focus
+        { "dropdown-menu", 1 },
+        { "context-menu", 1 },
+        { "menubar", 1 },
+        // These never hold focus: two float beside it, the combobox keeps it in its input.
+        { "hover-card", 0 },
+        { "tooltip", 0 },
+        { "combobox", 0 },
+    };
+
+    public static TheoryData<string> FocusHolders =>
+        ["select", "popover", "dialog", "dropdown-menu", "context-menu", "menubar"];
+
+    [Theory, MemberData(nameof(FocusFamilies))]
+    public async Task A_surface_opened_again_while_closing_is_asked_once_to_take_the_focus_back(
+        string family, int asked)
+    {
+        var cut = Start(family);
+        await SetAsync(cut, _ => { });
+        // A first opening: its scripts place that focus as they are created.
+        Assert.Equal(0, FocusRequests());
+
+        await SetAsync(cut, s => s.Open = false);
+        Assert.Equal(0, FocusRequests());
+        await SetAsync(cut, s => s.Open = true);
+        Assert.Equal(asked, FocusRequests());
+
+        // Once: not again with the renders that follow.
+        await SetAsync(cut, _ => { });
+        await SetAsync(cut, _ => { });
+        Assert.Equal(asked, FocusRequests());
+
+        // Closed for good and opened anew, it has new scripts, and is not asked.
+        await SetAsync(cut, s => s.Open = false);
+        await FinishAsync(cut);
+        await SetAsync(cut, s => s.Open = true);
+        Assert.Equal(asked, FocusRequests());
+
+        // The next reopening asks again.
+        await SetAsync(cut, s => s.Open = false);
+        await SetAsync(cut, s => s.Open = true);
+        Assert.Equal(asked * 2, FocusRequests());
+
+        await DisposeComponentsAsync();
+        AssertNothingLeaked();
+    }
+
+    [Theory]
+    [InlineData("popover")]
+    [InlineData("dialog")]
+    public async Task A_popover_and_a_dialog_ask_the_focus_scope_on_their_own_element(string family)
+    {
+        var cut = Start(family);
+        await SetAsync(cut, s => s.Open = false);
+        await SetAsync(cut, s => s.Open = true);
+
+        // By element: the scope instance belongs to the focus scope component the surface
+        // renders, and the script finds it by the element it was created on.
+        var request = Assert.Single(_js.ModuleCalls, call => call.Call == ScopeRequest);
+        var given = Assert.IsType<ElementReference>(Assert.Single(request.Arguments));
+        var scope = Assert.Single(_js.Of("createFocusScope"));
+        Assert.Equal(scope.Element!.Value.Id, given.Id);
+        Assert.DoesNotContain("refocus", scope.Calls);
+    }
+
+    [Theory, MemberData(nameof(FocusHolders))]
+    public async Task A_request_still_waiting_when_the_surface_is_taken_away_is_never_sent(
+        string family)
+    {
+        // What a request waits for: the module of the focus scope, or the menu instance.
+        _js.HoldImport("focusScope.js");
+        _js.HoldFactory("createMenu");
+        var cut = Start(family);
+        await SetAsync(cut, s => s.Open = false);
+        await SetAsync(cut, s => s.Open = true); // asked for, and waiting
+        await SetAsync(cut, s => s.Show = false);
+
+        await Renderer.Dispatcher.InvokeAsync(() =>
+        {
+            _js.LandImport("focusScope.js");
+            _js.ReleaseFactory("createMenu");
+            while (_js.Of("createMenu").Any(menu => !menu.Landed)) _js.Land("createMenu");
+        });
+
+        Assert.Equal(0, FocusRequests());
+        AssertNothingLeaked();
+
+        // The same surface on the page again, with nothing held back: it is asked.
+        await SetAsync(cut, s => s.Show = true);
+        await SetAsync(cut, s => s.Open = false);
+        await SetAsync(cut, s => s.Open = true);
+        Assert.Equal(1, FocusRequests());
+    }
+
+    [Theory]
+    [InlineData("select")]
+    [InlineData("dropdown-menu")]
+    [InlineData("context-menu")]
+    [InlineData("menubar")]
+    public async Task A_request_made_before_the_menu_script_landed_reaches_it_when_it_lands(
+        string family)
+    {
+        _js.HoldFactory("createMenu");
+        var cut = Start(family);
+        await SetAsync(cut, s => s.Open = false);
+        await SetAsync(cut, s => s.Open = true);
+        Assert.Equal(0, FocusRequests());
+
+        var menu = await cut.InvokeAsync(() => _js.Land("createMenu"));
+
+        Assert.Equal(["refocus"], menu.Calls);
+    }
+
+    // Not the menubar: its content sits one cascade further down, and the two changes reach it
+    // as one (it never hears of the reopening), so the case would prove nothing there.
+    [Theory]
+    [InlineData("select")]
+    [InlineData("popover")]
+    [InlineData("dialog")]
+    [InlineData("dropdown-menu")]
+    [InlineData("context-menu")]
+    public async Task A_surface_closed_again_before_it_was_rendered_open_is_not_asked(string family)
+    {
+        var cut = Start(family);
+        await SetAsync(cut, s => s.Open = false);
+
+        // Opened again, and closed once more while that render is still under way: by the time
+        // the surface hears that it was rendered, it is closing, and focus has no business in it.
+        await SetAsync(cut, s =>
+        {
+            s.Open = true;
+            s.ThenInTheSameBatch = then => then.Open = false;
+        });
+
+        var surfaces = cut.FindAll("[data-side], [role=dialog]");
+        Assert.NotEmpty(surfaces);
+        Assert.All(surfaces, surface => Assert.Equal("closed", surface.GetAttribute("data-state")));
+        Assert.Equal(0, FocusRequests());
+
+        // The request did not stay behind for a later render either.
+        await SetAsync(cut, _ => { });
+        Assert.Equal(0, FocusRequests());
     }
 }
