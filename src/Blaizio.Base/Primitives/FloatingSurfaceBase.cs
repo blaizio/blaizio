@@ -92,6 +92,11 @@ public abstract class FloatingSurfaceBase : PresenceSurfaceBase
 
     private protected override void OnOpening(bool reopened)
     {
+        // Opened again on its way out, the surface is where it was: the positioning script from
+        // before is still attached, and it reports a side only when the side changes. Going
+        // back to what was asked for would then stay wrong for as long as the surface is open.
+        if (reopened) return;
+
         // Start from the side that was asked for: the first frame (the entry slide, the arrow)
         // is painted before the positioning script reports where the surface really landed.
         ResolvedSide = PreferredSide.ToAttribute();

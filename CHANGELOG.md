@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Popover, Hover Card, Tooltip, Select, Combobox and the menus**: a surface opened again while
+  its exit animation plays keeps the side it is really on. One that had flipped to stay in view
+  (asked for the bottom, placed on top) went back to `data-side="bottom"` and kept saying so for
+  as long as it stayed open, because the positioning script reports a side only when it changes.
 - **Dropdown Menu, Context Menu, Menubar, Select, Combobox**: a surface says from its first frame
   which side it opens to. `data-side` and `data-align` started as `bottom` and `start` whatever
   was asked for (and, on a later opening, from wherever the last one ended up) until the
