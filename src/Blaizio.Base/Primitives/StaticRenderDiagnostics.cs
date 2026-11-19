@@ -39,6 +39,9 @@ internal sealed class StaticRenderDiagnostics
         _logger = enabled ? loggers?.CreateLogger(Category) : null;
     }
 
+    /// <summary>Whether a warning can be written at all: a Development host with logging.</summary>
+    public bool Enabled => _logger is not null;
+
     /// <summary>Logs the warning for <paramref name="component"/> unless that type was reported before.</summary>
     public void Report(Type component)
     {

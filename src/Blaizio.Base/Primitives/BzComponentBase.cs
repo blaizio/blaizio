@@ -130,8 +130,14 @@ public abstract class BzComponentBase : ComponentBase
         if (!_staticRenderChecked)
         {
             _staticRenderChecked = true;
-            if (RequiresInteractivity && IsStaticRender)
-                (Services.GetService(typeof(StaticRenderDiagnostics)) as StaticRenderDiagnostics)?.Report(GetType());
+            // The renderer is only asked when the warning could be written: outside Development
+            // (and in a test host, which may throw on the question) nothing is probed at all.
+            if (RequiresInteractivity
+                && Services.GetService(typeof(StaticRenderDiagnostics)) is StaticRenderDiagnostics { Enabled: true } diagnostics
+                && IsStaticRender)
+            {
+                diagnostics.Report(GetType());
+            }
         }
 
         return base.SetParametersAsync(parameters);
