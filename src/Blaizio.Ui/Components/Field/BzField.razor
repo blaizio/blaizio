@@ -1,12 +1,16 @@
 @namespace Blaizio.Ui
+@using System.Linq.Expressions
 @implements IDisposable
 @*
     One form field - a composable Field layout (layout + bz-field hooks) fused with Blaizio's validation
     bridge. Validity resolves from one of two sources:
 
-      • Inside an EditForm: set Name to the model property. Messages come from the ambient
-        EditContext (e.g. populated by <DataAnnotationsValidator/>), and the field re-renders
-        whenever validation state changes.
+      • Inside an EditForm: set For to the model property (For="@(() => model.Email)"), or Name
+        to its name. Messages come from the ambient EditContext (e.g. populated by
+        <DataAnnotationsValidator/>), and the field re-renders whenever validation state changes.
+        With For the field also tells the EditContext when the property's value changes, so the
+        messages follow the edit instead of waiting for a submit. The control needs nothing for
+        that: the field watches the value itself.
       • Standalone (no EditForm): set Error to a message string you compute yourself.
         Non-empty = invalid.
 
@@ -32,8 +36,21 @@
     /// <summary>The ambient EditContext (supplied by an enclosing <c>EditForm</c>), if any.</summary>
     [CascadingParameter] private EditContext? EditContext { get; set; }
 
-    /// <summary>The model property name this field validates - used to read messages from the EditContext.</summary>
+    /// <summary>
+    /// The model property name this field validates - used to read messages from the EditContext.
+    /// Names a property of the form's own model only; prefer <see cref="For"/>, which also reaches
+    /// nested objects and keeps the messages in step with edits.
+    /// </summary>
     [Parameter] public string? Name { get; set; }
+
+    /// <summary>
+    /// The model property this field validates, as an expression: <c>For="@(() =&gt; model.Email)"</c>,
+    /// or <c>() =&gt; model.Address.City</c> for a nested object. Inside an <c>EditForm</c> the field
+    /// reads its messages for that property and notifies the form's <c>EditContext</c> whenever the
+    /// property's value changes, whichever control changed it, so validation runs as the user edits
+    /// (with <see cref="Name"/> alone, messages refresh on submit). Wins over <see cref="Name"/>.
+    /// </summary>
+    [Parameter] public Expression<Func<object?>>? For { get; set; }
 
     /// <summary>Explicit error message for standalone use (no EditForm). Non-empty marks the field invalid.</summary>
     [Parameter] public string? Error { get; set; }
@@ -56,6 +73,16 @@
     private string _itemId = default!, _descriptionId = default!, _errorId = default!;
     private EditContext? _subscribed;
     private FieldContext _context = default!;
+
+    // The field For (or Name) resolves to in the current EditContext, if any.
+    private FieldIdentifier? _field;
+
+    // The value For last read, and for which field of which form: a change is measured against it.
+    private bool _watching;
+    private EditContext? _watchedContext;
+    private FieldIdentifier _watchedField;
+    private object? _watchedValue;
+    private bool _notifyPending;
 
     private const string BaseClasses = "bz-field group/field flex w-full";
 
@@ -88,21 +115,97 @@
         // Track the EditContext so we re-render when its validation state changes.
         if (!ReferenceEquals(_subscribed, EditContext))
         {
-            if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+            Unsubscribe();
             _subscribed = EditContext;
-            if (_subscribed is not null) _subscribed.OnValidationStateChanged += OnValidationStateChanged;
+            if (_subscribed is not null)
+            {
+                _subscribed.OnValidationStateChanged += OnValidationStateChanged;
+                _subscribed.OnFieldChanged += OnFieldChanged;
+            }
         }
 
+        ResolveField();
         _context = BuildContext();
+    }
+
+    // Works out which field this is and, with For, whether its value moved since the last look.
+    // Every edit that goes through a binding re-renders the form's owner, which sets parameters
+    // here again: that is the moment the new value is seen, whatever control wrote it.
+    private void ResolveField()
+    {
+        if (EditContext is null)
+        {
+            _field = null;
+            _watching = false;
+            return;
+        }
+
+        if (For is null)
+        {
+            _field = string.IsNullOrEmpty(Name) ? null : new FieldIdentifier(EditContext.Model, Name);
+            _watching = false;
+            return;
+        }
+
+        if (!FieldExpression.TryRead(For, out var model, out var name, out var value))
+        {
+            // Not a plain property path the field can read (or an object on the way is null): keep
+            // the identity the framework derives from it when it can, and watch nothing.
+            _field = TryCreate(For);
+            _watching = false;
+            return;
+        }
+
+        var field = new FieldIdentifier(model, name);
+        _field = field;
+
+        // First look, another form, or another object behind the same markup: start from here.
+        if (!_watching || !ReferenceEquals(_watchedContext, EditContext) || !field.Equals(_watchedField))
+        {
+            _watching = true;
+            _watchedContext = EditContext;
+            _watchedField = field;
+            _watchedValue = value;
+            _notifyPending = false;
+            return;
+        }
+
+        if (Equals(_watchedValue, value)) return;
+        _watchedValue = value;
+        _notifyPending = true;
+    }
+
+    private static FieldIdentifier? TryCreate(Expression<Func<object?>> accessor)
+    {
+        try { return FieldIdentifier.Create(accessor); }
+        catch (ArgumentException) { return null; }
+    }
+
+    // After the render, not during it: the notification runs the form's validators and its
+    // OnFieldChanged handlers, which are free to change state.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!_notifyPending) return;
+        _notifyPending = false;
+        if (_field is { } field && ReferenceEquals(_watchedContext, EditContext))
+            EditContext?.NotifyFieldChanged(field);
+    }
+
+    // Something else announced this field (an input that notifies by itself, or the app): take
+    // the value as seen, so the same edit is not announced twice.
+    private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        if (!_watching || For is null || !e.FieldIdentifier.Equals(_watchedField)) return;
+        if (FieldExpression.TryRead(For, out _, out _, out var value)) _watchedValue = value;
+        _notifyPending = false;
     }
 
     private FieldContext BuildContext()
     {
         IReadOnlyList<string> messages;
 
-        if (EditContext is not null && !string.IsNullOrEmpty(Name))
+        if (EditContext is not null && _field is { } field)
         {
-            var field = new FieldIdentifier(EditContext.Model, Name);
             messages = EditContext.GetValidationMessages(field).ToList();
         }
         else if (!string.IsNullOrEmpty(Error))
@@ -123,8 +226,12 @@
         StateHasChanged();
     }
 
-    public void Dispose()
+    private void Unsubscribe()
     {
-        if (_subscribed is not null) _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+        if (_subscribed is null) return;
+        _subscribed.OnValidationStateChanged -= OnValidationStateChanged;
+        _subscribed.OnFieldChanged -= OnFieldChanged;
     }
+
+    public void Dispose() => Unsubscribe();
 }

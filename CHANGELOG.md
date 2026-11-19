@@ -619,6 +619,14 @@ lockstep under one version.
   components whole, for example with `<TrimmerRootAssembly Include="YourApp" />`: Data Table and
   Drawer still hand script objects whose properties only the script reads. A row type edited
   through an `Editable` column needs its property setters kept in that case as well.
+- **Field**: `For` on `BzField` names the model property as an expression
+  (`For="@(() => model.Email)"`, or `() => model.Address.City` for a nested object). Inside an
+  `EditForm` the field reads its messages for that property and tells the form's `EditContext`
+  when the property's value changes, so validation follows the edit. With `Name` the messages
+  refresh on submit only, as before. No control needs a parameter for it: the field reads the
+  property itself each time the form renders, so any control that writes the value is followed,
+  and an input that notifies the `EditContext` by itself is not announced twice. `For` wins over
+  `Name`. A value written from code counts as a change; loading another model does not.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with
