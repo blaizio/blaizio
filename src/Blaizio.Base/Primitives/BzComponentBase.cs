@@ -79,4 +79,59 @@ public abstract class BzComponentBase : ComponentBase
     /// <c>&lt;html dir&gt;</c>, which is also where an app-wide direction lives.
     /// </summary>
     protected string? PortalDirAttribute => (Dir ?? CascadedDirection) is { } d ? d.ToAttribute() : null;
+
+    private bool? _interactive;
+    private bool _staticRenderChecked;
+
+    /// <summary>
+    /// Whether this render can respond to events: <see langword="true"/> when rendering
+    /// interactively, <see langword="false"/> on a statically rendered page and while prerendering.
+    /// The guarded reading of <see cref="ComponentBase.RendererInfo"/>: a host that supplies no
+    /// renderer info (some test renderers throw on the property) counts as interactive, since the
+    /// Blazor events are the path that needs nothing else.
+    /// </summary>
+    protected bool IsInteractive
+    {
+        get
+        {
+            if (_interactive is { } known) return known;
+            try { return (_interactive = RendererInfo.IsInteractive).Value; }
+            catch (Exception) { return true; }
+        }
+    }
+
+    /// <summary>
+    /// Whether this component is on a statically rendered page and will stay that way: not
+    /// interactive now and no render mode assigned, so nothing will ever deliver an event. While
+    /// prerendering an interactive component this is <see langword="false"/>.
+    /// </summary>
+    protected bool IsStaticRender
+    {
+        get
+        {
+            if (IsInteractive) return false;
+            try { return AssignedRenderMode is null; }
+            catch (Exception) { return false; }
+        }
+    }
+
+    /// <summary>
+    /// Override to return <see langword="true"/> in a component that does nothing without events (a
+    /// trigger, a toggle, a drag surface). When such a component is rendered on a static page the
+    /// server log gets one warning per component type, in the Development environment only.
+    /// </summary>
+    protected virtual bool RequiresInteractivity => false;
+
+    /// <inheritdoc />
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        if (!_staticRenderChecked)
+        {
+            _staticRenderChecked = true;
+            if (RequiresInteractivity && IsStaticRender)
+                (Services.GetService(typeof(StaticRenderDiagnostics)) as StaticRenderDiagnostics)?.Report(GetType());
+        }
+
+        return base.SetParametersAsync(parameters);
+    }
 }

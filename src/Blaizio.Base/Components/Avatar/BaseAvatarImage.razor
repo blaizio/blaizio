@@ -11,7 +11,7 @@
     (a strict Content-Security-Policy) the fallback simply stays, as before.
 *@
 
-@if (Interactive)
+@if (IsInteractive)
 {
     <img src="@Src" alt="@Alt" data-slot="avatar-image"
          class="@Class" style="@CurrentStyle"
@@ -34,17 +34,6 @@ else
 
     /// <summary>Alt text.</summary>
     [Parameter] public string? Alt { get; set; }
-
-    // A host that supplies no renderer info (some test renderers throw on the property) is treated
-    // as interactive: the Blazor events are the path that needs no inline script.
-    private bool Interactive
-    {
-        get
-        {
-            try { return RendererInfo.IsInteractive; }
-            catch (Exception) { return true; }
-        }
-    }
 
     // Shows the image and hides the fallback once the image has loaded, and does it again whenever
     // the element's style is put back. Enhanced navigation merges the next page into this one: it

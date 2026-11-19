@@ -22,6 +22,7 @@ public static class BlaizioServiceCollectionExtensions
         var options = new BlaizioOptions();
         configure?.Invoke(options);
         services.TryAddSingleton(options);
+        services.TryAddSingleton<StaticRenderDiagnostics>();
 
         services.TryAddScoped<ICore, Core>();
         services.TryAddScoped<IDialogStore, DialogStore>();

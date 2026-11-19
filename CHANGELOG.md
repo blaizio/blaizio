@@ -590,6 +590,12 @@ lockstep under one version.
   before the instance exists or after it is gone. For components that wire their own script.
 - **Chart**: `AriaLabel` on `BzChart`, `BzPieChart`, `BzRadarChart` and `BzRadialBarChart` exposes
   the drawing to assistive tech as one labelled image. Without it the drawing stays hidden.
+- **Static rendering**: `BzComponentBase` has `IsInteractive` and `IsStaticRender`, one guarded
+  reading of the renderer's interactivity in place of the copies Avatar and Image each carried, and
+  `RequiresInteractivity`. A component that does nothing without events (a trigger, a switch, a
+  slider: 34 Base components) writes one warning per component type to the server log, category
+  `Blaizio.StaticRender`, when it is rendered on a static page with no render mode. Only in the
+  Development environment; set that category's log level to `None` to silence it.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with
