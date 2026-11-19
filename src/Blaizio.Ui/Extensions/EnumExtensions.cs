@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Blaizio.Ui;
@@ -18,10 +19,15 @@ public static class EnumExtensions
     // never changes, so the reflection runs once per member instead of once per call.
     private static readonly ConcurrentDictionary<Enum, string> s_descriptions = new();
 
+    // The lookup is by reflection over the value's own enum type. A trimmed app keeps it working:
+    // the trimmer never removes the fields of an enum type it keeps, and a member that is there
+    // keeps its attributes. Hence the suppression: the analyzer cannot know the type is an enum.
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "The type is the value's enum type, and the fields of a kept enum are never trimmed.")]
     private static string Describe(Enum value)
     {
         var name = value.ToString();
-        var member = value.GetType().GetMember(name).FirstOrDefault();
+        var member = value.GetType().GetField(name);
         return member?.GetCustomAttribute<DescriptionAttribute>()?.Description ?? name;
     }
 }

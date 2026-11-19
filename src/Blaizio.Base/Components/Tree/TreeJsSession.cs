@@ -41,17 +41,17 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
                 var module = await JsModules.ImportAsync(js, TreeModule);
                 _disabled = tree.Disabled;
                 _draggable = tree.Draggable;
-                await _instance.CreateAsync(module, "createTree", element, _selfRef, new
+                await _instance.CreateAsync(module, "createTree", element, _selfRef, new TreeOptions
                 {
-                    id = tree.ResolvedId,
-                    group = tree.Group,
-                    disabled = tree.Disabled,
-                    dragEnabled = tree.Draggable,
-                    delayMs = tree.DragDelayMs,
-                    hoverExpandMs = tree.HoverExpandDelayMs,
-                    transferIn = tree.AllowTransferIn,
-                    transferOut = tree.AllowTransferOut,
-                    indicatorClass = tree.DropIndicatorClass,
+                    Id = tree.ResolvedId,
+                    Group = tree.Group,
+                    Disabled = tree.Disabled,
+                    DragEnabled = tree.Draggable,
+                    DelayMs = tree.DragDelayMs,
+                    HoverExpandMs = tree.HoverExpandDelayMs,
+                    TransferIn = tree.AllowTransferIn,
+                    TransferOut = tree.AllowTransferOut,
+                    IndicatorClass = tree.DropIndicatorClass,
                 });
 
                 _virtualized = tree.Virtualize;
@@ -83,7 +83,7 @@ internal sealed class TreeJsSession<TItem>(BaseTree<TItem> tree, IJSRuntime js)
             {
                 _disabled = tree.Disabled;
                 _draggable = tree.Draggable;
-                await _instance.InvokeVoidAsync("update", new { disabled = tree.Disabled, dragEnabled = tree.Draggable });
+                await _instance.InvokeVoidAsync("update", new TreeUpdateOptions { Disabled = tree.Disabled, DragEnabled = tree.Draggable });
             }
             else if (tree.MarqueeLabels != _marquee)
             {

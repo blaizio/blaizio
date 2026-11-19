@@ -361,6 +361,20 @@ lockstep under one version.
   older Base instead of installing source that does not compile.
 - **Performance**: the enum-to-class-name lookup components use while rendering is cached. It used
   to reflect over the enum on every render of every component.
+- **Base**: every options object a component hands to its script is a named type derived from
+  the internal `JsOptions<T>`, which keeps its properties in a trimmed app. They were anonymous
+  objects, which a trimmer empties without a warning. The script receives the same properties.
+- **Dialog service**: `ShowAsync<TComponent>` renders the component itself. It went through
+  `DynamicComponent`, whose type parameter a trimmer cannot follow. `TComponent` (and
+  `ShowSheetAsync<TComponent>`) now carries `[DynamicallyAccessedMembers(All)]`, which only matters
+  to code that passes its own type parameter on while trim analysis is on.
+- **Collapsible, Accordion, Tree**: the script callbacks `OnCloseFinished` and `OnBeforeMatch` are
+  declared on `CollapsiblePanelBase`, the type the script's reference is made with. The copies on
+  `BaseCollapsibleContent`, `BaseAccordionContent` and `BaseTreePanel` are gone (the members are
+  inherited, so calls still compile); a panel that reacts to find-in-page overrides
+  `OnBeforeMatchCoreAsync`. Declared on the derived types, a trimmer removed them.
+- **`EnumExtensions.GetDescription`** looks the member up with `GetField`, with the trim warning a
+  project analysing its copied components used to get answered in place. Same results.
 
 ### Added
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
@@ -596,6 +610,15 @@ lockstep under one version.
   slider: 34 Base components) writes one warning per component type to the server log, category
   `Blaizio.StaticRender`, when it is rendered on a static page with no render mode. Only in the
   Development environment; set that category's log level to `None` to silence it.
+- **Trimming**: `Blaizio.Base` is marked trimmable, so a published WebAssembly app carries only
+  the components it uses. Measured on the assembly: 858 KB to 89 KB (222 KB to 29 KB with
+  Brotli) for an app with a switch, a dialog and tabs. The docs site uses every component and
+  goes from 861 KB to 801 KB. The package builds with no trim or AOT analyzer warning; it is not
+  declared AOT-compatible, since no AOT publish is part of the checks. A project that trims its
+  own assembly too (`TrimMode` `full`, off by default in Blazor) should keep the copied
+  components whole, for example with `<TrimmerRootAssembly Include="YourApp" />`: Data Table and
+  Drawer still hand script objects whose properties only the script reads. A row type edited
+  through an `Editable` column needs its property setters kept in that case as well.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with

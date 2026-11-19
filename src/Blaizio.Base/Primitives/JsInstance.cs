@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.JSInterop;
 
 namespace Blaizio;
@@ -102,11 +103,18 @@ public sealed class JsInstance : IAsyncDisposable
     public ValueTask InvokeVoidAsync(string identifier, params object?[] args) =>
         _reference is { } reference ? reference.InvokeVoidAsync(identifier, args) : ValueTask.CompletedTask;
 
+    // What deserializing a script result needs of its type: the requirement the interop call
+    // itself declares, repeated here so it reaches the caller's type argument.
+    private const DynamicallyAccessedMemberTypes JsonSerialized =
+        DynamicallyAccessedMemberTypes.PublicConstructors
+        | DynamicallyAccessedMemberTypes.PublicFields
+        | DynamicallyAccessedMemberTypes.PublicProperties;
+
     /// <summary>
     /// Calls a function on the instance and returns its result, or the default value of
     /// <typeparamref name="TValue"/> when no instance is attached.
     /// </summary>
-    public ValueTask<TValue> InvokeAsync<TValue>(string identifier, params object?[] args) =>
+    public ValueTask<TValue> InvokeAsync<[DynamicallyAccessedMembers(JsonSerialized)] TValue>(string identifier, params object?[] args) =>
         _reference is { } reference ? reference.InvokeAsync<TValue>(identifier, args) : ValueTask.FromResult(default(TValue)!);
 
     /// <summary>

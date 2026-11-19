@@ -139,14 +139,13 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
-        var options = new
+        var options = new PositioningOptions
         {
-            side = Side.ToAttribute(),
-            align = Align.ToAttribute(),
-            sideOffset = SideOffset,
-            alignOffset = AlignOffset,
-            collisionPadding = 8,
-            inline = Inline,
+            Side = Side.ToAttribute(),
+            Align = Align.ToAttribute(),
+            SideOffset = SideOffset,
+            AlignOffset = AlignOffset,
+            Inline = Inline,
         };
         var anchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']";
 
@@ -160,14 +159,14 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
-        var options = new
+        var options = new DismissableLayerOptions
         {
             // A press on the trigger is not "outside" - moving onto/off it is handled by hover, so it
             // must not also dismiss.
-            anchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']",
+            AnchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']",
             // The card never holds focus, so Escape can't reach a C# onkeydown here - let the layer
             // catch it at the document level instead.
-            dismissOnEscape = true,
+            DismissOnEscape = true,
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);

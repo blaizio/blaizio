@@ -195,14 +195,13 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
-        var options = new
+        var options = new PositioningOptions
         {
-            side = Side.ToAttribute(),
-            align = Align.ToAttribute(),
-            sideOffset = SideOffset,
-            alignOffset = AlignOffset,
-            collisionPadding = 8,
-            inline = Inline,
+            Side = Side.ToAttribute(),
+            Align = Align.ToAttribute(),
+            SideOffset = SideOffset,
+            AlignOffset = AlignOffset,
+            Inline = Inline,
         };
         var anchorSelector = $"[data-bz-popover-anchor='{Popover?.AnchorId}']";
 
@@ -216,13 +215,13 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
-        var options = new
+        var options = new DismissableLayerOptions
         {
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
-            anchorSelector = $"[data-bz-popover-anchor='{Popover?.AnchorId}']",
+            AnchorSelector = $"[data-bz-popover-anchor='{Popover?.AnchorId}']",
             // Escape comes through the layer, like BaseDialogContent: the topmost surface takes
             // it, so a list or menu open inside the popover closes alone.
-            dismissOnEscape = true,
+            DismissOnEscape = true,
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);

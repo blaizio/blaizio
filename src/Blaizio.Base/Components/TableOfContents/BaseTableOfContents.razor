@@ -1,5 +1,6 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@using System.Diagnostics.CodeAnalysis
 @inject IJSRuntime Js
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
@@ -86,6 +87,10 @@
             .Flag("hidden", _headings.Count == 0)
             .Merge(Attributes, Class, Style);
 
+    // The headings come back as TocHeading[]: the interop call's own annotation covers the array,
+    // not the element type, and nothing in C# constructs a TocHeading. This keeps its constructor
+    // (and the parameter names deserialization matches on) in a trimmed app.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.PublicProperties, typeof(TocHeading))]
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Guards are claimed synchronously (before any await) - OnAfterRenderAsync re-enters on

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Blaizio;
 using Microsoft.AspNetCore.Components;
 
@@ -33,7 +34,7 @@ public static class DialogServiceExtensions
     /// cascaded <see cref="DialogInstance"/> to close itself with a result. An explicit
     /// <c>options.SheetSide</c> wins over <paramref name="side"/>.
     /// </summary>
-    public static Task<DialogResult> ShowSheetAsync<TComponent>(
+    public static Task<DialogResult> ShowSheetAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>(
         this IDialogService dialogs,
         IReadOnlyDictionary<string, object?>? parameters = null,
         PanelSide side = PanelSide.End,
