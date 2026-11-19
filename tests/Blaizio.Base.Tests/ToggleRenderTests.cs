@@ -64,4 +64,47 @@ public class ToggleRenderTests : BunitContext
         // …but the toggled value was announced.
         Assert.False(changed);
     }
+
+    // The toggle's behaviour on an element of the consumer's own, here a span.
+    private static readonly Microsoft.AspNetCore.Components.RenderFragment<BzRenderProps> AsSpan = props => builder =>
+    {
+        builder.OpenElement(0, "span");
+        builder.AddMultipleAttributes(1, props.Attributes);
+        builder.AddContent(2, "Bold");
+        builder.CloseElement();
+    };
+
+    [Fact]
+    public void On_another_element_the_toggle_keeps_its_state_and_click_but_not_the_button_only_attributes()
+    {
+        var cut = Render<BaseToggle>(p => p.Add(x => x.RenderAs, AsSpan));
+
+        var element = cut.Find("span");
+        Assert.Equal("false", element.GetAttribute("aria-pressed"));
+        Assert.False(element.HasAttribute("type"));
+        Assert.False(element.HasAttribute("aria-disabled"));
+
+        element.Click();
+
+        Assert.Equal("true", cut.Find("span").GetAttribute("aria-pressed"));
+        Assert.Equal("on", cut.Find("span").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void On_another_element_disabled_is_told_to_assistive_tools_and_still_blocks_the_click()
+    {
+        var cut = Render<BaseToggle>(p => p
+            .Add(x => x.RenderAs, AsSpan)
+            .Add(x => x.Disabled, true));
+
+        var element = cut.Find("span");
+        // A span takes no native disabled: nothing would stop its click or announce the state.
+        Assert.False(element.HasAttribute("disabled"));
+        Assert.Equal("true", element.GetAttribute("aria-disabled"));
+        Assert.True(element.HasAttribute("data-disabled"));
+
+        element.Click();
+
+        Assert.Equal("off", cut.Find("span").GetAttribute("data-state"));
+    }
 }
