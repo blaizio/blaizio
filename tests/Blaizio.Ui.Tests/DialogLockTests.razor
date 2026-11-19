@@ -1,0 +1,177 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using global::Blaizio
+@using global::Blaizio.Ui
+@using Blaizio.Ui.Tests
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // The lock of a dialog, sheet, drawer or alert dialog is PreventDismiss on the root: Escape and
+    // the backdrop stop closing it and the styled content hides its corner close button. The roots
+    // used to call it DismissOnOutsideClick="false", a name the content parts also use for a smaller
+    // thing (the backdrop only). The earlier name stays as a hidden parameter with its old meaning.
+
+    public DialogLockTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static bool Open(IRenderedComponent<IComponent> cut, string role = "dialog") =>
+        cut.FindAll($"[role={role}][data-state=open]").Count == 1;
+
+    private static void Escape(IRenderedComponent<IComponent> cut) =>
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+
+    private static bool HasCloseButton(IRenderedComponent<IComponent> cut, string slot) =>
+        cut.FindAll($"[data-slot={slot}]").Count > 0;
+
+    [Fact]
+    public void A_locked_dialog_ignores_Escape_and_the_backdrop_and_has_no_close_button()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true" PreventDismiss="true">
+            <BzDialogContent>
+                <BzDialogTitle>Terms</BzDialogTitle>
+                <BzDialogDescription>Accept to go on.</BzDialogDescription>
+            </BzDialogContent>
+        </BzDialog>);
+
+        Escape(cut);
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+
+        Assert.True(Open(cut));
+        Assert.False(HasCloseButton(cut, "dialog-close"));
+    }
+
+    [Fact]
+    public void A_dialog_that_is_not_locked_closes_on_Escape_and_shows_its_close_button()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent>
+                <BzDialogTitle>Terms</BzDialogTitle>
+                <BzDialogDescription>Accept to go on.</BzDialogDescription>
+            </BzDialogContent>
+        </BzDialog>);
+        Assert.True(HasCloseButton(cut, "dialog-close"));
+
+        Escape(cut);
+
+        Assert.False(Open(cut));
+    }
+
+    // The content's DismissOnOutsideClick is the smaller switch and keeps its meaning: the backdrop
+    // stops closing the dialog, Escape and the close button go on working.
+    [Fact]
+    public void The_content_switch_stops_the_backdrop_only()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent DismissOnOutsideClick="false">
+                <BzDialogTitle>Terms</BzDialogTitle>
+                <BzDialogDescription>Accept to go on.</BzDialogDescription>
+            </BzDialogContent>
+        </BzDialog>);
+
+        // The backdrop does not listen at all, so there is nothing for a press to reach.
+        Assert.False(cut.Find("[data-slot=dialog-overlay]").HasAttribute("blazor:onpointerdown"));
+        Assert.True(HasCloseButton(cut, "dialog-close"));
+
+        Escape(cut);
+        Assert.False(Open(cut));
+    }
+
+    [Fact]
+    public void A_locked_sheet_ignores_Escape_and_has_no_close_button()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true" PreventDismiss="true">
+            <BzSheetContent>
+                <BzSheetTitle>Filters</BzSheetTitle>
+                <BzSheetDescription>Pick at least one.</BzSheetDescription>
+            </BzSheetContent>
+        </BzSheet>);
+
+        Escape(cut);
+
+        Assert.True(Open(cut));
+        Assert.False(HasCloseButton(cut, "sheet-close"));
+    }
+
+    [Fact]
+    public void A_locked_drawer_ignores_Escape_and_has_no_close_button()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true" PreventDismiss="true">
+            <BzDrawerContent>
+                <BzDrawerTitle>Filters</BzDrawerTitle>
+                <BzDrawerDescription>Pick at least one.</BzDrawerDescription>
+            </BzDrawerContent>
+        </BzDrawer>);
+
+        Escape(cut);
+
+        Assert.True(Open(cut));
+        Assert.False(HasCloseButton(cut, "drawer-close"));
+    }
+
+    [Fact]
+    public void A_locked_alert_dialog_ignores_Escape()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true" PreventDismiss="true">
+            <BzAlertDialogContent>
+                <BzAlertDialogTitle>Delete the project?</BzAlertDialogTitle>
+                <BzAlertDialogDescription>This cannot be undone.</BzAlertDialogDescription>
+            </BzAlertDialogContent>
+        </BzAlertDialog>);
+
+        Escape(cut);
+
+        Assert.True(Open(cut, "alertdialog"));
+    }
+
+#pragma warning disable CS0618
+    [Fact]
+    public void The_earlier_name_still_locks_every_root()
+    {
+        var dialog = Render(@<BzDialog DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzDialogContent><BzDialogTitle>Terms</BzDialogTitle><BzDialogDescription>Accept.</BzDialogDescription></BzDialogContent>
+        </BzDialog>);
+        Escape(dialog);
+        Assert.True(Open(dialog));
+        Assert.False(HasCloseButton(dialog, "dialog-close"));
+
+        var sheet = Render(@<BzSheet DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzSheetContent><BzSheetTitle>Filters</BzSheetTitle><BzSheetDescription>Pick.</BzSheetDescription></BzSheetContent>
+        </BzSheet>);
+        Escape(sheet);
+        Assert.True(Open(sheet));
+
+        var drawer = Render(@<BzDrawer DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzDrawerContent><BzDrawerTitle>Filters</BzDrawerTitle><BzDrawerDescription>Pick.</BzDrawerDescription></BzDrawerContent>
+        </BzDrawer>);
+        Escape(drawer);
+        Assert.True(Open(drawer));
+
+        var alert = Render(@<BzAlertDialog DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzAlertDialogContent><BzAlertDialogTitle>Delete?</BzAlertDialogTitle><BzAlertDialogDescription>Gone.</BzAlertDialogDescription></BzAlertDialogContent>
+        </BzAlertDialog>);
+        Escape(alert);
+        Assert.True(Open(alert, "alertdialog"));
+    }
+
+    [Fact]
+    public void With_both_names_set_either_one_locks()
+    {
+        var lockedByNew = Render(@<BzDialog DefaultOpen="true" PreventDismiss="true" DismissOnOutsideClick="true">
+            <BzDialogContent><BzDialogTitle>Terms</BzDialogTitle><BzDialogDescription>Accept.</BzDialogDescription></BzDialogContent>
+        </BzDialog>);
+        Escape(lockedByNew);
+        Assert.True(Open(lockedByNew));
+
+        var lockedByEarlier = Render(@<BzDialog DefaultOpen="true" DismissOnOutsideClick="false" PreventDismiss="false">
+            <BzDialogContent><BzDialogTitle>Terms</BzDialogTitle><BzDialogDescription>Accept.</BzDialogDescription></BzDialogContent>
+        </BzDialog>);
+        Escape(lockedByEarlier);
+        Assert.True(Open(lockedByEarlier));
+    }
+#pragma warning restore CS0618
+}
