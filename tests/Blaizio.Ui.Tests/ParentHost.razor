@@ -1,0 +1,12 @@
+@*
+    A parent for tests that bind to a local: the test class is not a component, so a change callback
+    re-renders nothing by itself. Rerender() plays the parent's render, which hands the children
+    whatever the bound local holds by then.
+*@
+@ChildContent
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    public Task Rerender() => InvokeAsync(StateHasChanged);
+}
