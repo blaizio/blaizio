@@ -12,7 +12,7 @@
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged"
              Modal="true"
-             DismissOnOutsideClick="@DismissOnOutsideClick">
+             PreventDismiss="@Locked">
     @ChildContent
 </BaseDialog>
 
@@ -21,10 +21,21 @@
     [Parameter] public bool? Open { get; set; }
 
     /// <summary>
-    /// Whether implicit dismissal (Escape) closes the alert - the backdrop already ignores clicks.
-    /// Set <see langword="false"/> while an action is in flight. Defaults to <see langword="true"/>.
+    /// Locks the alert: Escape no longer closes it (the backdrop already ignores clicks). Set it
+    /// while an action is in flight. Defaults to <see langword="false"/>.
     /// </summary>
-    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
+    [Parameter] public bool PreventDismiss { get; set; }
+
+    /// <summary>
+    /// The earlier name of <see cref="PreventDismiss"/>, with the opposite meaning: <see langword="false"/>
+    /// locks the alert. When both are set, the alert is locked if either one asks for it.
+    /// </summary>
+    [Obsolete("Use PreventDismiss (true locks). DismissOnOutsideClick on the content part is the backdrop only.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [Parameter] public bool DismissOnOutsideClick { get => !_lockedByEarlierName; set => _lockedByEarlierName = !value; }
+
+    private bool _lockedByEarlierName;
+    private bool Locked => PreventDismiss || _lockedByEarlierName;
 
     /// <summary>Initial state when uncontrolled.</summary>
     [Parameter] public bool DefaultOpen { get; set; }

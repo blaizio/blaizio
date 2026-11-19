@@ -97,6 +97,11 @@ public sealed class GeneratorOptions
             ["input-color"] = "0.3.6",
             ["input-date"] = "0.3.6",
             ["input-time"] = "0.3.6",
+            // BaseDialog.PreventDismiss (the root lock under its own name) arrived in 0.3.6; an
+            // older Base would refuse the parameter. Dialog and Drawer pass it too and are listed
+            // above.
+            ["alert-dialog"] = "0.3.6",
+            ["sheet"] = "0.3.6",
         };
 
     /// <summary>

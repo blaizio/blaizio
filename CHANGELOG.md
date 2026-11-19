@@ -393,6 +393,11 @@ lockstep under one version.
   to reflect over the enum on every render of every component.
 
 ### Added
+- **Dialog, Alert Dialog, Sheet, Drawer**: `PreventDismiss` on the root locks the surface. Escape
+  and the backdrop stop closing it and the corner close button is hidden; a close button of your
+  own, or your code, still closes it. It is the name `DialogOptions` already uses for the same
+  lock. `DismissOnOutsideClick` on the content and overlay parts is unchanged and still means the
+  backdrop only. Alert Dialog and Sheet pass the new parameter and now need Blaizio.Base 0.3.6.
 - **Focus scope**: `BaseFocusScope.OnOpenAutoFocus` and `OnCloseAutoFocus`, the names Dialog and
   Popover content already use for the same two moments.
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
@@ -634,6 +639,10 @@ lockstep under one version.
   needs the new name.
 - **Combobox**: `BaseComboboxItemIndicator.KeepMounted` is `[Obsolete]` and forwards to the new
   `KeepRendered`.
+- **Dialog, Alert Dialog, Sheet, Drawer**: `DismissOnOutsideClick` on the roots (`BaseDialog`,
+  `BzDialog`, `BzAlertDialog`, `BzSheet`, `BzDrawer`) is `[Obsolete]`. Use `PreventDismiss`, which
+  says the opposite: `DismissOnOutsideClick="false"` becomes `PreventDismiss="true"`. The old
+  parameter still locks, and with both set the surface is locked if either one asks for it.
 - **Focus scope**: `BaseFocusScope.OnMountAutoFocus` and `OnUnmountAutoFocus` are `[Obsolete]` and
   forward to `OnOpenAutoFocus` and `OnCloseAutoFocus`.
 
