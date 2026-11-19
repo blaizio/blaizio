@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Dialog, Popover, Hover Card, Tooltip, Select, Combobox and the menus**: a surface taken off
+  the page while one of its script modules was still loading no longer asks that module for an
+  instance. The call was made for an element that was gone, and the error it ended in was raised
+  while the component was being disposed.
 - **Data Table**: a table fed by `ItemsProvider` can load its rows again. Identical requests are
   deduplicated, so rows added, deleted or edited at the source stayed stale until the user sorted,
   searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when
@@ -337,6 +341,12 @@ lockstep under one version.
   added after the first render joins at the end of the order.
 
 ### Changed
+- **Overlay surfaces** (Blaizio.Base): the window and backdrop of a dialog, and the content of
+  Popover, Hover Card, Tooltip, Select, Combobox and the three menus share one lifecycle
+  (`PresenceSurfaceBase`, and `FloatingSurfaceBase` for the anchored ones) in place of eight
+  copies of it, and hold every script instance through `JsInstance`. Parameters, events and
+  rendered attributes are the same. `BaseTooltipContent` inherits an `OnDismissRequested` that
+  does nothing: a tooltip has no dismissable layer to call it.
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
   components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
   style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset
