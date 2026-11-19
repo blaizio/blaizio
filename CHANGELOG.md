@@ -627,6 +627,14 @@ lockstep under one version.
   property itself each time the form renders, so any control that writes the value is followed,
   and an input that notifies the `EditContext` by itself is not announced twice. `For` wins over
   `Name`. A value written from code counts as a change; loading another model does not.
+- **Direction**: a direction set in `AddBlaizio(o => o.Direction = ...)` is cascaded from the root
+  of every component tree, so each separately rendered interactive component on a page receives
+  it. A `BzDirectionProvider` in a statically rendered layout cannot give them that: a cascading
+  parameter stops at a render-mode boundary. A provider still wins for its own subtree. With the
+  option set, surfaces that move to the document body (popovers, menus, dialogs, tooltips) carry
+  the direction in their own `dir` attribute and charts follow it; they used to follow a provider
+  only. Nothing is cascaded when the option is left unset, and `dir` is never put on the
+  document: the page's direction stays the app's to set.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with

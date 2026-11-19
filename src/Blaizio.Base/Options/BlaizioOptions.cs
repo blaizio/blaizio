@@ -14,7 +14,35 @@ public sealed class BlaizioOptions
     /// The default reading direction when no ancestor <see cref="BaseDirectionProvider"/> cascades one
     /// and the component has no explicit <c>Dir</c>. Defaults to <see cref="Blaizio.Direction.Ltr"/>.
     /// </summary>
-    public Direction Direction { get; set; } = Direction.Ltr;
+    /// <remarks>
+    /// <para>
+    /// Setting it, to either value, also cascades it from the root of every component tree: each
+    /// separately rendered interactive component on a page receives it, which a
+    /// <see cref="BaseDirectionProvider"/> in a statically rendered layout cannot give them (a
+    /// cascading parameter does not cross a render-mode boundary). A provider still wins for its
+    /// own subtree. Surfaces that move to the document body (popovers, menus, dialogs) then carry
+    /// the direction in their own <c>dir</c> attribute.
+    /// </para>
+    /// <para>
+    /// It never puts <c>dir</c> on the document: the page's direction stays the app's to set
+    /// (<c>&lt;html dir&gt;</c>). Left unset nothing is cascaded, and those surfaces inherit the
+    /// document's direction as before. An app that switches direction while it runs leaves this
+    /// unset and wraps its content in a provider.
+    /// </para>
+    /// </remarks>
+    public Direction Direction
+    {
+        get => _direction ?? Direction.Ltr;
+        set => _direction = value;
+    }
+
+    private Direction? _direction;
+
+    /// <summary>
+    /// <see cref="Direction"/> when the app set it, else <see langword="null"/>: the value the root
+    /// of the component tree cascades. An unset option must not impose a direction.
+    /// </summary>
+    internal Direction? ConfiguredDirection => _direction;
 
     /// <summary>
     /// The culture used by date/number components (Calendar, InputDate, InputNumber) when their own

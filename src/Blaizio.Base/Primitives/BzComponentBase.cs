@@ -31,8 +31,10 @@ public abstract class BzComponentBase : ComponentBase
     protected BlaizioOptions Options => _options ??= BlaizioOptions.Resolve(Services);
 
     /// <summary>
-    /// The ambient reading direction supplied by an ancestor <see cref="BaseDirectionProvider"/>.
-    /// Prefer <see cref="ResolvedDirection"/> when reading.
+    /// The ambient reading direction: supplied by the nearest ancestor
+    /// <see cref="BaseDirectionProvider"/>, else by the root of the component tree when the app
+    /// set <see cref="BlaizioOptions.Direction"/> (that one reaches every interactive root on a
+    /// page). Prefer <see cref="ResolvedDirection"/> when reading.
     /// </summary>
     [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
     protected Direction? CascadedDirection { get; set; }
