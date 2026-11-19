@@ -1,21 +1,20 @@
 @namespace Blaizio
-@inherits BzComponentBase
-@inject IJSRuntime Js
-@implements IAsyncDisposable
+@inherits FloatingSurfaceBase
 @*
     The floating tooltip surface: role="tooltip", anchored to the trigger via ts/positioning.ts
     (@floating-ui/dom) which keeps it on-screen and writes its left/top. Presence-managed like a
     dialog - it stays rendered with data-state="closed" while the style's exit animation plays,
     removed on ts/presence.ts's animationend report. data-side/data-align reflect the resolved
-    placement (JS reports them back when they flip, so Blazor owns those attributes).
+    placement (JS reports them back when they flip, so Blazor owns those attributes). The lifecycle
+    lives in FloatingSurfaceBase.
 *@
 
-@if (_present)
+@if (Present)
 {
     <BasePrimitive Element="div"
                     Attributes="BuildAttributes()"
                     ChildContent="@ChildContent"
-                    ElementRefCaptured="@(reference => _element = reference)" />
+                    ElementRefCaptured="@CaptureElement" />
 }
 
 @code {
@@ -47,41 +46,24 @@
 
     [CascadingParameter] private TooltipContext? Tooltip { get; set; }
 
-    private bool _present;
-    private bool _closing;
-    private string _side = "top";
-    private string _align = "center";
-    private ElementReference _element;
-    private Task<IJSObjectReference>? _presenceTask;
-    private Task<IJSObjectReference>? _positioningTask;
-    private DotNetObjectReference<BaseTooltipContent>? _selfRef;
+    protected override bool IsOpen => Tooltip?.Open ?? false;
+    protected override string AnchorSelector => $"[data-bz-tooltip-anchor='{Tooltip?.AnchorId}']";
+    protected override Side PreferredSide => Side;
+    protected override Align PreferredAlign => Align;
+    protected override double PreferredSideOffset => SideOffset;
+    protected override double PreferredAlignOffset => AlignOffset;
+    protected override bool RenderInline => Inline;
+    private protected override bool StartsFromRequestedPlacement => true;
 
-    protected override void OnParametersSet()
-    {
-        var open = Tooltip?.Open ?? false;
-
-        if (open && (!_present || _closing))
-        {
-            // Start from the side that was asked for: the first frame (the entry slide, the arrow)
-            // is painted before the positioning script reports where the surface really landed.
-            _side = Side.ToAttribute();
-            _align = Align.ToAttribute();
-            _present = true;
-            _closing = false;
-        }
-        else if (!open && _present && !_closing)
-        {
-            _closing = true;
-        }
-    }
+    protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Set("role", "tooltip")
             .Set("id", Tooltip?.ContentId)
-            .Data("state", _closing ? "closed" : "open")
-            .Data("side", _side)
-            .Data("align", _align)
+            .Data("state", Closing ? "closed" : "open")
+            .Data("side", ResolvedSide)
+            .Data("align", ResolvedAlign)
             // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
@@ -91,135 +73,4 @@
             // Blazor never rewrites an unchanged style attribute, so the JS-owned values survive.
             .Set("style", "position:fixed;top:0;left:0;visibility:hidden")
             .Merge(Attributes, Class, Style);
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!_present) return;
-
-        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every
-        // render, and a slow module import must not let a second pass create twice.
-        _presenceTask ??= CreatePresenceAsync();
-        _positioningTask ??= CreatePositioningAsync();
-
-        if (_closing)
-        {
-            // No-animation styles report back immediately; otherwise animationend does.
-            var presence = await _presenceTask;
-            await presence.InvokeVoidAsync("onClosing");
-        }
-    }
-
-    private async Task<IJSObjectReference> CreatePresenceAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
-        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
-    }
-
-    private async Task<IJSObjectReference> CreatePositioningAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
-
-        var options = new
-        {
-            side = Side.ToAttribute(),
-            align = Align.ToAttribute(),
-            sideOffset = SideOffset,
-            alignOffset = AlignOffset,
-            collisionPadding = 8,
-            inline = Inline,
-        };
-        var anchorSelector = $"[data-bz-tooltip-anchor='{Tooltip?.AnchorId}']";
-
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createPositioning", anchorSelector, _element, options, _selfRef);
-    }
-
-    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
-    [JSInvokable]
-    public void OnPlaced(string side, string align)
-    {
-        if (_side == side && _align == align) return;
-        _side = side;
-        _align = align;
-        StateHasChanged();
-    }
-
-    [JSInvokable]
-    public async Task OnCloseFinished()
-    {
-        if (!_closing) return;
-        _present = false;
-        _closing = false;
-        await DisposePositioningAsync();
-        await DisposePresenceAsync();
-        StateHasChanged();
-        await OnExitComplete.InvokeAsync();
-    }
-
-    private async Task DisposePositioningAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var task = _positioningTask;
-        _positioningTask = null;
-        if (task is null) return;
-        try
-        {
-            var positioning = await task;
-            await positioning.InvokeVoidAsync("dispose");
-            await positioning.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
-
-    private async Task DisposePresenceAsync()
-    {
-        var task = _presenceTask;
-        _presenceTask = null;
-        if (task is null) return;
-        try
-        {
-            var presence = await task;
-            await presence.InvokeVoidAsync("dispose");
-            await presence.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposePositioningAsync();
-            await DisposePresenceAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the racing close-finish callback.
-        }
-
-        _selfRef?.Dispose();
-    }
 }
