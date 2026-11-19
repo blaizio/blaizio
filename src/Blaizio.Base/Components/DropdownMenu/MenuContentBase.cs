@@ -89,7 +89,6 @@ public abstract class MenuContentBase : FloatingSurfaceBase
     // The instance of ts/menu.js: navigation, typeahead, and where focus goes on open.
     private readonly SurfaceScript _menu = new();
     private bool _dismissedByPointer;
-    private bool _refocusPending;
 
     /// <summary>
     /// Suppresses the wrapping <see cref="BaseFocusScope"/>'s own auto-focus, on first render and on removal
@@ -138,14 +137,6 @@ public abstract class MenuContentBase : FloatingSurfaceBase
         base.OnParametersSet();
     }
 
-    private protected override void OnOpening(bool reopened)
-    {
-        base.OnOpening(reopened);
-        // Reopened while closing: the surface and its menu instance stay, and the instance
-        // places the opening focus once, so it has to be asked for again.
-        if (reopened) _refocusPending = true;
-    }
-
     private protected override void ClaimScripts()
     {
         ClaimPresence();
@@ -170,19 +161,10 @@ public abstract class MenuContentBase : FloatingSurfaceBase
         _menu.Claim(Js, MenuModule, "createMenu", Element, options, SelfReference);
     }
 
-    private protected override async Task OnSurfaceRenderedAsync()
-    {
-        if (!_refocusPending) return;
-        _refocusPending = false;
-        try
-        {
-            // The press that closed the menu moved focus to the page. Without this the
-            // reopened menu had no focus, and Escape, the arrows and typing reached nothing.
-            await _menu.InvokeVoidAsync("refocus");
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
+    // Reopened while closing: the surface and its menu instance stay, and the instance places
+    // the opening focus once. The press that closed the menu moved focus to the page: without
+    // this the reopened menu had no focus, and Escape, the arrows and typing reached nothing.
+    private protected override ValueTask RefocusAsync() => _menu.InvokeVoidAsync("refocus");
 
     /// <summary>Called by the dismissable layer on an outside pointer-down (root menu only).</summary>
     [JSInvokable]
