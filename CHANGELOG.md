@@ -15,6 +15,11 @@ lockstep under one version.
   nothing, and the next handle resized two panels that were no longer side by side. The group now
   reads the order of its panels and handles from the page after such a render and follows it.
   No size changes hands in the reorder.
+- **Data Table**: with `Virtualize` and `DynamicRowHeight`, a new sort or search measures the rows
+  again. The virtualizer read a cleared search as rows appended and a sort as nothing changed,
+  and kept the heights it had measured for other rows, so the scrollbar and the rows drifted
+  until each row had been on screen again. Rows of a fixed height were never affected, and a list
+  that only grows under the same sort and search is still an append.
 - **Data Table**: a table fed by `ItemsProvider` can load its rows again. Identical requests are
   deduplicated, so rows added, deleted or edited at the source stayed stale until the user sorted,
   searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when
