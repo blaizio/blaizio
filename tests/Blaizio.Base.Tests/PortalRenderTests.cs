@@ -134,9 +134,7 @@ public class PortalRenderTests : BunitContext
             .AddChildContent(TooltipBody(inline)));
 
         var create = JSInterop.Invocations.Single(i => i.Identifier == "createPositioning");
-        var options = create.Arguments[2];
-        Assert.NotNull(options);
-        var forwarded = (bool)options!.GetType().GetProperty("inline")!.GetValue(options)!;
-        Assert.Equal(inline, forwarded);
+        var options = Assert.IsType<PositioningOptions>(create.Arguments[2]);
+        Assert.Equal(inline, options.Inline);
     }
 }
