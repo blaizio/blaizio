@@ -9,6 +9,12 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Resizable**: a panel that is rendered later takes its place in the markup. A panel and its
+  handle inside an `if` joined at the end of the group's order, whatever their position. After a
+  first or middle panel was hidden and shown again, its handle had no neighbour and moved
+  nothing, and the next handle resized two panels that were no longer side by side. The group now
+  reads the order of its panels and handles from the page after such a render and follows it.
+  No size changes hands in the reorder.
 - **Data Table**: a table fed by `ItemsProvider` can load its rows again. Identical requests are
   deduplicated, so rows added, deleted or edited at the source stayed stale until the user sorted,
   searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when

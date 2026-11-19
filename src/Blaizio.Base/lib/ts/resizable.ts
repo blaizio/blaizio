@@ -107,6 +107,42 @@ class ResizeHandleDrag {
   }
 }
 
+/**
+ * Where a group's panels and handles sit in the document. A panel or handle that is rendered later
+ * (it is conditional) registers last in C#, whatever its place in the markup, so the group asks
+ * here and follows the answer.
+ *
+ * The answer is one flat list of numbers, so C# needs no result type of its own:
+ *   first, one entry per panel: indices into the `panels` argument, first in the document first
+ *          (an element that is not on the page keeps its place after the ones that are)
+ *   then,  one entry per handle: the index (into `panels`) of the last panel that precedes it,
+ *          or -1
+ */
+export function readPanelOrder(
+  panels: (HTMLElement | null)[],
+  handles: (HTMLElement | null)[],
+): number[] {
+  const onPage = (el: HTMLElement | null): el is HTMLElement => !!el && el.isConnected;
+  const precedes = (a: Node, b: Node) =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+
+  const placed = panels.map((_, i) => i).filter((i) => onPage(panels[i]));
+  placed.sort((x, y) => (x === y ? 0 : precedes(panels[x]!, panels[y]!) ? -1 : 1));
+  const unplaced = panels.map((_, i) => i).filter((i) => !onPage(panels[i]));
+
+  const before = handles.map((handle) => {
+    if (!onPage(handle)) return -1;
+    let last = -1;
+    for (const i of placed) {
+      if (!precedes(panels[i]!, handle)) break;
+      last = i;
+    }
+    return last;
+  });
+
+  return [...placed, ...unplaced, ...before];
+}
+
 /** Wires pointer-drag onto a resize handle; returns a handle with dispose(). */
 export function createResizeHandle(
   handle: HTMLElement,

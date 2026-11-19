@@ -7,7 +7,10 @@
     are percentages of the group.
 *@
 
-<BasePrimitive Element="div" Attributes="BuildAttributes()" ChildContent="@ChildContent" />
+<BasePrimitive Element="div"
+                Attributes="BuildAttributes()"
+                ChildContent="@ChildContent"
+                ElementRefCaptured="@CaptureElement" />
 
 @code {
     /// <summary>Stable id (auto-generated when omitted).</summary>
@@ -49,6 +52,12 @@
         };
         Group.RegisterPanel(_info);
         Group.LayoutChanged += OnLayoutChanged;
+    }
+
+    // The group reads the document order through this when a panel or handle joins later.
+    private void CaptureElement(ElementReference element)
+    {
+        if (_info is not null) _info.Element = element;
     }
 
     // Re-render with the group's new size even when this panel's own parameters (and content) are
