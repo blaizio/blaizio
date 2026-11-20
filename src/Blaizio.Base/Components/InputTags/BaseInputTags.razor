@@ -138,7 +138,17 @@
         if (split)
         {
             var parts = value.Split(delimiters, StringSplitOptions.None);
-            for (var i = 0; i < parts.Length - 1; i++) await AddAsync(parts[i]);
+            // Each segment is added to the list the paste has built so far. A bound field's Values
+            // only moves on the parent's next render, so reading it back between segments appended
+            // every tag to the list as it was before the paste and only the last one survived.
+            var tags = _values.Value;
+            for (var i = 0; i < parts.Length - 1; i++)
+            {
+                var next = Appended(tags, parts[i]);
+                if (ReferenceEquals(next, tags)) continue;
+                tags = next;
+                await _values.SetAsync(tags, ValuesChanged);
+            }
             value = parts[^1];
         }
 
@@ -176,10 +186,17 @@
 
     private async Task AddAsync(string raw)
     {
+        var next = Appended(_values.Value, raw);
+        if (!ReferenceEquals(next, _values.Value)) await _values.SetAsync(next, ValuesChanged);
+    }
+
+    // The list with the tag added, or the same list when the tag is blank, a duplicate, or one too many.
+    private IReadOnlyList<string> Appended(IReadOnlyList<string> tags, string raw)
+    {
         var value = raw.Trim();
-        if (value.Length == 0 || AtMax) return;
-        if (!AllowDuplicates && _values.Value.Contains(value)) return;
-        await _values.SetAsync([.. _values.Value, value], ValuesChanged);
+        if (value.Length == 0 || (MaxTags is { } max && tags.Count >= max)) return tags;
+        if (!AllowDuplicates && tags.Contains(value)) return tags;
+        return [.. tags, value];
     }
 
     private async Task RemoveAtAsync(int index)

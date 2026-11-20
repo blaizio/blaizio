@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Input Tags**: in a bound field (`@bind-Values`) a paste with several delimiters keeps every
+  tag. Each segment was added to the list as it was before the paste, so only the last one
+  survived. A field left to itself was not affected.
 - **Resizable**: a panel that is rendered later takes its place in the markup. A panel and its
   handle inside an `if` joined at the end of the group's order, whatever their position. After a
   first or middle panel was hidden and shown again, its handle had no neighbour and moved
