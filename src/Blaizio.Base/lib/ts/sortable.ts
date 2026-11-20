@@ -120,6 +120,8 @@ class Sortable {
   private lastPointer: Point = { x: 0, y: 0 };
   // Extra displacement from autoscroll: content moved under a stationary pointer.
   private scrollOffset: Point = { x: 0, y: 0 };
+  // How far the scroller can go with the dragged item in its own slot (see measureScrollRange).
+  private scrollRange: { scroller: Element; minX: number; maxX: number; maxY: number } | null = null;
   private dragEl: HTMLElement | null = null;
   private fromIndex = 0;
   private rtl = false;
@@ -258,6 +260,7 @@ class Sortable {
     this.dragging = true;
     this.rtl = getComputedStyle(this.container).direction === 'rtl';
     this.scrollOffset = { x: 0, y: 0 };
+    this.measureScrollRange();
     this.pending = { container: this, index: this.fromIndex, swap: false };
     this.dropTarget = null;
     this.gridSim = null;
@@ -699,6 +702,8 @@ class Sortable {
         if (this.gridSim) this.gridSim.target = shiftRect(this.gridSim.target, dx, dy);
       }
     }
+    // The grown (or released) list changed how far its scroller really goes.
+    this.measureScrollRange();
   }
 
   // Which group container is under the pointer (the source wins ties; cached rects, no reflow). A list's
@@ -863,7 +868,7 @@ class Sortable {
       const p = this.lastPointer;
       const scroller = this.scrollable();
       if (scroller) {
-        const { dx, dy } = edgeScrollStep(p, scroller);
+        const { dx, dy } = this.withinScrollRange(scroller, edgeScrollStep(p, scroller));
         if (dx || dy) {
           const beforeX = scroller.scrollLeft;
           const beforeY = scroller.scrollTop;
@@ -882,6 +887,38 @@ class Sortable {
       this.scrollRAF = requestAnimationFrame(tick);
     };
     this.scrollRAF = requestAnimationFrame(tick);
+  }
+
+  // The dragged item follows the scroll, and an item carried past the end of its scroller adds its
+  // own overhang to what can be scrolled: the end moved away as fast as the box approached it, and
+  // edge scrolling went on through empty space for as long as the item was held there. So the end
+  // is measured with the item back in its slot (at the start of the drag, and again when a list is
+  // grown to take it), and a step never goes past it.
+  private measureScrollRange(): void {
+    const scroller = this.scrollable();
+    if (!scroller) {
+      this.scrollRange = null;
+      return;
+    }
+    const el = this.dragEl;
+    const moved = el?.style.transform ?? '';
+    if (el && moved) el.style.transform = '';
+    const x = Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+    const maxY = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    if (el && moved) el.style.transform = moved;
+    // Right to left, the inline scroll position runs from 0 down to minus the range.
+    const rtl = getComputedStyle(scroller).direction === 'rtl';
+    this.scrollRange = { scroller, minX: rtl ? -x : 0, maxX: rtl ? 0 : x, maxY };
+  }
+
+  private withinScrollRange(scroller: Element, step: { dx: number; dy: number }): { dx: number; dy: number } {
+    const range = this.scrollRange;
+    if (!range || range.scroller !== scroller) return step;
+    let { dx, dy } = step;
+    if (dy > 0) dy = Math.min(dy, Math.max(0, range.maxY - scroller.scrollTop));
+    if (dx > 0) dx = Math.min(dx, Math.max(0, range.maxX - scroller.scrollLeft));
+    else if (dx < 0) dx = Math.max(dx, Math.min(0, range.minX - scroller.scrollLeft));
+    return { dx, dy };
   }
 
   private shiftCaches(dx: number, dy: number): void {

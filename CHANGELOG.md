@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Sortable**: edge scrolling stops at the end of the scroll box. A dragged item carried past the
+  end adds its own overhang to what can be scrolled, so the box went on scrolling through empty
+  space for as long as the item was held near the edge.
 - **Dropdown Menu, Context Menu, Menubar, Select**: one letter moves to the next item that starts
   with it. Pressed on an item that already begins with that letter, the type-ahead found the
   same item again, so at a pace slower than its reset (a second) later matches were out of
