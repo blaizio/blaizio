@@ -188,12 +188,11 @@ public class DialogRenderTests : BunitContext
         // One layer, however often the open dialog renders again.
         cut.Render();
         var created = Assert.Single(layers.Invocations, i => i.Identifier == "createDismissableLayer");
-        var options = created.Arguments[2]!;
-        object? Option(string name) => options.GetType().GetProperty(name)!.GetValue(options);
-        Assert.Equal(true, Option("dismissOnEscape"));
+        var options = Assert.IsType<DismissableLayerOptions>(created.Arguments[2]);
+        Assert.True(options.DismissOnEscape);
         // A press outside is the overlay's to judge; the layer only keeps a popover underneath
         // from reading a press inside the dialog as a press outside itself.
-        Assert.Equal(false, Option("dismissOnOutsidePress"));
+        Assert.False(options.DismissOnOutsidePress);
     }
 
     [Fact]

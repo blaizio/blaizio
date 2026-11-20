@@ -16,10 +16,11 @@ namespace Blaizio;
 /// Both <see cref="BaseCollapsibleContent"/> and the accordion's panel build on this, so the
 /// height-measurement and close/animation-end handshake live in one place. A derived component
 /// supplies <see cref="IsOpen"/> (where the open state comes from) and
-/// <see cref="BuildPanelAttributes"/> (the element's ARIA/id/<c>data-state</c>), wires the markup's
-/// element reference to <see cref="CaptureElement"/>, and forwards a <c>[JSInvokable]</c> method to
-/// <see cref="OnCloseFinishedCoreAsync"/> (the attribute must sit on the concrete type for JS to
-/// resolve it).
+/// <see cref="BuildPanelAttributes"/> (the element's ARIA/id/<c>data-state</c>) and wires the
+/// markup's element reference to <see cref="CaptureElement"/>. The methods the script calls back
+/// (<see cref="OnCloseFinished"/>, <see cref="OnBeforeMatch"/>) are declared here, on the type the
+/// object reference is created with: that is what keeps them in a trimmed app. A callback declared
+/// only on a derived panel would be removed there, since nothing in C# calls it.
 /// </remarks>
 public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
 {
@@ -130,11 +131,25 @@ public abstract class CollapsiblePanelBase : BzComponentBase, IAsyncDisposable
         }
     }
 
+    /// <summary>Invoked by dist/collapse.js once the close animation has played.</summary>
+    [JSInvokable] public Task OnCloseFinished() => OnCloseFinishedCoreAsync();
+
     /// <summary>
-    /// The body of the panel's <c>[JSInvokable]</c> close callback: invoked once the close animation
-    /// has played, it removes the panel from the render tree - or, when the panel is kept rendered,
-    /// leaves it hidden. A derived component exposes the <c>[JSInvokable]</c> forwarder so JS can
-    /// resolve the method on the concrete type.
+    /// Invoked by dist/collapse.js when find-in-page matches text inside a panel that is kept
+    /// rendered while closed (the <c>beforematch</c> event).
+    /// </summary>
+    [JSInvokable] public Task OnBeforeMatch() => OnBeforeMatchCoreAsync();
+
+    /// <summary>
+    /// What <see cref="OnBeforeMatch"/> does. The browser has already revealed the element; a panel
+    /// that can open itself does so here. Does nothing by default.
+    /// </summary>
+    protected virtual Task OnBeforeMatchCoreAsync() => Task.CompletedTask;
+
+    /// <summary>
+    /// The body of <see cref="OnCloseFinished"/>: invoked once the close animation has played, it
+    /// removes the panel from the render tree - or, when the panel is kept rendered, leaves it
+    /// hidden.
     /// </summary>
     protected async Task OnCloseFinishedCoreAsync()
     {

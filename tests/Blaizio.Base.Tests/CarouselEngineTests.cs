@@ -98,7 +98,7 @@ public class CarouselEngineTests : BunitContext
         var create = Assert.Single(_module.Invocations, i => i.Identifier == "createCarousel");
         Assert.IsType<ElementReference>(create.Arguments[0]);
         Assert.Same(cut.Instance, Assert.IsType<Microsoft.JSInterop.DotNetObjectReference<BaseCarousel>>(create.Arguments[1]).Value);
-        Assert.Equal("""{"horizontal":false,"loop":true,"autoplayMs":4000}""", JsonSerializer.Serialize(create.Arguments[2]));
+        Assert.Equal("""{"horizontal":false,"loop":true,"autoplayMs":4000}""", JsonSerializer.Serialize(create.Arguments[2], JsonSerializerOptions.Web));
         Assert.IsType<ElementReference>(create.Arguments[3]);
     }
 
@@ -108,7 +108,7 @@ public class CarouselEngineTests : BunitContext
         Render<BaseCarousel>(p => p.Add(x => x.AriaLabel, "Photos").AddChildContent(FiveSlides));
 
         var create = Assert.Single(_module.Invocations, i => i.Identifier == "createCarousel");
-        Assert.Equal("""{"horizontal":true,"loop":false,"autoplayMs":0}""", JsonSerializer.Serialize(create.Arguments[2]));
+        Assert.Equal("""{"horizontal":true,"loop":false,"autoplayMs":0}""", JsonSerializer.Serialize(create.Arguments[2], JsonSerializerOptions.Web));
     }
 
     [Fact]

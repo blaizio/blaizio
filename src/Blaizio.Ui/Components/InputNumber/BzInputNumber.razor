@@ -15,6 +15,7 @@
 *@
 
 <BaseInputNumber TValue="TValue"
+                 Name="@Name"
                  Value="@Value"
                  ValueChanged="@ValueChanged"
                  DefaultValue="@DefaultValue"
@@ -75,6 +76,13 @@
 
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the number written like a native number input (<c>1234.5</c>: no grouping, no format, whatever the culture); the visible input shows formatted text and is not posted,
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Show the value but block changes.</summary>
     [Parameter] public bool ReadOnly { get; set; }

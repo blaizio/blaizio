@@ -201,11 +201,10 @@
     {
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
-        var options = new
+        var options = new DismissableLayerOptions
         {
-            anchorSelector = (string?)null,
-            dismissOnEscape = true,
-            dismissOnOutsidePress = false,
+            DismissOnEscape = true,
+            DismissOnOutsidePress = false,
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);

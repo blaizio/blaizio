@@ -34,16 +34,9 @@
 
     protected override bool KeepRenderedWhenClosed => KeepRendered;
 
-    /// <summary>Invoked by dist/collapse.js once the close animation has played.</summary>
-    [JSInvokable] public Task OnCloseFinished() => OnCloseFinishedCoreAsync();
-
-    /// <summary>
-    /// Invoked by dist/collapse.js when find-in-page matches text inside the hidden content (the
-    /// <c>beforematch</c> event). The browser has already revealed the element; opening the
-    /// collapsible brings the state and the height along.
-    /// </summary>
-    [JSInvokable]
-    public Task OnBeforeMatch() =>
+    // Find-in-page matched text inside the hidden content. The browser has already revealed the
+    // element; opening the collapsible brings the state and the height along.
+    protected override Task OnBeforeMatchCoreAsync() =>
         Collapsible is { Open: false, Disabled: false } collapsible
             ? collapsible.Toggle.InvokeAsync()
             : Task.CompletedTask;

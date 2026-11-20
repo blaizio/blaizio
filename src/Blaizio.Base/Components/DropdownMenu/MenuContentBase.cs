@@ -239,14 +239,13 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
-        var options = new
+        var options = new PositioningOptions
         {
-            side = PreferredSide.ToAttribute(),
-            align = PreferredAlign.ToAttribute(),
-            sideOffset = PreferredSideOffset,
-            alignOffset = PreferredAlignOffset,
-            collisionPadding = 8,
-            inline = RenderInline,
+            Side = PreferredSide.ToAttribute(),
+            Align = PreferredAlign.ToAttribute(),
+            SideOffset = PreferredSideOffset,
+            AlignOffset = PreferredAlignOffset,
+            Inline = RenderInline,
         };
 
         return await module.InvokeAsync<IJSObjectReference>(
@@ -259,13 +258,12 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
 
-        var options = new
+        var options = new MenuOptions
         {
-            initialFocus = FocusIntentToken,
-            typeaheadTimeout = 1000,
-            loop = MenuLoop,
-            isSubmenu = IsSubmenu,
-            triggerSelector = AnchorSelector,
+            InitialFocus = FocusIntentToken,
+            Loop = MenuLoop,
+            IsSubmenu = IsSubmenu,
+            TriggerSelector = AnchorSelector,
         };
 
         // The ref lets a submenu request its own close (inline-start arrow / focus-out); the root never does.
@@ -278,12 +276,12 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
-        var options = new
+        var options = new DismissableLayerOptions
         {
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
-            anchorSelector = AnchorSelector,
-            dismissOnEscape = false, // Escape and Tab both close a menu: its own OnKeyDown handles the pair.
-            dismissOnScroll = DismissOnScroll,
+            AnchorSelector = AnchorSelector,
+            DismissOnEscape = false, // Escape and Tab both close a menu: its own OnKeyDown handles the pair.
+            DismissOnScroll = DismissOnScroll,
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", Element, _selfRef, options);

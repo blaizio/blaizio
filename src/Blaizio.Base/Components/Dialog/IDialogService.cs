@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 
 namespace Blaizio;
@@ -14,7 +15,8 @@ public interface IDialogService
     /// <paramref name="parameters"/> by name. The component reads its <see cref="DialogInstance"/> from a
     /// cascaded parameter to close itself with a result.
     /// </summary>
-    Task<DialogResult> ShowAsync<TComponent>(IReadOnlyDictionary<string, object?>? parameters = null, DialogOptions? options = null)
+    Task<DialogResult> ShowAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>(
+        IReadOnlyDictionary<string, object?>? parameters = null, DialogOptions? options = null)
         where TComponent : IComponent;
 
     /// <summary>

@@ -3,7 +3,14 @@
 <EditForm Model="@_signup" OnValidSubmit="@OnValidSubmit" OnInvalidSubmit="@(() => _submitted = false)" class="w-full max-w-sm">
     <DataAnnotationsValidator />
     <BzFieldGroup>
-        <BzField Orientation="FieldOrientation.Horizontal" Name="@nameof(SignupModel.AcceptTerms)">
+        <BzField For="@(() => _signup.Email)">
+            <BzFieldLabel>Email</BzFieldLabel>
+            <BzFieldControl Context="ctl">
+                <BzInputText @attributes="ctl" @bind-Value="_signup.Email" Type="email" Placeholder="you@example.com" />
+            </BzFieldControl>
+            <BzFieldError />
+        </BzField>
+        <BzField Orientation="FieldOrientation.Horizontal" For="@(() => _signup.AcceptTerms)">
             <BzFieldControl Context="ctl">
                 <BzSwitch @attributes="ctl" @bind-Checked="_signup.AcceptTerms" />
             </BzFieldControl>
@@ -31,6 +38,10 @@
 
     public class SignupModel
     {
+        [Required(ErrorMessage = "Enter your email address.")]
+        [EmailAddress(ErrorMessage = "That does not look like an email address.")]
+        public string? Email { get; set; }
+
         [Range(typeof(bool), "true", "true", ErrorMessage = "You must accept the terms to continue.")]
         public bool AcceptTerms { get; set; }
     }

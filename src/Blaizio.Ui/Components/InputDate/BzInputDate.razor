@@ -31,6 +31,12 @@
             }
         </span>
     }
+    @if (Name is not null)
+    {
+        @* The segments are three inputs: the date itself is posted from here, as a native date input writes it. *@
+        <BaseHiddenInput Name="@Name" Disabled="@Disabled"
+                         Value="@(Current?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture))" />
+    }
     @* A date reads left-to-right even in RTL copy, so the segment row pins its direction. *@
     <div @ref="_root" dir="ltr" class="flex items-center" data-slot="input-date-input"
          data-bz-autofocus="@(AutoFocus ? "" : null)" @attributes="Attributes">
@@ -158,6 +164,13 @@
 
     /// <summary>Disables the field.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts the date the way a native date input writes it (<c>2026-11-19</c>, whatever the culture or <c>Format</c>). An empty field posts nothing,
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Focus the field (its first segment) when it appears - works for Blazor-rendered markup, including markup that appears later, unlike native <c>autofocus</c>. See <see cref="BzInputText.AutoFocus"/>. Each segment already selects itself on focus.</summary>
     [Parameter] public bool AutoFocus { get; set; }

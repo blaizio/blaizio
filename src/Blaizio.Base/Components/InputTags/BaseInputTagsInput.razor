@@ -81,7 +81,7 @@
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/inputTags.js");
 
             await _instance.ReleaseAsync(); // the delimiter set changed: replace the old guard
-            await _instance.CreateAsync(module, "createInputTags", _element, new { delimiters = Tags?.Delimiters ?? [] });
+            await _instance.CreateAsync(module, "createInputTags", _element, new InputTagsOptions { Delimiters = Tags?.Delimiters ?? [] });
             _attachedDelimiters = delimiters;
         }
         catch (JSDisconnectedException)

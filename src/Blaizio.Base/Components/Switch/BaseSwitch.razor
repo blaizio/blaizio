@@ -12,8 +12,8 @@
     (the composition path; the cascade only exists when no fragment is given).
     Headless: no track/thumb styling; the styled layer dresses data-[state=checked].
 
-    Note: native form-submission (a hidden bubble <input>) is intentionally not included - Blazor
-    state flows through @bind-Checked rather than form posts.
+    Form posts: with Name set, a hidden input beside the button carries "true" while the switch is
+    on (nothing while it is off, like a native checkbox). Without Name the markup has no such input.
 *@
 
 @if (Thumb is not null)
@@ -32,8 +32,15 @@ else
                         RenderAs="@RenderAs" />
     </CascadingValue>
 }
+@if (Name is not null)
+{
+    <BaseHiddenInput Name="@Name" Value="@(_state.Value ? "true" : null)" Disabled="@Disabled" />
+}
 
 @code {
+    // Inert on a statically rendered page: see BzComponentBase.RequiresInteractivity.
+    protected override bool RequiresInteractivity => true;
+
     /// <summary>Controlled checked state. Leave <see langword="null"/> for uncontrolled (see <see cref="DefaultChecked"/>).</summary>
     [Parameter] public bool? Checked { get; set; }
 
@@ -45,6 +52,12 @@ else
 
     /// <summary>Disables the switch (blocks interaction; emits <c>data-disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input next to the switch posts <c>true</c> while it is on and nothing while it is off, so the control
+    /// takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Accessible name for the switch (what it turns on/off, e.g. "Airplane mode"). Prefer a
     /// visible label wired via <see cref="AriaLabelledBy"/> or a <c>label for</c>; use this when the

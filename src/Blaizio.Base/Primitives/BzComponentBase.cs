@@ -31,8 +31,10 @@ public abstract class BzComponentBase : ComponentBase
     protected BlaizioOptions Options => _options ??= BlaizioOptions.Resolve(Services);
 
     /// <summary>
-    /// The ambient reading direction supplied by an ancestor <see cref="BaseDirectionProvider"/>.
-    /// Prefer <see cref="ResolvedDirection"/> when reading.
+    /// The ambient reading direction: supplied by the nearest ancestor
+    /// <see cref="BaseDirectionProvider"/>, else by the root of the component tree when the app
+    /// set <see cref="BlaizioOptions.Direction"/> (that one reaches every interactive root on a
+    /// page). Prefer <see cref="ResolvedDirection"/> when reading.
     /// </summary>
     [CascadingParameter(Name = BaseDirectionProvider.CascadeName)]
     protected Direction? CascadedDirection { get; set; }
@@ -79,4 +81,65 @@ public abstract class BzComponentBase : ComponentBase
     /// <c>&lt;html dir&gt;</c>, which is also where an app-wide direction lives.
     /// </summary>
     protected string? PortalDirAttribute => (Dir ?? CascadedDirection) is { } d ? d.ToAttribute() : null;
+
+    private bool? _interactive;
+    private bool _staticRenderChecked;
+
+    /// <summary>
+    /// Whether this render can respond to events: <see langword="true"/> when rendering
+    /// interactively, <see langword="false"/> on a statically rendered page and while prerendering.
+    /// The guarded reading of <see cref="ComponentBase.RendererInfo"/>: a host that supplies no
+    /// renderer info (some test renderers throw on the property) counts as interactive, since the
+    /// Blazor events are the path that needs nothing else.
+    /// </summary>
+    protected bool IsInteractive
+    {
+        get
+        {
+            if (_interactive is { } known) return known;
+            try { return (_interactive = RendererInfo.IsInteractive).Value; }
+            catch (Exception) { return true; }
+        }
+    }
+
+    /// <summary>
+    /// Whether this component is on a statically rendered page and will stay that way: not
+    /// interactive now and no render mode assigned, so nothing will ever deliver an event. While
+    /// prerendering an interactive component this is <see langword="false"/>.
+    /// </summary>
+    protected bool IsStaticRender
+    {
+        get
+        {
+            if (IsInteractive) return false;
+            try { return AssignedRenderMode is null; }
+            catch (Exception) { return false; }
+        }
+    }
+
+    /// <summary>
+    /// Override to return <see langword="true"/> in a component that does nothing without events (a
+    /// trigger, a toggle, a drag surface). When such a component is rendered on a static page the
+    /// server log gets one warning per component type, in the Development environment only.
+    /// </summary>
+    protected virtual bool RequiresInteractivity => false;
+
+    /// <inheritdoc />
+    public override Task SetParametersAsync(ParameterView parameters)
+    {
+        if (!_staticRenderChecked)
+        {
+            _staticRenderChecked = true;
+            // The renderer is only asked when the warning could be written: outside Development
+            // (and in a test host, which may throw on the question) nothing is probed at all.
+            if (RequiresInteractivity
+                && Services.GetService(typeof(StaticRenderDiagnostics)) is StaticRenderDiagnostics { Enabled: true } diagnostics
+                && IsStaticRender)
+            {
+                diagnostics.Report(GetType());
+            }
+        }
+
+        return base.SetParametersAsync(parameters);
+    }
 }

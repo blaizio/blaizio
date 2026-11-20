@@ -402,6 +402,20 @@ lockstep under one version.
   older Base instead of installing source that does not compile.
 - **Performance**: the enum-to-class-name lookup components use while rendering is cached. It used
   to reflect over the enum on every render of every component.
+- **Base**: every options object a component hands to its script is a named type derived from
+  the internal `JsOptions<T>`, which keeps its properties in a trimmed app. They were anonymous
+  objects, which a trimmer empties without a warning. The script receives the same properties.
+- **Dialog service**: `ShowAsync<TComponent>` renders the component itself. It went through
+  `DynamicComponent`, whose type parameter a trimmer cannot follow. `TComponent` (and
+  `ShowSheetAsync<TComponent>`) now carries `[DynamicallyAccessedMembers(All)]`, which only matters
+  to code that passes its own type parameter on while trim analysis is on.
+- **Collapsible, Accordion, Tree**: the script callbacks `OnCloseFinished` and `OnBeforeMatch` are
+  declared on `CollapsiblePanelBase`, the type the script's reference is made with. The copies on
+  `BaseCollapsibleContent`, `BaseAccordionContent` and `BaseTreePanel` are gone (the members are
+  inherited, so calls still compile); a panel that reacts to find-in-page overrides
+  `OnBeforeMatchCoreAsync`. Declared on the derived types, a trimmer removed them.
+- **`EnumExtensions.GetDescription`** looks the member up with `GetField`, with the trim warning a
+  project analysing its copied components used to get answered in place. Same results.
 
 ### Added
 - **Dialog, Alert Dialog, Sheet, Drawer**: `PreventDismiss` on the root locks the surface. Escape
@@ -638,6 +652,53 @@ lockstep under one version.
   before the instance exists or after it is gone. For components that wire their own script.
 - **Chart**: `AriaLabel` on `BzChart`, `BzPieChart`, `BzRadarChart` and `BzRadialBarChart` exposes
   the drawing to assistive tech as one labelled image. Without it the drawing stays hidden.
+- **Static rendering**: `BzComponentBase` has `IsInteractive` and `IsStaticRender`, one guarded
+  reading of the renderer's interactivity in place of the copies Avatar and Image each carried, and
+  `RequiresInteractivity`. A component that does nothing without events (a trigger, a switch, a
+  slider: 34 Base components) writes one warning per component type to the server log, category
+  `Blaizio.StaticRender`, when it is rendered on a static page with no render mode. Only in the
+  Development environment; set that category's log level to `None` to silence it.
+- **Trimming**: `Blaizio.Base` is marked trimmable, so a published WebAssembly app carries only
+  the components it uses. Measured on the assembly: 858 KB to 89 KB (222 KB to 29 KB with
+  Brotli) for an app with a switch, a dialog and tabs. The docs site uses every component and
+  goes from 861 KB to 801 KB. The package builds with no trim or AOT analyzer warning; it is not
+  declared AOT-compatible, since no AOT publish is part of the checks. A project that trims its
+  own assembly too (`TrimMode` `full`, off by default in Blazor) should keep the copied
+  components whole, for example with `<TrimmerRootAssembly Include="YourApp" />`: Data Table and
+  Drawer still hand script objects whose properties only the script reads. A row type edited
+  through an `Editable` column needs its property setters kept in that case as well.
+- **Field**: `For` on `BzField` names the model property as an expression
+  (`For="@(() => model.Email)"`, or `() => model.Address.City` for a nested object). Inside an
+  `EditForm` the field reads its messages for that property and tells the form's `EditContext`
+  when the property's value changes, so validation follows the edit. With `Name` the messages
+  refresh on submit only, as before. No control needs a parameter for it: the field reads the
+  property itself each time the form renders, so any control that writes the value is followed,
+  and an input that notifies the `EditContext` by itself is not announced twice. `For` wins over
+  `Name`. A value written from code counts as a change; loading another model does not.
+- **Direction**: a direction set in `AddBlaizio(o => o.Direction = ...)` is cascaded from the root
+  of every component tree, so each separately rendered interactive component on a page receives
+  it. A `BzDirectionProvider` in a statically rendered layout cannot give them that: a cascading
+  parameter stops at a render-mode boundary. A provider still wins for its own subtree. With the
+  option set, surfaces that move to the document body (popovers, menus, dialogs, tooltips) carry
+  the direction in their own `dir` attribute and charts follow it; they used to follow a provider
+  only. Nothing is cascaded when the option is left unset, and `dir` is never put on the
+  document: the page's direction stays the app's to set.
+- **Base**: `BaseHiddenInput` renders a control's value as hidden inputs under a form field name
+  (one per value; nothing without a name, for a disabled control, or for no value), and the Base
+  controls that own a value take `Name` and render it: Switch, Checkbox, Radio Group, Slider,
+  Toggle Group, Input Tags, Input Number, Select, Combobox. `BaseInputOtp` puts `Name` on its own
+  input.
+- **Form posts**: `Name` on the controls that keep their value in C#, so they take part in a
+  plain `<form method="post">` on a statically rendered page, where they used to post nothing:
+  `BzSwitch` and `BzCheckbox` (`true` while on, nothing while off, like a native checkbox),
+  `BzRadioGroup`, `BzSelect`, `BzCombobox` and `BzToggleGroup` (the value, or one input per value),
+  `BzSlider` (one per thumb), `BzInputTags` (one per tag), `BzInputNumber`, `BzInputDate`,
+  `BzInputTime`, `BzInputOtp` and `BzInputColor`. Numbers, dates and times are written as the
+  matching native input writes them (`1234.5`, `2026-11-19`, `14:30`), whatever the culture or
+  display format. Input OTP, Input Color and the `Auto` face of Input Time are native inputs
+  already and simply take the name; the others render a hidden input. Without `Name` the markup
+  is what it was. A `name` attribute written on one of these controls is now this parameter: it
+  used to land on the control's own element, where it posted nothing.
 
 ### Deprecated
 - **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with

@@ -18,6 +18,9 @@
 </CascadingValue>
 
 @code {
+    // Inert on a statically rendered page: see BzComponentBase.RequiresInteractivity.
+    protected override bool RequiresInteractivity => true;
+
     /// <summary>The axis to scroll along. Defaults to <see cref="Orientation.Horizontal"/>.</summary>
     [Parameter] public Orientation Orientation { get; set; } = Orientation.Horizontal;
 
@@ -162,7 +165,7 @@
             _selfRef ??= DotNetObjectReference.Create(this);
             var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/carousel.js");
             await _instance.CreateAsync(module, "createCarousel", viewport, _selfRef,
-                new { horizontal = IsHorizontal, loop = Loop, autoplayMs = AutoplayInterval }, _root);
+                new CarouselOptions { Horizontal = IsHorizontal, Loop = Loop, AutoplayMs = AutoplayInterval }, _root);
         }
         catch (JSDisconnectedException)
         {

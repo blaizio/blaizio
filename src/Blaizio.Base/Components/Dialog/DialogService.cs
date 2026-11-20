@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 
 namespace Blaizio;
@@ -16,25 +17,28 @@ public sealed class DialogService(IDialogStore store, BlaizioOptions defaults) :
     }
 
     /// <inheritdoc/>
-    public Task<DialogResult> ShowAsync<TComponent>(
+    public Task<DialogResult> ShowAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>(
         IReadOnlyDictionary<string, object?>? parameters = null,
         DialogOptions? options = null) where TComponent : IComponent =>
         store.OpenAsync(_ => BuildComponent<TComponent>(parameters), options ?? defaults.DialogDefaults);
 
-    // Renders TComponent via DynamicComponent so a runtime parameter dictionary diffs correctly. The
-    // cascaded DialogInstance flows straight through DynamicComponent to the component.
-    private static RenderFragment BuildComponent<TComponent>(IReadOnlyDictionary<string, object?>? parameters)
+    // Renders TComponent with a runtime parameter dictionary. Every entry is added under one
+    // sequence number, which is how a parameter set that varies between renders is diffed by name
+    // (what DynamicComponent does inside). The component is opened by its own type, so the trimmer
+    // keeps its parameters; it sits directly under the dialog and receives the cascaded
+    // DialogInstance.
+    private static RenderFragment BuildComponent<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TComponent>(
+        IReadOnlyDictionary<string, object?>? parameters)
         where TComponent : IComponent => builder =>
     {
-        builder.OpenComponent<DynamicComponent>(0);
-        builder.AddComponentParameter(1, nameof(DynamicComponent.Type), typeof(TComponent));
+        builder.OpenComponent<TComponent>(0);
         if (parameters is { Count: > 0 })
         {
-            var resolved = parameters
-                .Where(p => p.Value is not null)
-                .ToDictionary(p => p.Key, p => p.Value!);
-            if (resolved.Count > 0)
-                builder.AddComponentParameter(2, nameof(DynamicComponent.Parameters), resolved);
+            foreach (var parameter in parameters)
+            {
+                if (parameter.Value is not null)
+                    builder.AddComponentParameter(1, parameter.Key, parameter.Value);
+            }
         }
         builder.CloseComponent();
     };

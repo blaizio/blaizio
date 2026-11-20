@@ -12,10 +12,13 @@
     no cascade and no extra component) or by a nested BaseCheckboxIndicator reading the cascaded
     CheckboxContext (the composition path; the cascade only exists when no fragment is given).
 
-    Deviations, both deliberate: native form-submission (the hidden bubble <input>) is
-    omitted - Blazor state flows through @bind-Checked; and Enter-key suppression is omitted - a native
-    <button> activates on Enter as well as Space, and conditional preventDefault isn't expressible from
-    a splatted handler without JS. Space still toggles, matching the primary expectation.
+    Form posts: with Name set, a hidden input beside the button carries "true" while the box is
+    checked (nothing while it is unchecked or indeterminate, like a native checkbox). Without Name
+    the markup has no such input.
+
+    One deliberate deviation: Enter-key suppression is omitted - a native <button> activates on
+    Enter as well as Space, and conditional preventDefault isn't expressible from a splatted
+    handler without JS. Space still toggles, matching the primary expectation.
 *@
 
 @if (Indicator is not null)
@@ -34,8 +37,15 @@ else
                         RenderAs="@RenderAs" />
     </CascadingValue>
 }
+@if (Name is not null)
+{
+    <BaseHiddenInput Name="@Name" Value="@(_state.Value == CheckedState.Checked ? "true" : null)" Disabled="@Disabled" />
+}
 
 @code {
+    // Inert on a statically rendered page: see BzComponentBase.RequiresInteractivity.
+    protected override bool RequiresInteractivity => true;
+
     /// <summary>Controlled state. Leave <see langword="null"/> for uncontrolled (see <see cref="DefaultChecked"/>).</summary>
     [Parameter] public CheckedState? Checked { get; set; }
 
@@ -47,6 +57,12 @@ else
 
     /// <summary>Disables the checkbox (blocks interaction; emits <c>data-disabled</c>).</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input next to the checkbox posts <c>true</c> while it is checked and nothing otherwise, so the control
+    /// takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Inner content - typically empty when <see cref="Indicator"/> is set, else a single
     /// <see cref="BaseCheckboxIndicator"/>.</summary>

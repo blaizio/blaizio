@@ -14,6 +14,13 @@
     <!-- Lowercase asset URLs (default is _content/$(PackageId), i.e. _content/Blaizio.Base). Every
          module import and the boot.js script tag use this path - keep them in sync. -->
     <StaticWebAssetBasePath>_content/blaizio.base</StaticWebAssetBasePath>
+    <!-- Trimmed with the app: a WebAssembly app downloads only the components it uses. Also turns
+         the trim analyzer on for this project. What the analyzer cannot see (objects handed to
+         script, script callbacks) is held by JsOptions<T> and by TrimSafetyTests in the test
+         project. The AOT analyzer runs too, so a new warning shows up here first; the package is
+         not declared AOT-compatible, since no AOT publish is part of the checks. -->
+    <IsTrimmable>true</IsTrimmable>
+    <EnableAotAnalyzer>true</EnableAotAnalyzer>
   </PropertyGroup>
 
   <ItemGroup>

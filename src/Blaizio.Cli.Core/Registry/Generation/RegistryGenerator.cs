@@ -102,6 +102,18 @@ public sealed class GeneratorOptions
             // above.
             ["alert-dialog"] = "0.3.6",
             ["sheet"] = "0.3.6",
+            // Name (the control's value in a plain form post) arrived in 0.3.6: the Base control
+            // renders the hidden input, and Input Date / Input Time render BaseHiddenInput
+            // themselves. An older Base would take Name as a plain HTML attribute and post nothing.
+            // (Select, Input OTP, Combobox, Input Color, Input Date and Input Time, which got it
+            // too, are listed above.)
+            ["switch"] = "0.3.6",
+            ["checkbox"] = "0.3.6",
+            ["radio-group"] = "0.3.6",
+            ["slider"] = "0.3.6",
+            ["toggle-group"] = "0.3.6",
+            ["input-tags"] = "0.3.6",
+            ["input-number"] = "0.3.6",
         };
 
     /// <summary>

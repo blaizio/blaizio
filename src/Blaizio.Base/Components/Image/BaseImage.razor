@@ -35,16 +35,7 @@
     /// kept it transparent for good. While prerendering an interactive component this is false,
     /// since the load is reported once the component is interactive.
     /// </summary>
-    internal bool Static
-    {
-        get
-        {
-            // A host that supplies no renderer info (some test renderers throw on these) is
-            // treated as interactive, like the avatar does.
-            try { return AssignedRenderMode is null && !RendererInfo.IsInteractive; }
-            catch (Exception) { return false; }
-        }
-    }
+    internal bool Static => IsStaticRender;
 
     protected override void OnInitialized()
     {

@@ -7,6 +7,7 @@
 *@
 
 <BaseCheckbox Checked="@Checked"
+               Name="@Name"
                DefaultChecked="@DefaultChecked"
                CheckedChanged="@CheckedChanged"
                Disabled="@Disabled"
@@ -42,6 +43,13 @@
 
     /// <summary>Disables the checkbox.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, a hidden input posts <c>true</c> while the box is checked and nothing otherwise,
+    /// so the control takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders
+    /// nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
 
     /// <summary>Semantic checked-fill color. Defaults to <see cref="StatusColor.Default"/> (primary).</summary>
     [Parameter] public StatusColor Color { get; set; } = StatusColor.Default;

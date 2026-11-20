@@ -127,14 +127,13 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
-        var options = new
+        var options = new PositioningOptions
         {
-            side = Side.ToAttribute(),
-            align = Align.ToAttribute(),
-            sideOffset = SideOffset,
-            alignOffset = AlignOffset,
-            collisionPadding = 8,
-            inline = Inline,
+            Side = Side.ToAttribute(),
+            Align = Align.ToAttribute(),
+            SideOffset = SideOffset,
+            AlignOffset = AlignOffset,
+            Inline = Inline,
         };
 
         return await module.InvokeAsync<IJSObjectReference>(
@@ -147,11 +146,11 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
-        var options = new
+        var options = new DismissableLayerOptions
         {
             // A press on the anchor (input / chips / trigger) is not "outside" - it toggles itself.
-            anchorSelector = AnchorSelector,
-            dismissOnEscape = false, // Escape and Tab are handled by the input's own keydown.
+            AnchorSelector = AnchorSelector,
+            DismissOnEscape = false, // Escape and Tab are handled by the input's own keydown.
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);

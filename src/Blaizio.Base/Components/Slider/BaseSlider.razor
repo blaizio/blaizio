@@ -19,8 +19,15 @@
                     ChildContent="@ChildContent"
                     ElementRefCaptured="@(reference => _root = reference)" />
 </CascadingValue>
+@if (Name is not null)
+{
+    <BaseHiddenInput Name="@Name" Values="@FormValues()" Disabled="@Disabled" />
+}
 
 @code {
+    // Inert on a statically rendered page: see BzComponentBase.RequiresInteractivity.
+    protected override bool RequiresInteractivity => true;
+
     /// <summary>Controlled thumb values - one entry per thumb. Use with <c>@bind-Value</c>.</summary>
     [Parameter] public IReadOnlyList<double>? Value { get; set; }
 
@@ -53,6 +60,15 @@
 
     /// <summary>Disables the whole slider.</summary>
     [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>
+    /// The form field name. When set, hidden inputs next to the slider post its value, one per thumb, written the way a native number input writes it (<c>12.5</c>, whatever the culture), so the control
+    /// takes part in a plain <c>&lt;form method="post"&gt;</c>. Unset (the default) renders nothing extra.
+    /// </summary>
+    [Parameter] public string? Name { get; set; }
+
+    private string[] FormValues() =>
+        [.. _state.Value.Select(value => value.ToString(CultureInfo.InvariantCulture))];
 
     /// <summary>The Track (containing the Range) and the Thumb(s).</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

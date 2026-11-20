@@ -22,6 +22,20 @@ public static class BlaizioServiceCollectionExtensions
         var options = new BlaizioOptions();
         configure?.Invoke(options);
         services.TryAddSingleton(options);
+        services.TryAddSingleton<StaticRenderDiagnostics>();
+
+        // The configured direction as a root-level cascading value, under the name a direction
+        // provider cascades: components in every separately rendered interactive root receive it,
+        // and a provider nearer to them still wins. Fixed (it is configuration), so no component
+        // subscribes to it. The value comes from whichever options won, and is null when the app
+        // never set a direction. Registered once, however often AddBlaizio is called.
+        if (!services.Any(d => d.ServiceType == typeof(RootDirection)))
+        {
+            services.AddSingleton<RootDirection>();
+            services.AddCascadingValue<Direction?>(
+                BaseDirectionProvider.CascadeName,
+                provider => provider.GetRequiredService<BlaizioOptions>().ConfiguredDirection);
+        }
 
         services.TryAddScoped<ICore, Core>();
         services.TryAddScoped<IDialogStore, DialogStore>();
@@ -32,4 +46,7 @@ public static class BlaizioServiceCollectionExtensions
         services.TryAddScoped<HoverCardCoordinator>();
         return services;
     }
+
+    // Marks that the root-level direction is registered (a cascading value cannot be "try-added").
+    private sealed class RootDirection;
 }

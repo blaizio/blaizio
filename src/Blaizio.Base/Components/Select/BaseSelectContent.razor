@@ -179,14 +179,13 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
 
-        var options = new
+        var options = new PositioningOptions
         {
-            side = Side.ToAttribute(),
-            align = Align.ToAttribute(),
-            sideOffset = SideOffset,
-            alignOffset = AlignOffset,
-            collisionPadding = 8,
-            inline = Inline,
+            Side = Side.ToAttribute(),
+            Align = Align.ToAttribute(),
+            SideOffset = SideOffset,
+            AlignOffset = AlignOffset,
+            Inline = Inline,
         };
 
         // Item-aligned overlays the listbox on the trigger (selected option over it); popper floats it
@@ -203,13 +202,12 @@
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
 
         // 'selected' lands the opening focus on the chosen option (or the first), scrolled into view.
-        var options = new
+        var options = new MenuOptions
         {
-            initialFocus = "selected",
-            typeaheadTimeout = 1000,
-            loop = Loop,
-            isSubmenu = false,
-            triggerSelector = AnchorSelector,
+            InitialFocus = "selected",
+            Loop = Loop,
+            IsSubmenu = false,
+            TriggerSelector = AnchorSelector,
         };
 
         return await module.InvokeAsync<IJSObjectReference>("createMenu", _element, options, _selfRef);
@@ -230,14 +228,7 @@
         // their display content), so its scope must follow the OPEN state instead - created here on
         // open, disposed with the rest of the open behaviour on close. Focus placement/restoration
         // stays with ts/menu.js (opens on the SELECTED option, restores the trigger).
-        var options = new
-        {
-            loop = false,
-            trapped = false,
-            hasOpenAutoFocus = false,
-            hasCloseAutoFocus = false,
-            passive = true,
-        };
+        var options = new FocusScopeOptions { Passive = true };
         return await module.InvokeAsync<IJSObjectReference>(
             "createFocusScope", _element, _selfRef, options);
     }
@@ -248,11 +239,11 @@
         _selfRef ??= DotNetObjectReference.Create(this);
         var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
 
-        var options = new
+        var options = new DismissableLayerOptions
         {
             // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
-            anchorSelector = AnchorSelector,
-            dismissOnEscape = false, // Escape and Tab both close the list: OnKeyDownAsync handles the pair.
+            AnchorSelector = AnchorSelector,
+            DismissOnEscape = false, // Escape and Tab both close the list: OnKeyDownAsync handles the pair.
         };
         return await module.InvokeAsync<IJSObjectReference>(
             "createDismissableLayer", _element, _selfRef, options);

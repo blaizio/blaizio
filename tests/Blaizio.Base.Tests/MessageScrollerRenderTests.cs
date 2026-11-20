@@ -54,7 +54,7 @@ public class MessageScrollerRenderTests : BunitContext
         var create = Assert.Single(module.Invocations, i => i.Identifier == "createMessageScroller");
         Assert.Equal(
             """{"autoScroll":true,"defaultPosition":"end","anchorPeek":16,"followMargin":48}""",
-            JsonSerializer.Serialize(create.Arguments[1]));
+            JsonSerializer.Serialize(create.Arguments[1], JsonSerializerOptions.Web));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public class MessageScrollerRenderTests : BunitContext
         var create = Assert.Single(module.Invocations, i => i.Identifier == "createMessageScroller");
         Assert.Equal(
             """{"autoScroll":false,"defaultPosition":"start","anchorPeek":0,"followMargin":120}""",
-            JsonSerializer.Serialize(create.Arguments[1]));
+            JsonSerializer.Serialize(create.Arguments[1], JsonSerializerOptions.Web));
     }
 
     [Fact]
