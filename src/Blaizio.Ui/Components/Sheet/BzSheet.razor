@@ -9,7 +9,7 @@
              DefaultOpen="@DefaultOpen"
              OpenChanged="@OpenChanged"
              Modal="@Modal"
-             DismissOnOutsideClick="@DismissOnOutsideClick">
+             PreventDismiss="@Locked">
     @ChildContent
 </BaseDialog>
 
@@ -27,11 +27,22 @@
     [Parameter] public bool Modal { get; set; } = true;
 
     /// <summary>
-    /// Whether implicit dismissal (Escape, outside-click) closes it. When <see langword="false"/> the
-    /// corner close button is hidden too; an explicit <c>SheetClose</c> still closes. Defaults to
-    /// <see langword="true"/>.
+    /// Locks the sheet: Escape and outside-click no longer close it and the corner close button is
+    /// hidden; an explicit <c>SheetClose</c> still closes. Defaults to <see langword="false"/>. To
+    /// stop only the backdrop, set <c>DismissOnOutsideClick</c> on <c>BzSheetContent</c> instead.
     /// </summary>
-    [Parameter] public bool DismissOnOutsideClick { get; set; } = true;
+    [Parameter] public bool PreventDismiss { get; set; }
+
+    /// <summary>
+    /// The earlier name of <see cref="PreventDismiss"/>, with the opposite meaning: <see langword="false"/>
+    /// locks the sheet. When both are set, the sheet is locked if either one asks for it.
+    /// </summary>
+    [Obsolete("Use PreventDismiss (true locks). DismissOnOutsideClick on the content part is the backdrop only.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [Parameter] public bool DismissOnOutsideClick { get => !_lockedByEarlierName; set => _lockedByEarlierName = !value; }
+
+    private bool _lockedByEarlierName;
+    private bool Locked => PreventDismiss || _lockedByEarlierName;
 
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }

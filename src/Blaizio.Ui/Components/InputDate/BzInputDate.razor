@@ -212,8 +212,14 @@
 
     protected override void OnParametersSet()
     {
-        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
-        _calendar.Sync(CalendarOpen.HasValue, CalendarOpen ?? false, DefaultCalendarOpen);
+        _state.Sync(
+            ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null),
+            Value,
+            DefaultValue);
+        _calendar.Sync(
+            ControllableState.IsControlled(CalendarOpen.HasValue, CalendarOpenChanged.HasDelegate, defaultSupplied: true),
+            CalendarOpen ?? false,
+            DefaultCalendarOpen);
         if (_parsedFormat != Format)
         {
             _parsedFormat = Format;

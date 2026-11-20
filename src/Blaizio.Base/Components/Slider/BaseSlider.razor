@@ -69,7 +69,11 @@
     // Controlled when the consumer binds the value; otherwise uncontrolled, seeded from DefaultValue
     // (a lone thumb at Min when neither is supplied - a slider always has at least one thumb).
     protected override void OnParametersSet() =>
-        _state.Sync(ValueChanged.HasDelegate, Value ?? [Min], DefaultValue is { Count: > 0 } d ? d : [Min]);
+        // An empty DefaultValue list is no default: there is no thumb to seed from it.
+        _state.Sync(
+            ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is { Count: > 0 }),
+            Value ?? [Min],
+            DefaultValue is { Count: > 0 } d ? d : [Min]);
 
     /// <summary>ts/slider.ts calls this with a proposed value for one thumb; C# snaps and clamps it.</summary>
     [JSInvokable]

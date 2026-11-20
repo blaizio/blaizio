@@ -68,7 +68,8 @@
     private readonly JsInstance _instance = new();
     private DotNetObjectReference<BaseNavigationMenu>? _selfRef;
 
-    private bool Controlled => ValueChanged.HasDelegate;
+    private bool Controlled =>
+        ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null);
     private string OpenValue => Value ?? _uncontrolled ?? DefaultValue ?? "";
     private RenderFragment? ActiveContent => OpenValue != "" && _contents.TryGetValue(OpenValue, out var f) ? f : null;
 

@@ -28,10 +28,20 @@
     [Parameter] public bool Trapped { get; set; }
 
     /// <summary>Raised before auto-focusing on first render. <see cref="FocusScopeEvent.PreventDefault"/> to handle focus yourself.</summary>
-    [Parameter] public EventCallback<FocusScopeEvent> OnMountAutoFocus { get; set; }
+    [Parameter] public EventCallback<FocusScopeEvent> OnOpenAutoFocus { get; set; }
 
     /// <summary>Raised before restoring focus on removal. <see cref="FocusScopeEvent.PreventDefault"/> to handle focus yourself.</summary>
-    [Parameter] public EventCallback<FocusScopeEvent> OnUnmountAutoFocus { get; set; }
+    [Parameter] public EventCallback<FocusScopeEvent> OnCloseAutoFocus { get; set; }
+
+    /// <summary>The earlier name of <see cref="OnOpenAutoFocus"/>.</summary>
+    [Obsolete("Use OnOpenAutoFocus.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [Parameter] public EventCallback<FocusScopeEvent> OnMountAutoFocus { get => OnOpenAutoFocus; set => OnOpenAutoFocus = value; }
+
+    /// <summary>The earlier name of <see cref="OnCloseAutoFocus"/>.</summary>
+    [Obsolete("Use OnCloseAutoFocus.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [Parameter] public EventCallback<FocusScopeEvent> OnUnmountAutoFocus { get => OnCloseAutoFocus; set => OnCloseAutoFocus = value; }
 
     private ElementReference _container;
     private readonly JsInstance _scope = new();
@@ -57,26 +67,36 @@
         {
             loop = Loop,
             trapped = Trapped,
-            hasMountAutoFocus = OnMountAutoFocus.HasDelegate,
-            hasUnmountAutoFocus = OnUnmountAutoFocus.HasDelegate,
+            hasOpenAutoFocus = OnOpenAutoFocus.HasDelegate,
+            hasCloseAutoFocus = OnCloseAutoFocus.HasDelegate,
         });
     }
 
     [JSInvokable]
-    public async Task<bool> HandleMountAutoFocus()
+    public async Task<bool> HandleOpenAutoFocus()
     {
         var args = new FocusScopeEvent();
-        await OnMountAutoFocus.InvokeAsync(args);
+        await OnOpenAutoFocus.InvokeAsync(args);
         return args.DefaultPrevented;
     }
 
     [JSInvokable]
-    public async Task<bool> HandleUnmountAutoFocus()
+    public async Task<bool> HandleCloseAutoFocus()
     {
         var args = new FocusScopeEvent();
-        await OnUnmountAutoFocus.InvokeAsync(args);
+        await OnCloseAutoFocus.InvokeAsync(args);
         return args.DefaultPrevented;
     }
+
+    /// <summary>The earlier name of <see cref="HandleOpenAutoFocus"/>.</summary>
+    [Obsolete("Use HandleOpenAutoFocus.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public Task<bool> HandleMountAutoFocus() => HandleOpenAutoFocus();
+
+    /// <summary>The earlier name of <see cref="HandleCloseAutoFocus"/>.</summary>
+    [Obsolete("Use HandleCloseAutoFocus.")]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public Task<bool> HandleUnmountAutoFocus() => HandleCloseAutoFocus();
 
     public async ValueTask DisposeAsync()
     {

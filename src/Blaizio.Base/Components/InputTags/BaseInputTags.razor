@@ -72,8 +72,12 @@
 
     protected override void OnParametersSet()
     {
-        _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
-        _query.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
+        _values.Sync(
+            ControllableState.IsControlled(Values is not null, ValuesChanged.HasDelegate, DefaultValues is not null),
+            Values ?? [],
+            DefaultValues ?? []);
+        // An empty DefaultSearch is no default, so @bind-Search on a null string stays controlled.
+        _query.Sync(ControllableState.IsControlled(Search is not null, SearchChanged.HasDelegate, !string.IsNullOrEmpty(DefaultSearch)), Search, DefaultSearch);
     }
 
     private InputTagsContext BuildContext() => new(

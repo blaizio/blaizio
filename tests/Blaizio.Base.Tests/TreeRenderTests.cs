@@ -162,6 +162,73 @@ public class TreeRenderTests : BunitContext
         Assert.Equal(2, cut.FindAll("[data-part=item]").Count(e => e.GetAttribute("data-depth") == "1"));
     }
 
+    // ---- controlled or not (ControllableState.IsControlled) -------------------------------------------
+
+    private static bool Expanded(IRenderedComponent<BaseTree<Node>> cut, string value) =>
+        cut.Find($"[data-part=branch][data-value={value}]").GetAttribute("aria-expanded") == "true";
+
+    private static bool Selected(IRenderedComponent<BaseTree<Node>> cut, string selector) =>
+        cut.Find(selector).GetAttribute("data-selected") is not null;
+
+    // The tree keyed its lists on "the value is not null": a binding to a list that is still null
+    // started uncontrolled, and the parent could not empty the tree again by passing null.
+    [Fact]
+    public void A_bound_list_that_is_still_null_is_controlled_and_follows_the_parent_back_to_null()
+    {
+        IReadOnlyList<string>? expanded = null;
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps
+            .Add(t => t.ExpandedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => expanded = v)));
+
+        cut.Find("[data-part=branch-control][data-value=docs]").Click();
+        Assert.Equal(["docs"], expanded);
+        Assert.False(Expanded(cut, "docs"));   // controlled: nothing opens until the parent says so
+
+        cut.Render(ps => ps.Add(t => t.ExpandedValues, expanded));
+        Assert.True(Expanded(cut, "docs"));
+
+        cut.Render(ps => ps.Add(t => t.ExpandedValues, null));
+        Assert.False(Expanded(cut, "docs"));
+    }
+
+    [Fact]
+    public void A_default_list_with_a_listener_only_listens()
+    {
+        IReadOnlyList<string> expanded = [];
+        var cut = RenderTreeComponent(Sample(), expanded: [], configure: ps => ps
+            .Add(t => t.ExpandedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => expanded = v)));
+
+        cut.Find("[data-part=branch-control][data-value=docs]").Click();
+        Assert.Equal(["docs"], expanded);
+        Assert.True(Expanded(cut, "docs"));
+    }
+
+    // Single selection keyed on "the value is set or the listener is bound", so a default next to
+    // a listener was controlled with no value and the highlight never moved.
+    [Fact]
+    public void A_default_selection_with_a_listener_only_listens()
+    {
+        string? selected = null;
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps
+            .Add(t => t.DefaultSelectedValue, "readme")
+            .Add(t => t.SelectedValueChanged, EventCallback.Factory.Create<string?>(this, v => selected = v)));
+        Assert.True(Selected(cut, "[data-part=item][data-value=readme]"));
+
+        cut.Find("[data-part=branch-control][data-value=src]").Click();
+        Assert.Equal("src", selected);
+        Assert.True(Selected(cut, "[data-part=branch-control][data-value=src]"));
+        Assert.False(Selected(cut, "[data-part=item][data-value=readme]"));
+    }
+
+    [Fact]
+    public void A_one_way_selection_holds()
+    {
+        var cut = RenderTreeComponent(Sample(), configure: ps => ps.Add(t => t.SelectedValue, "readme"));
+
+        cut.Find("[data-part=branch-control][data-value=src]").Click();
+        Assert.True(Selected(cut, "[data-part=item][data-value=readme]"));
+        Assert.False(Selected(cut, "[data-part=branch-control][data-value=src]"));
+    }
+
     [Fact]
     public void Single_mode_selection_replaces()
     {
@@ -183,6 +250,7 @@ public class TreeRenderTests : BunitContext
         var cut = RenderTreeComponent(Sample(), expanded: ["docs"], configure: ps => ps
             .Add(t => t.SelectionMode, SelectionMode.Multiple)
             .Add(t => t.ExpandOnClick, false)
+            .Add(t => t.DefaultSelectedValues, [])
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         cut.Find("[data-part=branch-control][data-value=docs]").Click();
@@ -202,6 +270,7 @@ public class TreeRenderTests : BunitContext
         var items = new List<Node> { Leaf("a"), Leaf("locked", disabled: true) };
         var cut = RenderTreeComponent(items, configure: ps => ps
             .Add(t => t.SelectionMode, SelectionMode.Multiple)
+            .Add(t => t.DefaultSelectedValues, [])
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         cut.Find("[data-part=item][data-value=locked]").Click();
@@ -276,6 +345,7 @@ public class TreeRenderTests : BunitContext
         IReadOnlyList<string> selected = [];
         var cut = RenderTreeComponent(Sample(), expanded: ["docs"], configure: ps => ps
             .Add(t => t.SelectionMode, SelectionMode.Multiple)
+            .Add(t => t.DefaultSelectedValues, [])
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         cut.Find("[data-value=docs]").KeyDown(new KeyboardEventArgs { Key = "a", CtrlKey = true });
@@ -308,6 +378,7 @@ public class TreeRenderTests : BunitContext
         IReadOnlyList<string> checkedValues = [];
         var cut = RenderTreeComponent(Sample(), expanded: ["docs"], configure: ps => ps
             .Add(t => t.Checkable, true)
+            .Add(t => t.DefaultCheckedValues, [])
             .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => checkedValues = v)));
 
         cut.Find("[data-part=item][data-value=api] [data-part=checkbox]").Click();
@@ -325,6 +396,7 @@ public class TreeRenderTests : BunitContext
         IReadOnlyList<string> checkedValues = [];
         var cut = RenderTreeComponent(Sample(), expanded: ["docs"], configure: ps => ps
             .Add(t => t.Checkable, true)
+            .Add(t => t.DefaultCheckedValues, [])
             .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => checkedValues = v)));
 
         cut.Find("[data-part=branch-control][data-value=docs] [data-part=checkbox]").Click();
@@ -347,6 +419,7 @@ public class TreeRenderTests : BunitContext
                 loads++;
                 return Task.FromResult<IReadOnlyList<Node>>([Leaf("one"), Leaf("two")]);
             })
+            .Add(t => t.DefaultCheckedValues, [])
             .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => checkedValues = v)));
 
         // The checked list holds leaves, and this branch has none yet: the press used to do nothing.
@@ -374,6 +447,7 @@ public class TreeRenderTests : BunitContext
             .Add(t => t.HasChildrenSelector, n => n.Value == "lazy")
             .Add(t => t.LoadChildren, _ => Task.FromException<IReadOnlyList<Node>>(new InvalidOperationException("offline")))
             .Add(t => t.OnLoadChildrenError, EventCallback.Factory.Create<Node>(this, n => failed = n))
+            .Add(t => t.DefaultCheckedValues, [])
             .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, _ => raised++)));
 
         cut.Find("[data-part=branch-control][data-value=lazy] [data-part=checkbox]").Click();
@@ -389,6 +463,7 @@ public class TreeRenderTests : BunitContext
         IReadOnlyList<string> checkedValues = [];
         var cut = RenderTreeComponent(Sample(), configure: ps => ps
             .Add(t => t.Checkable, true)
+            .Add(t => t.DefaultCheckedValues, [])
             .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => checkedValues = v)));
 
         cut.Find("[data-part=item][data-value=readme]").KeyDown(new KeyboardEventArgs { Key = " " });
@@ -401,6 +476,7 @@ public class TreeRenderTests : BunitContext
         IReadOnlyList<string> selected = [];
         var cut = RenderTreeComponent(Sample(), configure: ps => ps
             .Add(t => t.SelectionMode, SelectionMode.Multiple)
+            .Add(t => t.DefaultSelectedValues, [])
             .Add(t => t.SelectedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, v => selected = v)));
 
         // Non-adjacent multi-select without a pointer: toggle docs, then toggle readme.
@@ -724,6 +800,7 @@ public class TreeRenderTests : BunitContext
         var raised = 0;
         var cut = RenderTreeComponent([Branch("empty"), Leaf("readme")], configure: ps => ps
             .Add(t => t.Checkable, true)
+            .Add(t => t.DefaultCheckedValues, [])
             .Add(t => t.CheckedValuesChanged, EventCallback.Factory.Create<IReadOnlyList<string>>(this, _ => raised++)));
 
         cut.Find("[data-part=branch-control][data-value=empty] [data-part=checkbox]").Click();

@@ -154,8 +154,9 @@
             @* The row virtualizer is the standalone BzVirtualizer<TItem>; here it drives the table body
                (Element="tbody") with tr/td spacers. RenderBodyRow still tags each row with its virtual index
                + fixed-mode height, so the body row keeps its existing click / selection wiring.
-               Paging and virtualizing are alternatives, so a paged table takes the plain-body path. *@
-            <BzVirtualizer @ref="_virtualizer" TItem="TItem" Element="tbody" Class="@(bodyHover is null ? "bz-table-body" : "bz-table-body bz-table-body-hover")"
+               Paging and virtualizing are alternatives, so a paged table takes the plain-body path.
+               The key starts the body over when measured rows change places (see NoteBodyShape). *@
+            <BzVirtualizer @key="_bodyEpoch" @ref="_virtualizer" TItem="TItem" Element="tbody" Class="@(bodyHover is null ? "bz-table-body" : "bz-table-body bz-table-body-hover")"
                          Items="_view" ItemSize="@ItemSize" Dynamic="@DynamicRowHeight"
                          Overscan="@Overscan" Viewport="@(Scrollable ? "#" + _scrollId : null)">
                 <ChildContent Context="row">
@@ -664,11 +665,19 @@
             if (SelectedItems is not null) _selected = new HashSet<TItem>(SelectedItems, _rowComparer);
         }
 
-        _sort.Sync(SortChanged.HasDelegate, Sort, DefaultSort);
-        _filter.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
-        _page.Sync(PageChanged.HasDelegate, Page, DefaultPage);
-        _widths.Sync(ColumnWidthsChanged.HasDelegate, ColumnWidths, DefaultColumnWidths);
-        _order.Sync(ColumnOrderChanged.HasDelegate, ColumnOrder, DefaultColumnOrder);
+        _sort.Sync(ControllableState.IsControlled(Sort is not null, SortChanged.HasDelegate, DefaultSort is not null), Sort, DefaultSort);
+        _filter.Sync(ControllableState.IsControlled(Search is not null, SearchChanged.HasDelegate, DefaultSearch is not null), Search, DefaultSearch);
+        // Page cannot be null: pages are 1-based, so 0 is "not set", and a DefaultPage of 1 is the
+        // same as none.
+        _page.Sync(ControllableState.IsControlled(Page > 0, PageChanged.HasDelegate, DefaultPage != 1), Page, DefaultPage);
+        _widths.Sync(
+            ControllableState.IsControlled(ColumnWidths is not null, ColumnWidthsChanged.HasDelegate, DefaultColumnWidths is not null),
+            ColumnWidths,
+            DefaultColumnWidths);
+        _order.Sync(
+            ControllableState.IsControlled(ColumnOrder is not null, ColumnOrderChanged.HasDelegate, DefaultColumnOrder is not null),
+            ColumnOrder,
+            DefaultColumnOrder);
 
         // In-memory: run the filter/sort/page pipeline now. Server-driven: just refresh the column set;
         // the data is fetched asynchronously in OnParametersSetAsync (and on sort/filter/page changes).
@@ -722,9 +731,28 @@
         }
 
         _view = rows.ToList();
+        NoteBodyShape();
         _lastItems = Items;
         _lastItemsCount = Items is IReadOnlyCollection<TItem> counted ? counted.Count : -1;
         ApplyPage();
+    }
+
+    // Measured row heights (DynamicRowHeight) belong to a position in the list. A new sort or a new
+    // search puts other rows at those positions, and the virtualizer cannot tell: it reads a list
+    // that grew (a search that was cleared) as rows appended, and one of the same length (a sort)
+    // as unchanged, and keeps every height it measured. So the table says it: a new key on the
+    // virtualized body starts it over, with the window taken from the scroll position and every
+    // row measured again. Rows of a fixed height carry nothing over, and a list that only grows
+    // under the same sort and search is an append, so both keep the window they have.
+    private int _bodyEpoch;
+    private (SortState? Sort, string? Search, string? SearchColumn) _bodyShape;
+
+    private void NoteBodyShape()
+    {
+        var shape = (_sort.Value, string.IsNullOrWhiteSpace(_filter.Value) ? null : _filter.Value, SearchColumn);
+        if (shape == _bodyShape) return;
+        _bodyShape = shape;
+        if (DynamicRowHeight) _bodyEpoch++;
     }
 
     // Slice the filtered+sorted view down to the current page (or pass it through when not paging).
@@ -794,7 +822,11 @@
             // A virtualized table renders, navigates and row-clicks from _view, not _rendered
             // (paging and virtualizing are alternatives). Without this a provider-fed virtualized
             // table had rows loaded and showed "No results.".
-            if (!Paged) _view = result.Items as List<TItem> ?? [.. result.Items];
+            if (!Paged)
+            {
+                _view = result.Items as List<TItem> ?? [.. result.Items];
+                NoteBodyShape();
+            }
             _totalCount = result.TotalCount;
             // The total is known now, and the source may have shrunk under the requested page
             // (rows deleted, a narrower filter on the server): the page asked for no longer exists.

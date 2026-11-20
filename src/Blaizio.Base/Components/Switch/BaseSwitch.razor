@@ -73,7 +73,10 @@ else
     private SwitchContext Context => new(_state.Value, Disabled);
 
     protected override void OnParametersSet() =>
-        _state.Sync(Checked.HasValue, Checked ?? false, DefaultChecked);
+        _state.Sync(
+            ControllableState.IsControlled(Checked.HasValue, CheckedChanged.HasDelegate, defaultSupplied: true),
+            Checked ?? false,
+            DefaultChecked);
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
     {

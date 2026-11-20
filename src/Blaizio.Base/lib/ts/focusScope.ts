@@ -4,7 +4,7 @@
  * What it does beyond a plain focus trap:
  *  - Focus only. Dismissal (Esc / outside pointer) is its own primitive (DismissableLayer).
  *  - The auto-focus on first render and the focus restore on removal round-trip to .NET and
- *    honour preventDefault, so OnMountAutoFocus / OnUnmountAutoFocus are real extension points.
+ *    honour preventDefault, so OnOpenAutoFocus / OnCloseAutoFocus are real extension points.
  *  - Links (<a>) count as tabbable.
  *  - Tab handling is wholly DOM-side; C# sees no keydown.
  */
@@ -18,10 +18,10 @@ export interface FocusScopeOptions {
   loop: boolean;
   /** Focus cannot leave the container by keyboard, pointer, or programmatic focus. */
   trapped: boolean;
-  /** A .NET OnMountAutoFocus handler is registered - round-trip before auto-focusing. */
-  hasMountAutoFocus: boolean;
-  /** A .NET OnUnmountAutoFocus handler is registered - round-trip before restoring focus. */
-  hasUnmountAutoFocus: boolean;
+  /** A .NET OnOpenAutoFocus handler is registered - round-trip before auto-focusing. */
+  hasOpenAutoFocus: boolean;
+  /** A .NET OnCloseAutoFocus handler is registered - round-trip before restoring focus. */
+  hasCloseAutoFocus: boolean;
   /**
    * Claim the scope stack and nothing else: no auto-focus on first render, no focus restore on dispose.
    * For surfaces whose focus is driven elsewhere (ts/menu.js owns the select listbox - it opens on
@@ -62,16 +62,16 @@ export class FocusScope {
       this.mutationObserver.observe(this.container, { childList: true, subtree: true });
     }
 
-    if (!this.options.passive) void this.autoFocusOnMount();
+    if (!this.options.passive) void this.autoFocusOnOpen();
   }
 
   /** Focus the first tabbable on first render, unless .NET prevents it or focus is already inside. */
-  private autoFocusOnMount = async (): Promise<void> => {
+  private autoFocusOnOpen = async (): Promise<void> => {
     if (this.container.contains(document.activeElement)) return;
 
     const prevented =
-      this.options.hasMountAutoFocus &&
-      (await invokeDotNetResult(this.dotNetRef, false, 'HandleMountAutoFocus'));
+      this.options.hasOpenAutoFocus &&
+      (await invokeDotNetResult(this.dotNetRef, false, 'HandleOpenAutoFocus'));
     if (prevented) return;
 
     // Positioned surfaces (popover, select, ...) stay visibility:hidden until their first
@@ -232,8 +232,8 @@ export class FocusScope {
     // Guarded: a navigation can dispose the scope's DotNetObjectReference while this removal
     // round-trip is in flight (dialog closes, page moves on) - treat that as "not prevented".
     const prevented =
-      this.options.hasUnmountAutoFocus &&
-      (await invokeDotNetResult(this.dotNetRef, false, 'HandleUnmountAutoFocus'));
+      this.options.hasCloseAutoFocus &&
+      (await invokeDotNetResult(this.dotNetRef, false, 'HandleCloseAutoFocus'));
 
     // Restore focus to where it was before the scope opened - UNLESS the user already moved it
     // somewhere else outside the scope (e.g. the dismissing click landed on a text input: the

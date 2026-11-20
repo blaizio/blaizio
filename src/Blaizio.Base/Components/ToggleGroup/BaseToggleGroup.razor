@@ -86,11 +86,14 @@
     private ToggleGroupContext Context =>
         new(Single ? SelectionMode.Single : SelectionMode.Multiple, _state.Value, IsDisabled, EventCallback.Factory.Create<string>(this, ToggleAsync));
 
-    // Controlled when the consumer binds the active mode's value; otherwise uncontrolled, seeded
-    // from its default. Both modes share one list-shaped state - single is the zero-or-one case.
+    // Controlled by the one rule (ControllableState.IsControlled), read off the active mode's
+    // parameters; otherwise uncontrolled, seeded from its default. Both modes share one list-shaped
+    // state - single is the zero-or-one case.
     protected override void OnParametersSet() =>
         _state.Sync(
-            Single ? ValueChanged.HasDelegate : ValuesChanged.HasDelegate,
+            Single
+                ? ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null)
+                : ControllableState.IsControlled(Values is not null, ValuesChanged.HasDelegate, DefaultValues is not null),
             Single ? AsList(Value) : Values ?? [],
             Single ? AsList(DefaultValue) : DefaultValues ?? []);
 

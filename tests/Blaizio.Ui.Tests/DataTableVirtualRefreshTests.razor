@@ -1,0 +1,115 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using global::Blaizio
+@using global::Blaizio.Ui
+@using Blaizio.Ui.Tests
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // The window virtualizer reads a list that got longer as rows appended at the end and keeps its
+    // window and every height it measured. That is right for a feed and wrong for a table whose
+    // search was just cleared or whose sort changed: other rows sit at those positions now. With
+    // measured heights (DynamicRowHeight) the table starts the virtualized body over on a new sort
+    // or search. "Started over" shows here as a new virtualizer: the old one, and what it measured,
+    // is gone.
+
+    public DataTableVirtualRefreshTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static List<Person> People(int count) =>
+        [.. Enumerable.Range(0, count).Select(i => new Person { Id = i, Name = $"Person {i:000}", Age = 20 + i % 40 })];
+
+    private IRenderedComponent<ParentHost> Table(Func<List<Person>> items, Func<SortState?> sort, Func<string?> search, bool dynamic) =>
+        Render<ParentHost>(parameters => parameters.AddChildContent(
+            @<BzDataTable TItem="Person" Items="@items()" Virtualize="true" DynamicRowHeight="@dynamic"
+                          Sort="@sort()" Search="@search()">
+                <BzPropertyColumn Property="@(p => p.Name)" Sortable />
+                <BzPropertyColumn Property="@(p => p.Age)" Sortable />
+            </BzDataTable>));
+
+    private static BaseWindowVirtualizer Engine(IRenderedComponent<ParentHost> cut) =>
+        cut.FindComponent<BaseWindowVirtualizer>().Instance;
+
+    private static void Rerender(IRenderedComponent<ParentHost> cut) =>
+        cut.InvokeAsync(cut.Instance.Rerender).GetAwaiter().GetResult();
+
+    [Fact]
+    public void A_new_sort_starts_measured_rows_over()
+    {
+        var rows = People(200);
+        SortState? sort = new("Name", SortDirection.Ascending);
+        var cut = Table(() => rows, () => sort, () => null, dynamic: true);
+        var before = Engine(cut);
+
+        sort = new("Name", SortDirection.Descending);
+        Rerender(cut);
+
+        Assert.NotSame(before, Engine(cut));
+        Assert.Equal("200", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-count"));
+    }
+
+    [Fact]
+    public void Clearing_a_search_starts_measured_rows_over_instead_of_reading_as_an_append()
+    {
+        var rows = People(200);
+        string? search = "Person 00";   // ten rows
+        var cut = Table(() => rows, () => null, () => search, dynamic: true);
+        Assert.Equal("10", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-count"));
+        var before = Engine(cut);
+
+        search = null;
+        Rerender(cut);
+
+        Assert.NotSame(before, Engine(cut));
+        Assert.Equal("200", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-count"));
+    }
+
+    [Fact]
+    public void Rows_added_under_the_same_sort_and_search_are_still_an_append()
+    {
+        var rows = People(100);
+        var cut = Table(() => rows, () => null, () => null, dynamic: true);
+        var before = Engine(cut);
+
+        rows = People(200);
+        Rerender(cut);
+
+        Assert.Same(before, Engine(cut));
+        Assert.Equal("200", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-count"));
+    }
+
+    [Fact]
+    public void A_parent_render_that_changes_nothing_keeps_the_body()
+    {
+        var rows = People(100);
+        SortState? sort = new("Name", SortDirection.Ascending);
+        var cut = Table(() => rows, () => sort, () => "Person", dynamic: true);
+        var before = Engine(cut);
+
+        sort = new("Name", SortDirection.Ascending);   // an equal sort, a new object
+        Rerender(cut);
+
+        Assert.Same(before, Engine(cut));
+    }
+
+    [Fact]
+    public void Rows_of_a_fixed_height_keep_their_window_through_a_new_sort()
+    {
+        var rows = People(200);
+        SortState? sort = new("Name", SortDirection.Ascending);
+        var cut = Table(() => rows, () => sort, () => null, dynamic: false);
+        var before = Engine(cut);
+
+        sort = new("Name", SortDirection.Descending);
+        Rerender(cut);
+
+        // Nothing is measured per row, so nothing is stale: the rows change in place.
+        Assert.Same(before, Engine(cut));
+        Assert.Contains("Person 199", cut.Find("tbody").TextContent);
+    }
+}

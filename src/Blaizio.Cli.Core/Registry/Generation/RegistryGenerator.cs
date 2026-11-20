@@ -89,6 +89,19 @@ public sealed class GeneratorOptions
             // arrived in 0.3.6; with an older Base the row would be a tab stop no key activates.
             ["item"] = "0.3.6",
             ["marker"] = "0.3.6",
+            // ControllableState.IsControlled (the one rule for "is this value controlled") arrived
+            // in 0.3.6; these call it themselves and do not compile against an older Base. Code
+            // Block, Table and Toolbar call it too and are listed above.
+            ["color-picker"] = "0.3.6",
+            ["combobox"] = "0.3.6",
+            ["input-color"] = "0.3.6",
+            ["input-date"] = "0.3.6",
+            ["input-time"] = "0.3.6",
+            // BaseDialog.PreventDismiss (the root lock under its own name) arrived in 0.3.6; an
+            // older Base would refuse the parameter. Dialog and Drawer pass it too and are listed
+            // above.
+            ["alert-dialog"] = "0.3.6",
+            ["sheet"] = "0.3.6",
         };
 
     /// <summary>

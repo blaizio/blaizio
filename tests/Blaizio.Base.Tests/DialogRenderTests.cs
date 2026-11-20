@@ -223,11 +223,11 @@ public class DialogRenderTests : BunitContext
     }
 
     [Fact]
-    public void Escape_does_not_close_when_dismissal_disabled()
+    public void Escape_does_not_close_a_locked_dialog()
     {
         var cut = Render<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
-            .Add(x => x.DismissOnOutsideClick, false)
+            .Add(x => x.PreventDismiss, true)
             .AddChildContent(Parts()));
 
         Escape(cut);
@@ -236,17 +236,54 @@ public class DialogRenderTests : BunitContext
     }
 
     [Fact]
-    public void Overlay_pointerdown_does_not_close_when_dismissal_disabled()
+    public void Overlay_pointerdown_does_not_close_a_locked_dialog()
     {
         var cut = Render<BaseDialog>(p => p
             .Add(x => x.DefaultOpen, true)
-            .Add(x => x.DismissOnOutsideClick, false)
+            .Add(x => x.PreventDismiss, true)
             .AddChildContent(Parts()));
 
         cut.Find("[aria-hidden=true]").PointerDown();
 
         Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
     }
+
+    // The root's DismissOnOutsideClick was the lock under its earlier name, with the opposite
+    // meaning. It stays as a hidden parameter so pages written against it keep their lock.
+#pragma warning disable CS0618
+    [Fact]
+    public void The_earlier_name_of_the_lock_still_locks()
+    {
+        var cut = Render<BaseDialog>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.DismissOnOutsideClick, false)
+            .AddChildContent(Parts()));
+
+        Escape(cut);
+        cut.Find("[aria-hidden=true]").PointerDown();
+
+        Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
+    }
+
+    // Both names on one dialog: it is locked if either one asks for it, whatever the order.
+    [Theory]
+    [InlineData(true, true, true)]     // PreventDismiss locks, the earlier name allows
+    [InlineData(false, false, true)]   // the earlier name locks, PreventDismiss does not
+    [InlineData(true, false, true)]    // both lock
+    [InlineData(false, true, false)]   // neither locks
+    public void With_both_names_set_either_one_locks(bool preventDismiss, bool dismissOnOutsideClick, bool locked)
+    {
+        var cut = Render<BaseDialog>(p => p
+            .Add(x => x.DefaultOpen, true)
+            .Add(x => x.PreventDismiss, preventDismiss)
+            .Add(x => x.DismissOnOutsideClick, dismissOnOutsideClick)
+            .AddChildContent(Parts()));
+
+        Escape(cut);
+
+        Assert.Equal(locked ? "open" : "closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
+    }
+#pragma warning restore CS0618
 
     [Fact]
     public void Non_modal_renders_no_overlay_and_no_aria_modal()

@@ -126,10 +126,14 @@
     // SearchChanged. A bare Default* is uncontrolled.
     protected override void OnParametersSet()
     {
-        _value.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
-        _values.Sync(ValuesChanged.HasDelegate, Values ?? [], DefaultValues ?? []);
-        _open.Sync(Open.HasValue, Open ?? false, DefaultOpen);
-        _query.Sync(SearchChanged.HasDelegate, Search, DefaultSearch);
+        _value.Sync(ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null), Value, DefaultValue);
+        _values.Sync(
+            ControllableState.IsControlled(Values is not null, ValuesChanged.HasDelegate, DefaultValues is not null),
+            Values ?? [],
+            DefaultValues ?? []);
+        _open.Sync(ControllableState.IsControlled(Open.HasValue, OpenChanged.HasDelegate, defaultSupplied: true), Open ?? false, DefaultOpen);
+        // An empty DefaultSearch is no default, so @bind-Search on a null string stays controlled.
+        _query.Sync(ControllableState.IsControlled(Search is not null, SearchChanged.HasDelegate, !string.IsNullOrEmpty(DefaultSearch)), Search, DefaultSearch);
     }
 
     private ComboboxContext BuildContext() => new(

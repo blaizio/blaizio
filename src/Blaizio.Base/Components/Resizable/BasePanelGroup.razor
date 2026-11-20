@@ -1,5 +1,7 @@
 @namespace Blaizio
 @inherits BzComponentBase
+@inject IJSRuntime Js
+@implements IDisposable
 @*
     Headless resizable panel group. Lays its BasePanel children out along Orientation (flex row/column),
     each panel taking a share of the space via flex-grow = its size (a percentage). A BaseResizeHandle
@@ -26,13 +28,32 @@
     /// <summary>The panels and handles.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    // In document order. The first render registers in that order by itself; a panel that appears
+    // later is appended and then moved to its place once the document can be read (ReadOrderAsync).
     private readonly List<PanelInfo> _panels = new();
-    // Handle i sits just after this panel (and before the next one in _panels). Held by reference,
-    // not by index: panels can leave, and an index would then point at a different panel. A slot is
-    // null once its handle is gone - slots are never removed, so the index a handle holds stays its.
-    private readonly List<PanelInfo?> _handlePanel = new();
+    // Handle i sits just after its Before panel (and before the next one in _panels). Held by
+    // reference, not by index: panels can leave or move, and an index would then point at a
+    // different panel. Slots are never removed, so the index a handle holds stays its.
+    private readonly List<HandleSlot> _handles = new();
     private double[] _snapshot = System.Array.Empty<double>();
     private bool _initialized;
+    // A panel or handle joined after the sizes were seeded: where it sits is known only to the
+    // document, so the order is read from there after this render.
+    private bool _orderStale;
+    private int _orderReads;
+    private bool _disposed;
+
+    private sealed class HandleSlot
+    {
+        public PanelInfo? Before;
+        public ElementReference Element;
+        public bool Live = true;
+    }
+
+    /// <summary>The document order of a group's panels and handles, as <c>ts/resizable.ts</c> reports it.</summary>
+    /// <param name="Panels">Indices into the panels that were asked about, first in the document first.</param>
+    /// <param name="Before">For each handle asked about: the index of the panel just before it, or -1.</param>
+    internal sealed record DocumentOrder(int[] Panels, int[] Before);
 
     /// <summary>
     /// Raised after the panel sizes change (initial seeding, drag, keyboard). The group re-rendering
@@ -60,12 +81,17 @@
     /// <summary>
     /// A panel registers itself (in document order) and gets its index. A panel that appears after
     /// the sizes were seeded (it is rendered conditionally) takes its <c>DefaultSize</c>, or an equal
-    /// share, out of the others; it joins at the end of the order, whatever its place in the markup.
+    /// share, out of the others. It joins at the end for the length of that render; the group then
+    /// reads the document and moves it to its place in the markup, sizes untouched.
     /// </summary>
     public int RegisterPanel(PanelInfo info)
     {
         _panels.Add(info);
-        if (_initialized) MakeRoomFor(info);
+        if (_initialized)
+        {
+            _orderStale = true;
+            MakeRoomFor(info);
+        }
         return _panels.Count - 1;
     }
 
@@ -82,32 +108,129 @@
 
         // A handle that sat after the departed panel now sits after the one before it.
         var previous = index > 0 ? _panels[index - 1] : null;
-        for (var i = 0; i < _handlePanel.Count; i++)
-            if (ReferenceEquals(_handlePanel[i], info)) _handlePanel[i] = previous;
+        foreach (var handle in _handles)
+            if (ReferenceEquals(handle.Before, info)) handle.Before = previous;
 
         if (!_initialized || _panels.Count == 0) return;
         Normalize(_panels, 100);
         NotifyLayout();
     }
 
-    /// <summary>A handle registers itself; it sits just after the most recently registered panel.</summary>
+    /// <summary>
+    /// A handle registers itself; it sits just after the most recently registered panel. That is its
+    /// place on the first render. One that appears later is put after the panel the document shows
+    /// before it, once this render is on the page.
+    /// </summary>
     public int RegisterHandle()
     {
-        _handlePanel.Add(_panels.Count > 0 ? _panels[^1] : null);
-        return _handlePanel.Count - 1;
+        _handles.Add(new HandleSlot { Before = _panels.Count > 0 ? _panels[^1] : null });
+        if (_initialized)
+        {
+            // The order is read after the group's next render; ask for one, since a handle that
+            // appears from inside a child component does not re-render the group by itself.
+            _orderStale = true;
+            StateHasChanged();
+        }
+        return _handles.Count - 1;
     }
 
     /// <summary>A handle that is going away gives up its slot (the other handles keep their indices).</summary>
     public void UnregisterHandle(int handleIndex)
     {
-        if (handleIndex >= 0 && handleIndex < _handlePanel.Count) _handlePanel[handleIndex] = null;
+        if (handleIndex < 0 || handleIndex >= _handles.Count) return;
+        _handles[handleIndex].Live = false;
+        _handles[handleIndex].Before = null;
+    }
+
+    /// <summary>A handle hands over its element, which is how the group finds it in the document.</summary>
+    internal void CaptureHandle(int handleIndex, ElementReference element)
+    {
+        if (handleIndex >= 0 && handleIndex < _handles.Count) _handles[handleIndex].Element = element;
     }
 
     // The index in _panels of the panel just before a handle, or -1 when the handle has none.
     private int PanelBefore(int handleIndex) =>
-        handleIndex >= 0 && handleIndex < _handlePanel.Count && _handlePanel[handleIndex] is { } panel
+        handleIndex >= 0 && handleIndex < _handles.Count && _handles[handleIndex].Before is { } panel
             ? _panels.IndexOf(panel)
             : -1;
+
+    // Membership changed after the first render. Registration order is no longer document order
+    // (a newcomer was appended, whatever its place in the markup), so ask the script where every
+    // panel and handle sits now and follow it. No sizes change here: each panel keeps its own.
+    private async Task ReadOrderAsync()
+    {
+        // The lists can change across the awaits, so the answer is matched against what was asked,
+        // and only the latest question counts: an older answer knows nothing of who joined since.
+        var read = ++_orderReads;
+        var panels = _panels.Where(p => p.Element.Id is not null).ToArray();
+        var slots = Enumerable.Range(0, _handles.Count)
+            .Where(i => _handles[i].Live && _handles[i].Element.Id is not null)
+            .ToArray();
+        if (panels.Length == 0) return;
+
+        // One flat list of numbers comes back (the panel order, then one entry per handle): plain
+        // numbers need no result type for the serializer to build.
+        int[]? answer;
+        try
+        {
+            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/resizable.js");
+            answer = await module.InvokeAsync<int[]?>(
+                "readPanelOrder",
+                panels.Select(p => p.Element).ToArray(),
+                slots.Select(i => _handles[i].Element).ToArray());
+        }
+        catch (JSDisconnectedException)
+        {
+            return; // the circuit is gone, and the page with it
+        }
+
+        if (_disposed || read != _orderReads) return;
+        if (answer is null || answer.Length != panels.Length + slots.Length) return;
+        var order = new DocumentOrder(answer[..panels.Length], answer[panels.Length..]);
+        if (ApplyOrder(panels, slots, order)) NotifyLayout();
+    }
+
+    /// <summary>
+    /// Reorder the panels to the document order and put each handle after the panel that precedes
+    /// it there. <paramref name="panels"/> and <paramref name="handleSlots"/> are what the script was
+    /// asked about; anything that joined since keeps its place at the end, anything that left is
+    /// skipped. Returns whether anything moved.
+    /// </summary>
+    internal bool ApplyOrder(IReadOnlyList<PanelInfo> panels, IReadOnlyList<int> handleSlots, DocumentOrder order)
+    {
+        var rank = new Dictionary<PanelInfo, int>(ReferenceEqualityComparer.Instance);
+        for (var i = 0; i < order.Panels.Length; i++)
+        {
+            var asked = order.Panels[i];
+            if (asked >= 0 && asked < panels.Count) rank.TryAdd(panels[asked], i);
+        }
+
+        var sorted = _panels.Where(rank.ContainsKey).OrderBy(p => rank[p])
+            .Concat(_panels.Where(p => !rank.ContainsKey(p)))
+            .ToList();
+        var moved = !sorted.SequenceEqual(_panels);
+        if (moved)
+        {
+            _panels.Clear();
+            _panels.AddRange(sorted);
+            // A drag in flight holds sizes by position; they no longer line up, so it stops here.
+            _snapshot = System.Array.Empty<double>();
+        }
+
+        for (var i = 0; i < handleSlots.Count && i < order.Before.Length; i++)
+        {
+            var slot = handleSlots[i];
+            if (slot < 0 || slot >= _handles.Count || !_handles[slot].Live) continue;
+
+            var asked = order.Before[i];
+            var before = asked >= 0 && asked < panels.Count && _panels.Contains(panels[asked]) ? panels[asked] : null;
+            if (ReferenceEquals(_handles[slot].Before, before)) continue;
+            _handles[slot].Before = before;
+            moved = true;
+        }
+
+        return moved;
+    }
 
     // Size a late arrival and shrink the others to fit beside it.
     private void MakeRoomFor(PanelInfo info)
@@ -154,6 +277,15 @@
     {
         if (firstRender) EnsureInitialized();
     }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_orderStale) return Task.CompletedTask;
+        _orderStale = false;
+        return ReadOrderAsync();
+    }
+
+    public void Dispose() => _disposed = true;
 
     /// <summary>Seed the panel sizes once all panels have registered (idempotent). Called from the group's
     /// first after-render; safe to call again.</summary>

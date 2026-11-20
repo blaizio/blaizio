@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Components;
+
 namespace Blaizio;
 
 /// <summary>A <see cref="BasePanel"/>'s registration in its group: its constraints (all percentages of
@@ -28,4 +30,7 @@ public sealed class PanelInfo
 
     /// <summary>Whether the panel is currently collapsed.</summary>
     public bool IsCollapsed => Collapsible && Size <= CollapsedSize + 0.01;
+
+    /// <summary>The panel's element, which is how the group finds it in the document.</summary>
+    internal ElementReference Element { get; set; }
 }

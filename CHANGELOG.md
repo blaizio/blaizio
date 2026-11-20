@@ -9,6 +9,17 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Resizable**: a panel that is rendered later takes its place in the markup. A panel and its
+  handle inside an `if` joined at the end of the group's order, whatever their position. After a
+  first or middle panel was hidden and shown again, its handle had no neighbour and moved
+  nothing, and the next handle resized two panels that were no longer side by side. The group now
+  reads the order of its panels and handles from the page after such a render and follows it.
+  No size changes hands in the reorder.
+- **Data Table**: with `Virtualize` and `DynamicRowHeight`, a new sort or search measures the rows
+  again. The virtualizer read a cleared search as rows appended and a sort as nothing changed,
+  and kept the heights it had measured for other rows, so the scrollbar and the rows drifted
+  until each row had been on screen again. Rows of a fixed height were never affected, and a list
+  that only grows under the same sort and search is still an append.
 - **Data Table**: a table fed by `ItemsProvider` can load its rows again. Identical requests are
   deduplicated, so rows added, deleted or edited at the source stayed stale until the user sorted,
   searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when
@@ -337,6 +348,36 @@ lockstep under one version.
   added after the first render joins at the end of the order.
 
 ### Changed
+- **Controlled or uncontrolled: one rule for every component.** A value is controlled when it is
+  set, or when its change callback is bound and no default was given. Components followed one of
+  two older rules ("a callback is bound" or "the value is not null") and each got a case wrong.
+  What changes:
+  - A value passed one-way (`Value="x"` with no `ValueChanged`) is shown and held. It was ignored,
+    so the component showed nothing and kept its own state. This covers Tabs, Select, Combobox,
+    Accordion, Toggle Group, Radio Group, Menubar, the menu radio groups, Calendar, Color Area,
+    Slider, Input OTP, Input Tags, Input Number, Input Color, Input Date, Input Time, the search
+    text of Command, Combobox and Input Tags, and the Data Table's sort, search, page, column
+    widths and column order. For a starting value the user can change, pass `DefaultValue`.
+  - A default next to a callback (`DefaultValue="a" ValueChanged="Log"`) only listens: the
+    component starts from the default and moves on its own. It was controlled with no value, so
+    the selection never moved. Same components, plus Navigation Menu and the Tree's single
+    selection.
+  - Tree: `@bind-ExpandedValues`, `@bind-SelectedValues` and `@bind-CheckedValues` on a list that
+    is still null are controlled from the start, and passing null again empties the tree. The
+    binding started uncontrolled. The other side of it: a callback alone on those three
+    (`CheckedValuesChanged="Save"`, no value and no default) is now controlled, as it already was
+    on every component above, so nothing moves until the value comes back. To only listen, add
+    the default: `DefaultCheckedValues="@([])"`.
+  - Unchanged: `Open`, `Checked`, `Pressed`, `Expanded`, `SelectedIndex` and the Color Picker's
+    color. Only a value controls them, and a callback alone still only listens.
+  - A binding next to a default (`@bind-Value` with `DefaultValue`) starts from the default while
+    the bound field is empty. An Accordion or Toggle Group bound that way can still close its
+    last item. Limits: a parent cannot clear such a value by setting the field to null, and on a
+    number type that cannot be null a one-way `Value="0"` reads as not set.
+
+  The rule is `ControllableState.IsControlled` in Blaizio.Base, with `ControllableState.IsSet`
+  for values that cannot be null; both are public for your own components. Combobox, Color
+  Picker, Input Color, Input Date and Input Time call it and now need Blaizio.Base 0.3.6.
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
   components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
   style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset
@@ -363,6 +404,13 @@ lockstep under one version.
   to reflect over the enum on every render of every component.
 
 ### Added
+- **Dialog, Alert Dialog, Sheet, Drawer**: `PreventDismiss` on the root locks the surface. Escape
+  and the backdrop stop closing it and the corner close button is hidden; a close button of your
+  own, or your code, still closes it. It is the name `DialogOptions` already uses for the same
+  lock. `DismissOnOutsideClick` on the content and overlay parts is unchanged and still means the
+  backdrop only. Alert Dialog and Sheet pass the new parameter and now need Blaizio.Base 0.3.6.
+- **Focus scope**: `BaseFocusScope.OnOpenAutoFocus` and `OnCloseAutoFocus`, the names Dialog and
+  Popover content already use for the same two moments.
 - **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
   the nav on pages added in the last couple of months, and previous and next arrows next to each
   page's title.
@@ -602,6 +650,12 @@ lockstep under one version.
   needs the new name.
 - **Combobox**: `BaseComboboxItemIndicator.KeepMounted` is `[Obsolete]` and forwards to the new
   `KeepRendered`.
+- **Dialog, Alert Dialog, Sheet, Drawer**: `DismissOnOutsideClick` on the roots (`BaseDialog`,
+  `BzDialog`, `BzAlertDialog`, `BzSheet`, `BzDrawer`) is `[Obsolete]`. Use `PreventDismiss`, which
+  says the opposite: `DismissOnOutsideClick="false"` becomes `PreventDismiss="true"`. The old
+  parameter still locks, and with both set the surface is locked if either one asks for it.
+- **Focus scope**: `BaseFocusScope.OnMountAutoFocus` and `OnUnmountAutoFocus` are `[Obsolete]` and
+  forward to `OnOpenAutoFocus` and `OnCloseAutoFocus`.
 
 ### Fixed
 - **Base**: a table of contents with more sections than its box can show keeps the active section

@@ -135,7 +135,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
 
     /// <summary>
     /// Suppresses the wrapping <see cref="BaseFocusScope"/>'s own auto-focus, on first render and on removal
-    /// alike (wired to both <c>OnMountAutoFocus</c> and <c>OnUnmountAutoFocus</c>). Menus own their
+    /// alike (wired to both <c>OnOpenAutoFocus</c> and <c>OnCloseAutoFocus</c>). Menus own their
     /// focus end to end: <c>ts/menu.js</c> places it when the surface opens, and
     /// <see cref="OnCloseFinished"/> returns it to the trigger on close. The focus scope is kept only
     /// for its nested-scope stack management - its first-render auto-focus would race <c>ts/menu.js</c> (a

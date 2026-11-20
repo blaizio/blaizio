@@ -1,0 +1,503 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using global::Blaizio
+@using global::Blaizio.Ui
+@using Blaizio.Ui.Tests
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // One rule decides whether a value is controlled (ControllableState.IsControlled): it is set, or
+    // its listener is bound and no default was supplied. These go through the styled wrappers, which
+    // forward Value, ValueChanged and DefaultValue whatever the page wrote, so the rule has to work
+    // from what arrives. Three shapes used to go wrong, depending on the component:
+    //   1. Value="x" with no listener was ignored (the component showed nothing),
+    //   2. DefaultValue="a" with a listener was controlled with no value (the selection never moved),
+    //   3. @bind-Value on an empty field started uncontrolled, and a later null was not followed.
+    //
+    // The test class is not a component, so a change callback does not re-render the page by itself:
+    // Rerender(cut) plays the parent's render with whatever the bound local holds by then.
+
+    public ControlledRuleTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private IRenderedComponent<ParentHost> Page(RenderFragment content) =>
+        Render<ParentHost>(parameters => parameters.AddChildContent(content));
+
+    private static void Rerender(IRenderedComponent<ParentHost> cut) =>
+        cut.InvokeAsync(cut.Instance.Rerender).GetAwaiter().GetResult();
+
+    // ---- Tabs ----------------------------------------------------------------------------------
+
+    private static RenderFragment TabsBody() =>
+        @<text>
+            <BzTabsList>
+                <BzTabsTrigger Value="account">Account</BzTabsTrigger>
+                <BzTabsTrigger Value="password">Password</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="account">Account panel</BzTabsContent>
+            <BzTabsContent Value="password">Password panel</BzTabsContent>
+        </text>;
+
+    private static string? ActiveTab(IRenderedComponent<ParentHost> cut) =>
+        cut.FindAll("[role=tab][aria-selected=true]").SingleOrDefault()?.TextContent.Trim();
+
+    private static void PressTab(IRenderedComponent<ParentHost> cut, string text) =>
+        cut.FindAll("[role=tab]").First(tab => tab.TextContent.Trim() == text).Click();
+
+    [Fact]
+    public void Tabs_a_one_way_value_selects_the_tab_and_holds_it()
+    {
+        var cut = Page(@<BzTabs Value="password">@TabsBody()</BzTabs>);
+        Assert.Equal("Password", ActiveTab(cut));
+
+        PressTab(cut, "Account");
+        Assert.Equal("Password", ActiveTab(cut));
+    }
+
+    [Fact]
+    public void Tabs_a_default_with_a_listener_only_listens()
+    {
+        string? seen = null;
+        var cut = Page(@<BzTabs DefaultValue="account" ValueChanged="@((string value) => seen = value)">@TabsBody()</BzTabs>);
+        Assert.Equal("Account", ActiveTab(cut));
+
+        PressTab(cut, "Password");
+        Assert.Equal("password", seen);
+        Assert.Equal("Password", ActiveTab(cut));
+
+        Rerender(cut);
+        Assert.Equal("Password", ActiveTab(cut));
+    }
+
+    [Fact]
+    public void Tabs_a_binding_that_starts_empty_is_controlled_and_can_be_emptied_again()
+    {
+        string? tab = null;
+        var cut = Page(@<BzTabs @bind-Value="tab">@TabsBody()</BzTabs>);
+
+        PressTab(cut, "Password");
+        Assert.Equal("password", tab);
+        Assert.Null(ActiveTab(cut));          // controlled: nothing moves until the parent says so
+
+        Rerender(cut);
+        Assert.Equal("Password", ActiveTab(cut));
+
+        tab = null;
+        Rerender(cut);
+        Assert.Null(ActiveTab(cut));
+    }
+
+    // ---- Select --------------------------------------------------------------------------------
+
+    private static RenderFragment SelectBody() =>
+        @<text>
+            <BzSelectTrigger aria-label="Fruit"><BzSelectValue Placeholder="Pick" /></BzSelectTrigger>
+            <BzSelectContent>
+                <BzSelectItem Value="apple">Apple</BzSelectItem>
+                <BzSelectItem Value="banana">Banana</BzSelectItem>
+                <BzSelectItem Value="cherry">Cherry</BzSelectItem>
+            </BzSelectContent>
+        </text>;
+
+    private static string[] Chosen(IRenderedComponent<ParentHost> cut) =>
+        [.. cut.FindAll("[role=option][aria-selected=true]").Select(option => option.TextContent.Trim())];
+
+    private static void Choose(IRenderedComponent<ParentHost> cut, string text)
+    {
+        if (cut.Find("[role=listbox]").GetAttribute("data-state") != "open")
+            cut.Find("[data-slot=select-trigger]").Click();
+        cut.FindAll("[role=option]").First(option => option.TextContent.Trim() == text).Click();
+    }
+
+    [Fact]
+    public void Select_a_one_way_value_selects_the_item_and_holds_it()
+    {
+        var cut = Page(@<BzSelect Value="banana">@SelectBody()</BzSelect>);
+        Assert.Equal(["Banana"], Chosen(cut));
+
+        Choose(cut, "Apple");
+        Assert.Equal(["Banana"], Chosen(cut));
+    }
+
+    [Fact]
+    public void Select_a_default_with_a_listener_only_listens()
+    {
+        string? seen = null;
+        var cut = Page(@<BzSelect DefaultValue="banana" ValueChanged="@((string? value) => seen = value)">@SelectBody()</BzSelect>);
+        Assert.Equal(["Banana"], Chosen(cut));
+
+        Choose(cut, "Apple");
+        Assert.Equal("apple", seen);
+        Assert.Equal(["Apple"], Chosen(cut));
+
+        Rerender(cut);
+        Assert.Equal(["Apple"], Chosen(cut));
+    }
+
+    [Fact]
+    public void Select_a_binding_that_starts_empty_is_controlled_and_can_be_emptied_again()
+    {
+        string? fruit = null;
+        var cut = Page(@<BzSelect @bind-Value="fruit">@SelectBody()</BzSelect>);
+
+        Choose(cut, "Cherry");
+        Assert.Equal("cherry", fruit);
+        Assert.Empty(Chosen(cut));
+
+        Rerender(cut);
+        Assert.Equal(["Cherry"], Chosen(cut));
+
+        fruit = null;
+        Rerender(cut);
+        Assert.Empty(Chosen(cut));
+    }
+
+    [Fact]
+    public void Select_multiple_one_way_values_select_the_items_and_hold_them()
+    {
+        IReadOnlyList<string> fixedValues = ["apple", "cherry"];
+        var cut = Page(@<BzSelect SelectionMode="SelectionMode.Multiple" Values="fixedValues">@SelectBody()</BzSelect>);
+        Assert.Equal(["Apple", "Cherry"], Chosen(cut));
+
+        Choose(cut, "Banana");
+        Assert.Equal(["Apple", "Cherry"], Chosen(cut));
+    }
+
+    [Fact]
+    public void Select_multiple_default_values_with_a_listener_only_listen()
+    {
+        IReadOnlyList<string> seen = [];
+        IReadOnlyList<string> initial = ["apple"];
+        var cut = Page(@<BzSelect SelectionMode="SelectionMode.Multiple" DefaultValues="initial"
+                                    ValuesChanged="@((IReadOnlyList<string> values) => seen = values)">@SelectBody()</BzSelect>);
+        Assert.Equal(["Apple"], Chosen(cut));
+
+        Choose(cut, "Banana");
+        Assert.Equal(["apple", "banana"], seen);
+        Assert.Equal(["Apple", "Banana"], Chosen(cut));
+    }
+
+    [Fact]
+    public void Select_multiple_a_binding_that_starts_null_is_controlled_and_can_be_emptied_again()
+    {
+        IReadOnlyList<string>? fruits = null;
+        var cut = Page(@<BzSelect SelectionMode="SelectionMode.Multiple" @bind-Values="fruits">@SelectBody()</BzSelect>);
+
+        Choose(cut, "Banana");
+        Assert.Equal(["banana"], fruits);
+        Assert.Empty(Chosen(cut));
+
+        Rerender(cut);
+        Assert.Equal(["Banana"], Chosen(cut));
+
+        fruits = null;
+        Rerender(cut);
+        Assert.Empty(Chosen(cut));
+    }
+
+    // ---- Accordion -----------------------------------------------------------------------------
+
+    private static RenderFragment AccordionBody() =>
+        @<text>
+            <BzAccordionItem Value="shipping">
+                <BzAccordionTrigger>Shipping</BzAccordionTrigger>
+                <BzAccordionContent>Two days.</BzAccordionContent>
+            </BzAccordionItem>
+            <BzAccordionItem Value="returns">
+                <BzAccordionTrigger>Returns</BzAccordionTrigger>
+                <BzAccordionContent>Thirty days.</BzAccordionContent>
+            </BzAccordionItem>
+        </text>;
+
+    private static string[] OpenItems(IRenderedComponent<ParentHost> cut) =>
+        [.. cut.FindAll("button[aria-expanded=true]").Select(trigger => trigger.TextContent.Trim())];
+
+    private static void PressItem(IRenderedComponent<ParentHost> cut, string text) =>
+        cut.FindAll("button[aria-expanded]").First(trigger => trigger.TextContent.Trim() == text).Click();
+
+    [Fact]
+    public void Accordion_a_one_way_value_opens_the_item_and_holds_it()
+    {
+        var cut = Page(@<BzAccordion Value="returns">@AccordionBody()</BzAccordion>);
+        Assert.Equal(["Returns"], OpenItems(cut));
+
+        PressItem(cut, "Shipping");
+        Assert.Equal(["Returns"], OpenItems(cut));
+    }
+
+    [Fact]
+    public void Accordion_a_default_with_a_listener_only_listens()
+    {
+        string? seen = null;
+        var cut = Page(@<BzAccordion DefaultValue="shipping" ValueChanged="@((string? value) => seen = value)">@AccordionBody()</BzAccordion>);
+        Assert.Equal(["Shipping"], OpenItems(cut));
+
+        PressItem(cut, "Returns");
+        Assert.Equal("returns", seen);
+        Assert.Equal(["Returns"], OpenItems(cut));
+    }
+
+    [Fact]
+    public void Accordion_a_binding_that_starts_empty_is_controlled_and_can_be_emptied_again()
+    {
+        string? open = null;
+        var cut = Page(@<BzAccordion @bind-Value="open">@AccordionBody()</BzAccordion>);
+
+        PressItem(cut, "Returns");
+        Assert.Equal("returns", open);
+        Assert.Empty(OpenItems(cut));
+
+        Rerender(cut);
+        Assert.Equal(["Returns"], OpenItems(cut));
+
+        open = null;
+        Rerender(cut);
+        Assert.Empty(OpenItems(cut));
+    }
+
+    [Fact]
+    public void Accordion_multiple_default_values_with_a_listener_only_listen()
+    {
+        IReadOnlyList<string> seen = [];
+        IReadOnlyList<string> initial = ["shipping"];
+        var cut = Page(@<BzAccordion SelectionMode="SelectionMode.Multiple" DefaultValues="initial"
+                                       ValuesChanged="@((IReadOnlyList<string> values) => seen = values)">@AccordionBody()</BzAccordion>);
+
+        PressItem(cut, "Returns");
+        Assert.Equal(["shipping", "returns"], seen);
+        Assert.Equal(["Shipping", "Returns"], OpenItems(cut));
+    }
+
+    // A binding next to a default hands the value back to the component whenever the bound field is
+    // empty. Closing the last item does exactly that, and the item has to stay closed.
+    [Fact]
+    public void Accordion_bound_next_to_a_default_can_close_its_last_item()
+    {
+        string? open = null;
+        var cut = Page(@<BzAccordion @bind-Value="open" DefaultValue="shipping" Collapsible="true">@AccordionBody()</BzAccordion>);
+        Assert.Equal(["Shipping"], OpenItems(cut));
+
+        PressItem(cut, "Returns");
+        Rerender(cut);
+        Assert.Equal(["Returns"], OpenItems(cut));
+
+        PressItem(cut, "Returns");
+        Assert.Null(open);
+        Rerender(cut);
+        Assert.Empty(OpenItems(cut));
+    }
+
+    // ---- Switch (a bool facet: the default always exists, so only a value controls it) -------------
+
+    private static string? SwitchState(IRenderedComponent<ParentHost> cut) =>
+        cut.Find("[role=switch]").GetAttribute("aria-checked");
+
+    [Fact]
+    public void Switch_a_one_way_value_holds()
+    {
+        var cut = Page(@<BzSwitch Checked="true" aria-label="Wifi" />);
+        Assert.Equal("true", SwitchState(cut));
+
+        cut.Find("[role=switch]").Click();
+        Assert.Equal("true", SwitchState(cut));
+    }
+
+    [Fact]
+    public void Switch_a_listener_alone_only_listens()
+    {
+        bool? seen = null;
+        var cut = Page(@<BzSwitch CheckedChanged="@((bool value) => seen = value)" aria-label="Wifi" />);
+
+        cut.Find("[role=switch]").Click();
+        Assert.True(seen);
+        Assert.Equal("true", SwitchState(cut));
+
+        Rerender(cut);
+        Assert.Equal("true", SwitchState(cut));
+    }
+
+    [Fact]
+    public void Switch_a_default_with_a_listener_only_listens()
+    {
+        bool? seen = null;
+        var cut = Page(@<BzSwitch DefaultChecked="true" CheckedChanged="@((bool value) => seen = value)" aria-label="Wifi" />);
+        Assert.Equal("true", SwitchState(cut));
+
+        cut.Find("[role=switch]").Click();
+        Assert.False(seen);
+        Assert.Equal("false", SwitchState(cut));
+    }
+
+    [Fact]
+    public void Switch_a_binding_is_controlled()
+    {
+        var on = false;
+        var cut = Page(@<BzSwitch @bind-Checked="on" aria-label="Wifi" />);
+
+        cut.Find("[role=switch]").Click();
+        Assert.True(on);
+        Assert.Equal("false", SwitchState(cut));
+
+        Rerender(cut);
+        Assert.Equal("true", SwitchState(cut));
+    }
+
+    // ---- Dialog Open (a bool facet too) ----------------------------------------------------------
+
+    private static RenderFragment DialogBody() =>
+        @<text>
+            <BzDialogTrigger>Edit profile</BzDialogTrigger>
+            <BzDialogContent>
+                <BzDialogTitle>Profile</BzDialogTitle>
+                <BzDialogDescription>Change your name.</BzDialogDescription>
+                <BzDialogClose>Done</BzDialogClose>
+            </BzDialogContent>
+        </text>;
+
+    private static bool DialogOpen(IRenderedComponent<ParentHost> cut) =>
+        cut.FindAll("[role=dialog][data-state=open]").Count == 1;
+
+    private static void PressButton(IRenderedComponent<ParentHost> cut, string text) =>
+        cut.FindAll("button").First(button => button.TextContent.Trim() == text).Click();
+
+    [Fact]
+    public void Dialog_a_listener_alone_only_listens()
+    {
+        bool? seen = null;
+        var cut = Page(@<BzDialog OpenChanged="@((bool value) => seen = value)">@DialogBody()</BzDialog>);
+        Assert.False(DialogOpen(cut));
+
+        PressButton(cut, "Edit profile");
+        Assert.True(seen);
+        Assert.True(DialogOpen(cut));
+
+        Rerender(cut);
+        Assert.True(DialogOpen(cut));
+    }
+
+    [Fact]
+    public void Dialog_a_one_way_value_holds()
+    {
+        var cut = Page(@<BzDialog Open="true">@DialogBody()</BzDialog>);
+        Assert.True(DialogOpen(cut));
+
+        PressButton(cut, "Done");
+        Assert.True(DialogOpen(cut));
+    }
+
+    [Fact]
+    public void Dialog_a_default_with_a_listener_only_listens()
+    {
+        bool? seen = null;
+        var cut = Page(@<BzDialog DefaultOpen="true" OpenChanged="@((bool value) => seen = value)">@DialogBody()</BzDialog>);
+        Assert.True(DialogOpen(cut));
+
+        PressButton(cut, "Done");
+        Assert.False(seen);
+        Assert.False(DialogOpen(cut));
+    }
+
+    [Fact]
+    public void Dialog_a_binding_is_controlled()
+    {
+        var open = false;
+        var cut = Page(@<BzDialog @bind-Open="open">@DialogBody()</BzDialog>);
+
+        PressButton(cut, "Edit profile");
+        Assert.True(open);
+        Assert.False(DialogOpen(cut));
+
+        Rerender(cut);
+        Assert.True(DialogOpen(cut));
+
+        open = false;
+        Rerender(cut);
+        Assert.False(DialogOpen(cut));
+    }
+
+    // ---- Input Number (TValue may not be nullable: "set" is "differs from the type's default") ----
+
+    private static string NumberText(IRenderedComponent<ParentHost> cut) =>
+        cut.Find("input").GetAttribute("value") ?? "";
+
+    [Fact]
+    public void InputNumber_a_one_way_value_is_shown_and_follows_the_parent()
+    {
+        int? quantity = 5;
+        var cut = Page(@<BzInputNumber TValue="int?" Value="quantity" Label="Quantity" />);
+        Assert.Equal("5", NumberText(cut));
+
+        quantity = 9;
+        Rerender(cut);
+        Assert.Equal("9", NumberText(cut));
+    }
+
+    [Fact]
+    public void InputNumber_a_default_with_a_listener_only_listens()
+    {
+        int? seen = null;
+        var cut = Page(@<BzInputNumber TValue="int?" DefaultValue="5" ValueChanged="@((int? value) => seen = value)" Label="Quantity" />);
+        Assert.Equal("5", NumberText(cut));
+
+        cut.Find("input").Input("7");
+        Assert.Equal(7, seen);
+
+        Rerender(cut);
+        cut.Find("input").Blur();
+        Assert.Equal("7", NumberText(cut));
+    }
+
+    [Fact]
+    public void InputNumber_a_binding_that_starts_empty_is_controlled_and_can_be_emptied_again()
+    {
+        int? quantity = null;
+        var cut = Page(@<BzInputNumber @bind-Value="quantity" Label="Quantity" />);
+        Assert.Equal("", NumberText(cut));
+
+        cut.Find("input").Input("7");
+        Assert.Equal(7, quantity);
+        cut.Find("input").Blur();
+        Rerender(cut);
+        Assert.Equal("7", NumberText(cut));
+
+        quantity = null;
+        Rerender(cut);
+        Assert.Equal("", NumberText(cut));
+    }
+
+    [Fact]
+    public void InputNumber_a_plain_number_with_a_default_and_a_listener_only_listens()
+    {
+        var seen = -1;
+        var cut = Page(@<BzInputNumber TValue="int" DefaultValue="5" ValueChanged="@((int value) => seen = value)" Label="Quantity" />);
+        Assert.Equal("5", NumberText(cut));
+
+        cut.Find("input").Input("7");
+        Assert.Equal(7, seen);
+
+        Rerender(cut);
+        cut.Find("input").Blur();
+        Assert.Equal("7", NumberText(cut));
+    }
+
+    [Fact]
+    public void InputNumber_a_bound_plain_number_at_zero_is_controlled()
+    {
+        var quantity = 0;
+        var cut = Page(@<BzInputNumber @bind-Value="quantity" Label="Quantity" />);
+        Assert.Equal("0", NumberText(cut));
+
+        quantity = 12;
+        Rerender(cut);
+        Assert.Equal("12", NumberText(cut));
+
+        quantity = 0;
+        Rerender(cut);
+        Assert.Equal("0", NumberText(cut));
+    }
+}

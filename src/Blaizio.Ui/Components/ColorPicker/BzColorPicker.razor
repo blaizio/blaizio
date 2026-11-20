@@ -244,12 +244,20 @@
 
     protected override void OnParametersSet()
     {
-        _format.Sync(FormatChanged.HasDelegate, Format, Format);
-        _saved.Sync(SavedColorsChanged.HasDelegate, SavedColors ?? [], SavedColors ?? []);
-        // Controlled iff Value is supplied (the null sentinel, like every other component here) -
-        // NOT by ValueChanged having a delegate: an uncontrolled picker with a change listener is
-        // a legitimate shape, and keying on the delegate made it controlled-with-null (black).
-        _state.Sync(Value is not null, Value!, DefaultValue ?? "#2563eb");
+        // Format and SavedColors have no Default twin: each seeds its state while its listener is
+        // not bound and controls it once it is.
+        _format.Sync(ControllableState.IsControlled(valueSet: false, FormatChanged.HasDelegate, defaultSupplied: false), Format, Format);
+        _saved.Sync(
+            ControllableState.IsControlled(valueSet: false, SavedColorsChanged.HasDelegate, defaultSupplied: false),
+            SavedColors ?? [],
+            SavedColors ?? []);
+        // The picker always has a color (its built-in default when DefaultValue is not given), so a
+        // default always counts as supplied and only a Value controls it: a picker with just a
+        // change listener keeps its own state instead of sitting on a color nobody feeds back.
+        _state.Sync(
+            ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, defaultSupplied: true),
+            Value!,
+            DefaultValue ?? "#2563eb");
 
         // The Mode parameter seeds the surface; the shape of Value below still has the final say,
         // because Value is what actually carries the content.

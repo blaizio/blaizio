@@ -58,7 +58,8 @@
 
     // Controlled when a ValueChanged delegate is bound (the house convention); null Value is then a
     // valid "all closed" state rather than "uncontrolled".
-    protected override void OnParametersSet() => _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
+    protected override void OnParametersSet() =>
+        _state.Sync(ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null), Value, DefaultValue);
 
     // data-bz-menubar marks the bar (ts/menu.js's closest() target for cross-menu stepping from any
     // menu/submenu level); data-bz-menubar-loop tells it whether that stepping wraps at the ends.

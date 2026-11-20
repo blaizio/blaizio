@@ -13,7 +13,7 @@
 <BasePrimitive Element="div"
                 Attributes="BuildAttributes()"
                 ChildContent="@ChildContent"
-                ElementRefCaptured="@(r => _element = r)" />
+                ElementRefCaptured="@CaptureElement" />
 
 @code {
     /// <summary>Disables the handle (not focusable, no drag).</summary>
@@ -54,6 +54,13 @@
         if (Group is null) return;
         _index = Group.RegisterHandle();
         Group.LayoutChanged += OnLayoutChanged;
+    }
+
+    // The script wires the drag onto it; the group finds the handle in the document by it.
+    private void CaptureElement(ElementReference element)
+    {
+        _element = element;
+        Group?.CaptureHandle(_index, element);
     }
 
     // Sizes live on the group; re-render so aria-valuenow/min/max follow them.

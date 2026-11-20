@@ -130,8 +130,13 @@
 
     protected override void OnParametersSet()
     {
-        _state.Sync(ValueChanged.HasDelegate, Value, DefaultValue);
-        _format.Sync(FormatChanged.HasDelegate, Format, Format);
+        _state.Sync(
+            ControllableState.IsControlled(Value is not null, ValueChanged.HasDelegate, DefaultValue is not null),
+            Value,
+            DefaultValue);
+        // Format has no Default twin: it seeds the state while FormatChanged is not bound and
+        // controls it once it is.
+        _format.Sync(ControllableState.IsControlled(valueSet: false, FormatChanged.HasDelegate, defaultSupplied: false), Format, Format);
         if (Current != _synced)
         {
             _synced = Current;
