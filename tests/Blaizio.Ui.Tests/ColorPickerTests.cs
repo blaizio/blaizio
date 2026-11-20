@@ -666,7 +666,7 @@ public class ColorPickerTests : BunitContext
         Assert.Single(modes);
     }
 
-    [Fact(Skip = "bug: BzColorPicker does not raise GradientChanged when the switch to the gradient surface creates the ramp")]
+    [Fact]
     public void Switching_to_gradient_hands_the_new_ramp_to_a_bound_gradient()
     {
         var cut = Render<ColorPickerHost>(p => p.Add(x => x.Start, "#ff0000"));
@@ -675,6 +675,19 @@ public class ColorPickerTests : BunitContext
 
         Assert.Equal("linear-gradient(180deg, #ff0000 0%, #ff000000 100%)", cut.Instance.Value);
         Assert.NotNull(cut.Instance.Gradient);
+    }
+
+    // The tab press is recorded as the Mode last applied, so the parent's next render, whose Mode
+    // still says Solid, reads as a change made from outside and is applied over it.
+    [Fact(Skip = "bug: with Mode not bound, a surface picked on the tabs goes back to Solid as soon as the parent renders again (a bound Value is enough to cause that render)")]
+    public void A_surface_picked_on_the_tabs_stays_when_only_the_value_is_bound()
+    {
+        var cut = Render<ColorPickerValueHost>();
+
+        cut.FindAll("[role=radio]")[1].Click();
+
+        Assert.StartsWith("linear-gradient", cut.Instance.Value);
+        Assert.Equal(["false", "true"], cut.FindAll("[role=radio]").Select(t => t.GetAttribute("aria-checked")));
     }
 
     [Fact]
@@ -695,7 +708,7 @@ public class ColorPickerTests : BunitContext
         Assert.Equal(["#ff0000", "#0000ff"], cut.Instance.Gradient.Stops.Select(stop => stop.Color));
     }
 
-    [Fact(Skip = "bug: BzColorPicker does not raise ModeChanged when the shape of Value moves it to another surface, so a bound Mode stays on Solid")]
+    [Fact]
     public void A_gradient_value_reports_the_gradient_surface_to_a_bound_mode()
     {
         var cut = Render<ColorPickerHost>(p => p.Add(x => x.Start, "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)"));
@@ -864,7 +877,7 @@ public class ColorPickerTests : BunitContext
         Assert.Equal("#ff0000", Shown(cut));
     }
 
-    [Fact(Skip = "bug: BzColorPicker drops a Gradient handed in on the first render: the default color is read after it and puts the picker back on Solid")]
+    [Fact]
     public void A_gradient_handed_in_from_the_start_opens_the_gradient_surface()
     {
         var cut = Render<BzColorPicker>(p => p.Add(x => x.ShowGradient, true).Add(x => x.Gradient, ThreeStops));

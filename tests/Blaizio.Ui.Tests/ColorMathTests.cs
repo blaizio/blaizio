@@ -239,7 +239,7 @@ public class ColorMathTests
         Assert.Equal((0d, 0d, 0d, 1d), (h, s, v, a));
     }
 
-    [Theory(Skip = "bug: ColorMath.TryParse reads a channel that is not a number as 0, so rgb(a b c) parses as black")]
+    [Theory]
     [InlineData("rgb(a b c)")]
     [InlineData("hsl(up 10% 10%)")]
     [InlineData("rgb(12 34 x)")]
@@ -393,18 +393,14 @@ public class ColorMathTests
             // Away from the edge of what a screen shows, nothing is clamped on the way back, so
             // the text the picker would write again is the text it read.
             var inside = Math.Min(r, Math.Min(g, b)) >= 30 && Math.Max(r, Math.Max(g, b)) <= 225;
-            if (inside && Unsigned(ColorMath.Format(h2, s2, v2, 1, format)) != Unsigned(text)) rewritten++;
+            if (inside && ColorMath.Format(h2, s2, v2, 1, format) != text) rewritten++;
         }
 
         Assert.InRange(worst, 0, Near);
         Assert.Equal(0, rewritten);
-
-        // An axis that rounds to zero from below is written "-0" (see the skipped test below):
-        // the same number, so it is not counted as a change here.
-        static string Unsigned(string text) => text.Replace(" -0 ", " 0 ").Replace(" -0)", " 0)");
     }
 
-    [Fact(Skip = "bug: ColorMath.Format writes an OKLab axis that rounds to zero from below as -0")]
+    [Fact]
     public void An_axis_that_rounds_to_zero_is_written_without_a_sign()
     {
         var (h, s, v) = ColorMath.RgbToHsv(30, 36, 54);

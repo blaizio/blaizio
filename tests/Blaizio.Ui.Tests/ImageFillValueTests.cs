@@ -76,7 +76,7 @@ public class ImageFillValueTests
         Assert.Equal(new ImageFillValue("/photo.png", ImageFillFit.Fit), back);
     }
 
-    [Fact(Skip = "bug: ImageFillValue.ToCss writes the source unquoted, so a path with a space or a bracket is an invalid paint and reads back cut short")]
+    [Fact]
     public void A_source_with_a_bracket_or_a_space_survives_the_paint()
     {
         var fill = new ImageFillValue("/photos/sunset (1).png");
