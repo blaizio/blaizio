@@ -532,7 +532,10 @@ class Menu {
     // A run of the same key ("p","p","p") cycles same-initial items rather than demanding "ppp".
     const allSame = this.search.length > 1 && this.search.split('').every((c) => c === this.search[0]);
     const needle = allSame ? this.search[0]! : this.search;
-    const offset = allSame ? 1 : 0;
+    // One letter moves on, like the run: started at the focused item, a letter pressed on an item
+    // that begins with it found that item again, and at a pace slower than the reset the next
+    // match was out of reach. Only a longer text may stay where it is (the item it is spelling).
+    const offset = allSame || this.search.length === 1 ? 1 : 0;
 
     for (let i = 0; i < items.length; i++) {
       const probe = (start + offset + i) % items.length;

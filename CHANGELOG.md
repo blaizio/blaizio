@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Dropdown Menu, Context Menu, Menubar, Select**: one letter moves to the next item that starts
+  with it. Pressed on an item that already begins with that letter, the type-ahead found the
+  same item again, so at a pace slower than its reset (a second) later matches were out of
+  reach.
 - **Tree**: a drag released outside the tree no longer eats a later click. The tree holds back the
   click that follows a drag; released over the page or over another tree, that click never
   reached it, and the next one it saw (a row control pressed from the keyboard) was held back
