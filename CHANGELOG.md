@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: a `Gradient` handed in on the first render opens the Gradient surface. The
+  picker's starting color (its default, or `DefaultValue`) was read after it and put the picker
+  back on Solid. A `Value` set next to it still decides, as before.
 - **Color Picker**: an image source with a space, a bracket or a quote in it makes a valid paint.
   `ImageFillValue.ToCss` wrote every source bare, so `url(/photos/sunset (1).png)` was dropped by
   the browser and read back cut at the first bracket. Such a source is now written quoted
