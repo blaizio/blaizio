@@ -39,6 +39,7 @@ export class FocusScope {
   private readonly previouslyFocused: HTMLElement | null;
   private lastFocused: HTMLElement | null = null;
   private paused = false;
+  private disposed = false;
   private mutationObserver?: MutationObserver;
 
   constructor(
@@ -78,6 +79,9 @@ export class FocusScope {
     // placement lands (positioning.ts) - focus() on a hidden element is a silent no-op, which
     // made the first-ever open (cold module imports, slowest placement) skip the autofocus.
     await this.whenVisible();
+    // Closed while the opening focus was still on its way: dispose() has put focus back where it
+    // belongs, and the surface (still in the page for its exit animation) must not take it again.
+    if (this.disposed) return;
     if (this.container.contains(document.activeElement)) return; // focus landed elsewhere meanwhile
 
     // Where focus stays when nothing inside takes it: the container takes it then. A surface
@@ -93,7 +97,7 @@ export class FocusScope {
     // surface to <body> - moving an element clears its focus) or a late cold-circuit re-render
     // replacing the subtree. Re-assert once after those settle; a no-op on every later open.
     setTimeout(() => {
-      if (this.paused || !this.container.isConnected) return;
+      if (this.disposed || this.paused || !this.container.isConnected) return;
       if (this.container.contains(document.activeElement)) return;
       this.focusFirst(this.getTabbableCandidates(), { select: true });
       if (document.activeElement === this.previouslyFocused) this.focus(this.container);
@@ -241,6 +245,7 @@ export class FocusScope {
   }
 
   public dispose = async (): Promise<void> => {
+    this.disposed = true;
     this.container.removeEventListener('keydown', this.onKeyDown);
     document.removeEventListener('focusin', this.onFocusIn);
     document.removeEventListener('focusout', this.onFocusOut);

@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Dialog, Alert Dialog, Sheet, Drawer, Popover**: a surface closed right after it opened keeps
+  focus where the close put it. The focus scope asks for the opening focus once more 80 ms
+  after opening, and did so even when it had been closed in between, pulling focus back into
+  a surface that was playing its exit animation.
 - **Combobox**: `DefaultSearch` filters the list from the start. The text was shown in the field
   over the full list until the user typed.
 - **Navigation Menu**: a menu that starts open (`DefaultValue` or `Value`) shows its panel. The
