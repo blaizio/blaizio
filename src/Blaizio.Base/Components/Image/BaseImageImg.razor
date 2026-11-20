@@ -57,6 +57,7 @@
 
     private ElementReference _element;
     private string? _reportedSrc;
+    private bool _reported;
     private bool _probeQueued;
 
     private string? LoadingAttr => Loading == ImageLoading.Lazy ? "lazy" : null;
@@ -83,7 +84,10 @@
 
     protected override void OnParametersSet()
     {
-        if (_reportedSrc == Src) return;
+        // The first parameters always report: a Src that is null from the start equals the field's
+        // initial value, and the root would otherwise stay at Loading with nothing to load.
+        if (_reported && _reportedSrc == Src) return;
+        _reported = true;
         _reportedSrc = Src;
         _probeQueued = true; // the new source may settle before our handlers attach - probe after render
         Root?.Report(string.IsNullOrEmpty(Src) ? ImageStatus.Idle : Root.Static ? ImageStatus.Loaded : ImageStatus.Loading);

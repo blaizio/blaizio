@@ -9,6 +9,8 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Image**: an image with no `Src` at all (null from the first render) is idle. It stayed at
+  `data-state="loading"` and `StatusChanged` never reported `Idle`; an empty string did.
 - **Script modules**: an import that the runtime refuses at once is tried again by the next
   caller. `JsModules` evicted a failed import before it had stored it, so that failure stayed
   cached and every later caller on the same runtime got it back.
