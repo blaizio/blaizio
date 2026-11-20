@@ -254,10 +254,13 @@ public sealed partial class ScriptModuleTests
             menu.dispose();
 
             // No items ever arrive: after its tries (about half a second) focus goes to the surface,
-            // so the keyboard is at least inside the menu.
+            // so the keyboard is at least inside the menu. The tries are 16 ms timers, and a page
+            // that has been open for about three seconds gets them at half that pace (the same on
+            // an empty page), so this waits for the outcome and not for a set time: a fixed 700 ms
+            // passed or failed with how long the docs app had taken to start.
             menu = await open('mo-empty', 'first');
             result.emptyAtFirst = active();
-            await sleep(700);
+            for (let waited = 0; waited < 3000 && active() !== 'mo-empty'; waited += 50) await sleep(50);
             result.emptyInTheEnd = active();
             menu.dispose();
 
