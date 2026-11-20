@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Toast**: a toast behind the front one keeps its height. Each later render measured it as
+  drawn in the collapsed stack, 5 percent smaller per place, so an opened stack gave it less
+  room than its content takes (a 60 px toast came out at 57 px).
 - **Sortable**: edge scrolling stops at the end of the scroll box. A dragged item carried past the
   end adds its own overhang to what can be scrolled, so the box went on scrolling through empty
   space for as long as the item was held near the edge.

@@ -188,9 +188,14 @@ class Stack {
   private measure(el: HTMLElement): number {
     const original = el.style.height;
     el.style.height = 'auto';
-    const height = el.getBoundingClientRect().height;
+    const drawn = el.getBoundingClientRect().height;
+    // The rect is the toast as drawn. One behind the front of a collapsed stack is drawn smaller
+    // (5 percent per place), and measured through that scale it lost height on every sync after
+    // its first, so an opened stack gave it less room than its content takes. Divide the scale
+    // out; hundredths of a pixel, because the division leaves noise (59.99999999999999).
+    const scale = Math.abs(new DOMMatrixReadOnly(getComputedStyle(el).transform).d);
     el.style.height = original;
-    return height;
+    return scale > 0 && scale !== 1 ? Math.round((drawn / scale) * 100) / 100 : drawn;
   }
 
   private remeasure(entry: ToastEntry): void {
