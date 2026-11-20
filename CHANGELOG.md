@@ -9,6 +9,8 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Input Tags**: a disabled field says `aria-disabled="true"` on its group. Only `data-disabled`
+  was set, so nothing told assistive technology that the dimmed tags are inactive.
 - **Input Tags**: in a bound field (`@bind-Values`) a paste with several delimiters keeps every
   tag. Each segment was added to the list as it was before the paste, so only the last one
   survived. A field left to itself was not affected.

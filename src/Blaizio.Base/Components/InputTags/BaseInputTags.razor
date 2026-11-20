@@ -113,7 +113,9 @@
             .Set("dir", DirAttribute)
             .On("onclick", EventCallback.Factory.Create<MouseEventArgs>(this, FocusInputAsync));
 
-        if (Disabled) props.Data("disabled", "");
+        // The chips are text, not form controls: aria-disabled on the group is what tells assistive
+        // technology that the dimmed tags are inactive.
+        if (Disabled) props.Data("disabled", "").Aria("disabled", true);
 
         return props.Merge(Attributes, Class, Style);
     }
