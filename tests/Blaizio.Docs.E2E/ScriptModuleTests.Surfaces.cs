@@ -231,7 +231,7 @@ public sealed partial class ScriptModuleTests
         await RunAsync<bool>(page, FocusScopeMarkup +
             """
             window.__scope = createFocusScope(document.getElementById('fs-scope'), recorder(),
-                { loop: true, trapped: true, hasMountAutoFocus: false, hasUnmountAutoFocus: false });
+                { loop: true, trapped: true, hasOpenAutoFocus: false, hasCloseAutoFocus: false });
             await sleep(150);
             return true;
             """);
@@ -273,7 +273,7 @@ public sealed partial class ScriptModuleTests
         await RunAsync<bool>(page, FocusScopeMarkup +
             """
             window.__scope = createFocusScope(document.getElementById('fs-scope'), recorder(),
-                { loop: true, trapped: true, hasMountAutoFocus: false, hasUnmountAutoFocus: false });
+                { loop: true, trapped: true, hasOpenAutoFocus: false, hasCloseAutoFocus: false });
             await sleep(150);
             document.getElementById('fs-last').focus();
 
@@ -285,7 +285,7 @@ public sealed partial class ScriptModuleTests
             document.body.prepend(inner);
             // Trapped, not looping: Tab stops at the ends.
             window.__inner = createFocusScope(inner, recorder(),
-                { loop: false, trapped: true, hasMountAutoFocus: false, hasUnmountAutoFocus: false });
+                { loop: false, trapped: true, hasOpenAutoFocus: false, hasCloseAutoFocus: false });
             await sleep(150);
             return true;
             """);
@@ -316,12 +316,12 @@ public sealed partial class ScriptModuleTests
             """
             const scopeEl = document.getElementById('fs-scope'), opener = document.getElementById('fs-opener');
             const active = () => document.activeElement?.id ?? '';
-            const plain = { loop: false, trapped: false, hasMountAutoFocus: false, hasUnmountAutoFocus: false };
+            const plain = { loop: false, trapped: false, hasOpenAutoFocus: false, hasCloseAutoFocus: false };
 
             // Both handlers say "prevented": focus is moved neither in nor back.
             const asked = [];
             const refusing = { invokeMethodAsync: name => { asked.push(name); return Promise.resolve(true); } };
-            let scope = createFocusScope(scopeEl, refusing, { ...plain, hasMountAutoFocus: true, hasUnmountAutoFocus: true });
+            let scope = createFocusScope(scopeEl, refusing, { ...plain, hasOpenAutoFocus: true, hasCloseAutoFocus: true });
             await sleep(200);
             const preventedIn = active();
             document.getElementById('fs-last').focus();
@@ -347,7 +347,7 @@ public sealed partial class ScriptModuleTests
             return { asked, preventedIn, preventedBack, claimed, passiveIn, passiveBack };
             """);
 
-        Assert.Equal("""["HandleMountAutoFocus","HandleUnmountAutoFocus"]""", r.GetProperty("asked").GetRawText());
+        Assert.Equal("""["HandleOpenAutoFocus","HandleCloseAutoFocus"]""", r.GetProperty("asked").GetRawText());
         Assert.Equal("fs-opener", r.GetProperty("preventedIn").GetString());
         Assert.Equal("fs-last", r.GetProperty("preventedBack").GetString());
         Assert.Equal("fs-outside", r.GetProperty("claimed").GetString());
@@ -370,7 +370,7 @@ public sealed partial class ScriptModuleTests
             scopeEl.style.transition = 'none';
             scopeEl.style.visibility = 'hidden';
             const scope = createFocusScope(scopeEl, recorder(),
-                { loop: false, trapped: false, hasMountAutoFocus: false, hasUnmountAutoFocus: false });
+                { loop: false, trapped: false, hasOpenAutoFocus: false, hasCloseAutoFocus: false });
             await sleep(80);
             const whileHidden = document.activeElement.id;
             scopeEl.style.visibility = 'visible';
@@ -392,7 +392,7 @@ public sealed partial class ScriptModuleTests
         var r = await RunAsync<string[]>(page, FocusScopeMarkup +
             """
             const scope = createFocusScope(document.getElementById('fs-scope'), recorder(),
-                { loop: true, trapped: true, hasMountAutoFocus: false, hasUnmountAutoFocus: false });
+                { loop: true, trapped: true, hasOpenAutoFocus: false, hasCloseAutoFocus: false });
             // Closed 20 ms after it opened, the surface still in the page (its exit animation).
             await sleep(20);
             await scope.dispose();

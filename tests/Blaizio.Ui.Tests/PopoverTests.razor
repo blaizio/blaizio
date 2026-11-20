@@ -1,3 +1,4 @@
+@using System.Reflection
 @using Bunit
 @using Xunit
 @using Microsoft.Extensions.DependencyInjection
@@ -22,7 +23,11 @@
             </BzPopoverHeader>
         </text>;
 
-    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+    // The property is found whatever its case: a named options type spells it in Pascal case,
+    // a payload built in place in camel case, and the script receives camel case from both.
+    private static object? Option(object options, string name) => options.GetType()
+        .GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!
+        .GetValue(options);
 
     private static string? State(IRenderedComponent<IComponent> cut) =>
         cut.Find("[data-slot=popover-content]").GetAttribute("data-state");

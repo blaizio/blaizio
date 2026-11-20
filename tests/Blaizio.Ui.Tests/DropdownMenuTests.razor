@@ -1,3 +1,4 @@
+@using System.Reflection
 @using Bunit
 @using Xunit
 @using Microsoft.Extensions.DependencyInjection
@@ -15,7 +16,11 @@
         Services.AddBlaizio();
     }
 
-    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+    // The property is found whatever its case: a named options type spells it in Pascal case,
+    // a payload built in place in camel case, and the script receives camel case from both.
+    private static object? Option(object options, string name) => options.GetType()
+        .GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase)!
+        .GetValue(options);
 
     private static string? State(IRenderedComponent<IComponent> cut) =>
         cut.Find("[data-slot=dropdown-menu-content]").GetAttribute("data-state");
@@ -371,7 +376,7 @@
         Assert.Equal([false, true, false], items.Select(i => i.QuerySelector("svg") is not null));
     }
 
-    [Fact(Skip = "bug: BaseDropdownMenuRadioGroup reads a ValueChanged listener as controlled, so DefaultValue with ValueChanged selects nothing and no pick sticks")]
+    [Fact]
     public void A_radio_group_that_is_only_listened_to_still_starts_from_its_default_value()
     {
         var changes = new List<string>();
