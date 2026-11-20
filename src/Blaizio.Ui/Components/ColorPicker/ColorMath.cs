@@ -390,7 +390,14 @@ public static class ColorMath
         return hue < 0 ? hue + 360 : hue;
     }
 
-    private static string Num(double value) => Math.Round(value, 2).ToString("0.##", CultureInfo.InvariantCulture);
+    private static string Num(double value) => Rounded(value, 2).ToString("0.##", CultureInfo.InvariantCulture);
 
-    private static string Num3(double value) => Math.Round(value, 3).ToString("0.###", CultureInfo.InvariantCulture);
+    private static string Num3(double value) => Rounded(value, 3).ToString("0.###", CultureInfo.InvariantCulture);
+
+    // A value that rounds to zero from below is negative zero, which is written "-0".
+    private static double Rounded(double value, int digits)
+    {
+        var rounded = Math.Round(value, digits);
+        return rounded == 0 ? 0 : rounded;
+    }
 }
