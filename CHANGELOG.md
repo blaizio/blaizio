@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: a color function with a word where a number belongs is refused. A channel
+  that could not be read counted as 0, so `rgb(a b c)` parsed as black. A percentage, a hue in
+  `deg` and `none` (read as 0) are still accepted; a hue in another unit (`turn`, `rad`) was read
+  as 0 and is now refused too.
 - **Image**: an image with no `Src` at all (null from the first render) is idle. It stayed at
   `data-state="loading"` and `StatusChanged` never reported `Idle`; an empty string did.
 - **Script modules**: an import that the runtime refuses at once is tried again by the next

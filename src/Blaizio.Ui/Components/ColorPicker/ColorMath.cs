@@ -81,6 +81,9 @@ public static class ColorMath
             var fn = text[..open].Trim().ToLowerInvariant();
             var body = text[(open + 1)..^1];
             var parts = SplitComponents(body);
+            // A word where a number belongs is not a color. The channel readers below take
+            // whatever they cannot read as 0, which made rgb(a b c) parse as black.
+            if (!Array.TrueForAll(parts, IsComponent)) return false;
             return fn switch
             {
                 "rgb" or "rgba" => TryParseRgb(parts, ref h, ref s, ref v, ref a),
@@ -361,6 +364,17 @@ public static class ColorMath
     // "r, g, b, a" and "r g b / a" both flatten to bare components.
     private static string[] SplitComponents(string body) =>
         body.Replace("/", " ").Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    // What a color function may hold between its brackets: a number, a percentage, a hue in
+    // degrees, or "none" (CSS for a component that is missing, which reads as 0 here).
+    private static bool IsComponent(string part)
+    {
+        if (part.Equals("none", StringComparison.OrdinalIgnoreCase)) return true;
+        var number = part.EndsWith('%') ? part[..^1]
+            : part.EndsWith("deg", StringComparison.Ordinal) ? part[..^3]
+            : part;
+        return double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
+    }
 
     private static double ParseAlpha(string part) =>
         Math.Clamp(part.EndsWith('%') ? Number(part[..^1]) / 100 : Number(part), 0, 1);
