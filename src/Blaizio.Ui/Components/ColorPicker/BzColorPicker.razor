@@ -392,15 +392,23 @@
 
         _mode = mode;
         _appliedMode = mode;
+        var seeded = false;
         if (mode == ColorPickerMode.Gradient)
         {
             // Entering gradient mode seeds a ramp from the color that was on screen.
+            seeded = _gradient is null;
             _gradient ??= GradientValue.FromColor(Context.Serialized);
             _stop = 0;
             LoadStopColor();
         }
 
         await ModeChanged.InvokeAsync(mode);
+        if (seeded)
+        {
+            // The ramp is new: a bound Gradient gets it now, not on the first edit.
+            _appliedGradient = _gradient;
+            await GradientChanged.InvokeAsync(_gradient);
+        }
         await EmitAsync();
         await CommitAsync();
     }

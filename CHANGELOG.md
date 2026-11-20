@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: switching to the Gradient surface hands the new ramp to `@bind-Gradient`.
+  The ramp was created from the color on screen but `GradientChanged` was first raised on the
+  next edit, so the bound gradient stayed null while `Value` already held the paint.
 - **Color Picker**: a `Gradient` handed in on the first render opens the Gradient surface. The
   picker's starting color (its default, or `DefaultValue`) was read after it and put the picker
   back on Solid. A `Value` set next to it still decides, as before.
