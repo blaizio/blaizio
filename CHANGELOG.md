@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: a gradient set through `Value` after the first render reaches a bound
+  `Gradient`. It was handed over after the first render only, so the binding kept the earlier
+  ramp, and the page's next render put that ramp back in the picker over the new one.
 - **Data Table**: the Columns button no longer submits a form the table sits in. It had no
   `type`, and neither had the edit drawer's close button; both carry `type="button"` now.
 - **Color Picker**: a surface picked on the tabs stays when `Mode` is not bound. The pick was

@@ -219,6 +219,8 @@
     private ColorPickerMode? _reportedMode;
     private GradientValue? _gradient;
     private GradientValue? _appliedGradient;
+    // A ramp read from a Value string that a bound Gradient has not been handed yet.
+    private bool _gradientOwed;
     private int _stop;
     private ImageFillValue _image = ImageFillValue.Empty;
     private ImageFillValue? _appliedImage;
@@ -306,6 +308,7 @@
             {
                 _gradient = parsed;
                 _appliedGradient = parsed;
+                _gradientOwed = true;
                 _mode = ColorPickerMode.Gradient;
                 ClampStop();
                 LoadStopColor();
@@ -333,26 +336,31 @@
         if (!enabled.Contains(_mode)) _mode = enabled[0];
     }
 
-    // A gradient that came in as a Value STRING still owes @bind-Gradient its model. Publishing it
-    // from the first render (not from OnParametersSet) keeps the parameter write out of the
-    // parameter-setting pass. The same goes for a surface the picker moved to by itself: the shape
-    // of Value, a model handed in or a surface turned off changes the mode while parameters are
-    // being set, and @bind-Mode hears of it here.
+    // A gradient that came in as a Value STRING still owes @bind-Gradient its model, on the first
+    // render and on any later one. Publishing it after the render (not from OnParametersSet) keeps
+    // the parameter write out of the parameter-setting pass. The same goes for a surface the picker
+    // moved to by itself: the shape of Value, a model handed in or a surface turned off changes the
+    // mode while parameters are being set, and @bind-Mode hears of it here.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // The ramp goes first. The page renders again after either report, and a bound Gradient
+        // that still held the earlier ramp would be read then as one handed in from outside.
+        if (_gradientOwed)
+        {
+            _gradientOwed = false;
+            if (_gradient is not null && GradientChanged.HasDelegate && !ReferenceEquals(_gradient, Gradient))
+            {
+                _appliedGradient = _gradient;
+                await GradientChanged.InvokeAsync(_gradient);
+            }
+        }
+
         if (_mode != _reportedMode)
         {
             _reportedMode = _mode;
             await ModeChanged.InvokeAsync(_mode);
         }
-
-        if (!firstRender || _gradient is null || !GradientChanged.HasDelegate) return;
-        if (ReferenceEquals(_gradient, Gradient)) return;
-
-        _appliedGradient = _gradient;
-        await GradientChanged.InvokeAsync(_gradient);
     }
-
 
     // Gradient mode edits one stop at a time; the color parts always show that stop's color.
     private void LoadStopColor()
