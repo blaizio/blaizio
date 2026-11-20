@@ -185,7 +185,7 @@ public sealed partial class ScriptModuleTests
         Assert.Equal("320px", await Size("pn"));
     }
 
-    [E2EFact(Skip = "bug: panel.ts steps a key resize from the size on screen, which is still animating, not from the size it last set")]
+    [E2EFact]
     public async Task Panel_edge_key_presses_add_up_while_the_size_is_still_animating()
     {
         await using var context = await fx.NewContextAsync();
@@ -210,8 +210,8 @@ public sealed partial class ScriptModuleTests
         await page.FocusAsync("#pk-edge");
         foreach (var key in new[] { "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown" }) await page.Keyboard.PressAsync(key);
 
-        // Today each press starts from wherever the animation has got to, so the steps do not add
-        // up: on the docs Panel page four presses one way and four back leave a 320 px panel at 336.
+        // Each press used to start from wherever the animation had got to, so the steps did not add
+        // up: on the docs Panel page four presses one way and four back left a 320 px panel at 336.
         Assert.Equal("""[["OnResizeEnd",216],["OnResizeEnd",232],["OnResizeEnd",216],["OnResizeEnd",200]]""",
             await TakeCallsAsync(page, "__pk"));
     }

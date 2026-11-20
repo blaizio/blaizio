@@ -423,7 +423,7 @@ public sealed partial class ScriptModuleTests
         Assert.Equal("[]", await TakeCallsAsync(page, "__cal"));
     }
 
-    [E2EFact(Skip = "bug: calendar.ts and colorArea.ts accept a missing root when they are created, then throw from dispose()")]
+    [E2EFact]
     public async Task Calendar_and_color_area_made_for_an_element_that_is_gone_can_still_be_disposed()
     {
         await using var context = await fx.NewContextAsync();
@@ -442,7 +442,7 @@ public sealed partial class ScriptModuleTests
             });
             """);
 
-        // Today both say "TypeError: Cannot read properties of null (reading 'removeEventListener')".
+        // Both used to say "TypeError: Cannot read properties of null (reading 'removeEventListener')".
         Assert.Equal(["disposed", "disposed"], r);
     }
 

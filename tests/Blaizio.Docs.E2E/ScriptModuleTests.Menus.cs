@@ -157,7 +157,7 @@ public sealed partial class ScriptModuleTests
         Same(["ArrowDown:false"], await DrainAsync(page, "__mnKeys"));
     }
 
-    [E2EFact(Skip = "bug: menu.ts starts a one-letter type-ahead at the focused item, so a letter pressed on an item that begins with it never moves on")]
+    [E2EFact]
     public async Task Menu_type_ahead_moves_on_from_an_item_that_already_starts_with_the_letter()
     {
         await using var context = await fx.NewContextAsync();
@@ -180,8 +180,8 @@ public sealed partial class ScriptModuleTests
             """);
 
         // One press of a letter goes to the next item that starts with it. Pressed again once the
-        // typing has started over (anyone slower than a press a second), it should go on to the
-        // one after: today it finds the item it is already on, and "Blueberry" cannot be reached
+        // typing has started over (anyone slower than a press a second), it goes on to the one
+        // after. It used to find the item it was already on, and "Blueberry" could not be reached
         // by pressing b at that pace.
         Same(["mta-banana"], await FocusAfterEachKeyAsync(page, "b"));
         await page.WaitForTimeoutAsync(1200);

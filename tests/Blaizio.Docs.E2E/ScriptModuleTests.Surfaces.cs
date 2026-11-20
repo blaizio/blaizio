@@ -383,7 +383,7 @@ public sealed partial class ScriptModuleTests
         Assert.Equal(["fs-opener", "fs-first", "fs-opener"], r);
     }
 
-    [E2EFact(Skip = "bug: focusScope.ts re-asserts focus 80 ms after opening even when the scope was disposed in between")]
+    [E2EFact]
     public async Task Focus_scope_closed_right_after_it_opened_leaves_focus_where_it_put_it()
     {
         await using var context = await fx.NewContextAsync();
@@ -401,7 +401,7 @@ public sealed partial class ScriptModuleTests
             return [rightAfter, document.activeElement.id];
             """);
 
-        // Today the second entry is "fs-first": the timer set on opening fires into the closed scope.
+        // The second entry used to be "fs-first": the timer set on opening fired into the closed scope.
         Assert.Equal(["fs-opener", "fs-opener"], r);
     }
 

@@ -429,7 +429,7 @@ public sealed partial class ScriptModuleTests
         // itself to its end (230 px). The dragged item stays under the pointer, so it has
         // travelled the pointer's 120 px and the 230 px of list that went by: past six items, to
         // just before the last. (Pressed at its middle and held 20 px from the edge, the item is
-        // flush with the edge: see the skipped test below for one that reaches past it.)
+        // flush with the edge: see the test below for one that reaches past it.)
         await page.Mouse.MoveAsync(200, 240);
         await StateIs("a:translate(0px, 350px)* b:translate(0px, -50px) c:translate(0px, -50px) d:translate(0px, -50px) " +
             "e:translate(0px, -50px) f:translate(0px, -50px) g:translate(0px, -50px) h:-");
@@ -460,7 +460,7 @@ public sealed partial class ScriptModuleTests
         return true;
         """;
 
-    [E2EFact(Skip = "bug: sortable.ts edge scrolling never stops when the dragged item reaches past the box's edge: its own transform keeps adding to the scroll height")]
+    [E2EFact]
     public async Task Sortable_edge_scrolling_stops_at_the_end_of_the_list()
     {
         await using var context = await fx.NewContextAsync();
@@ -477,7 +477,7 @@ public sealed partial class ScriptModuleTests
         await page.Mouse.MoveAsync(200, 250);
         await page.WaitForTimeoutAsync(1_500);
 
-        // The list ends 230 px down. Today the box is some 900 px down by now and still going, at
+        // The list ends 230 px down. The box used to be some 900 px down by now and still going, at
         // 600 px a second, through empty space: the dragged item is moved along with the scroll,
         // and an item moved past the bottom of the box makes the box that much taller to scroll.
         var scrolled = await page.EvaluateAsync<double>("() => document.getElementById('sc-box').scrollTop");
@@ -612,7 +612,7 @@ public sealed partial class ScriptModuleTests
         Assert.Equal("100px false", await List());
     }
 
-    [E2EFact(Skip = "bug: toast.ts measures a collapsed toast through its scale, so any later sync shrinks the height of every toast behind the front one")]
+    [E2EFact]
     public async Task Toast_behind_the_front_one_keeps_its_own_height_when_the_host_renders_again()
     {
         await using var context = await fx.NewContextAsync();
@@ -640,8 +640,8 @@ public sealed partial class ScriptModuleTests
             """, null, new() { Timeout = 5_000 });
 
         // The host renders again with nothing changed (it does after every toast shown, updated
-        // or dismissed). What gets measured is the toast as drawn, scale and all: today the second
-        // toast comes out at 57 px and the third at 36, so an opened stack gives them less room
+        // or dismissed). What gets measured is the toast as drawn, scale and all: the second toast
+        // used to come out at 57 px and the third at 36, so an opened stack gave them less room
         // than their content takes.
         await page.EvaluateAsync("() => window.__thToaster.sync()");
         Assert.Equal(Measured, await Stack());

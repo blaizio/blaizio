@@ -363,7 +363,7 @@ public sealed partial class ScriptModuleTests
         Assert.Equal("[]", await TakeCallsAsync(page, "__tx"));
     }
 
-    [E2EFact(Skip = "bug: tree.ts keeps the click swallow armed after a drag released outside the tree, so the next keyboard click on a row control is eaten")]
+    [E2EFact]
     public async Task Tree_drag_released_outside_the_tree_does_not_eat_a_later_click_made_from_the_keyboard()
     {
         await using var context = await fx.NewContextAsync();
@@ -395,8 +395,8 @@ public sealed partial class ScriptModuleTests
         await page.Mouse.UpAsync();
         Assert.Equal("""[["NotifyDragStart","a"],["NotifyDragEnd","a"]]""", await TakeCallsAsync(page, "__to"));
 
-        // Today the first Enter does nothing: the tree still waits for the click of that drag and
-        // takes this one for it. (The same happens after a drop into another tree.)
+        // The first Enter used to do nothing: the tree still waited for the click of that drag and
+        // took this one for it. (The same happened after a drop into another tree.)
         await page.FocusAsync("#to-action");
         await page.Keyboard.PressAsync("Enter");
         Assert.Equal(1, await page.EvaluateAsync<int>("() => window.__toActions"));
