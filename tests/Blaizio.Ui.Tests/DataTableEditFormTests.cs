@@ -166,6 +166,20 @@ public class DataTableEditFormTests : BunitContext
         Assert.Empty(cut.FindAll("tbody tr[data-editing]"));
     }
 
+    // The drawer's header is outside the drawer's own form, so a button with no type there would
+    // send whatever form the sheet is drawn in.
+    [Fact]
+    public async Task No_button_in_the_drawers_header_submits_a_form_around_it()
+    {
+        var cut = Drawer(Person.Sample());
+
+        await cut.InvokeAsync(() => cut.Instance.Table!.BeginEdit(1, 1, null, "key", false));
+
+        // Previous, Next and the close button.
+        cut.WaitForAssertion(() => Assert.Equal(3, cut.FindAll(".bz-data-table-edit-drawer-actions button").Count));
+        Assert.All(cut.FindAll(".bz-data-table-edit-drawer-actions button"), button => Assert.Equal("button", button.GetAttribute("type")));
+    }
+
     [Fact]
     public async Task Previous_and_Next_save_and_move_in_the_current_order()
     {

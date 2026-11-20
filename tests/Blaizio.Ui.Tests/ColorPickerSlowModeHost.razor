@@ -1,0 +1,22 @@
+@* Test host: a page whose surface handler awaits before it takes the new surface, with the value
+   and the gradient bound. The page renders once while that handler is still waiting. *@
+<BzColorPicker @bind-Value="Value" Mode="Mode" ModeChanged="OnModeAsync" @bind-Gradient="Gradient" ShowGradient="true" />
+
+@code {
+    public string? Value = "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)";
+    public ColorPickerMode Mode;
+    public GradientValue? Gradient;
+
+    private async Task OnModeAsync(ColorPickerMode mode)
+    {
+        await Task.Yield();
+        Mode = mode;
+    }
+
+    /// <summary>What a page does when it sets a bound value itself.</summary>
+    public void Set(Action<ColorPickerSlowModeHost> change)
+    {
+        change(this);
+        StateHasChanged();
+    }
+}

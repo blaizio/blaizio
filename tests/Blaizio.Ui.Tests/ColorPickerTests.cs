@@ -716,6 +716,73 @@ public class ColorPickerTests : BunitContext
         Assert.Equal(ColorPickerMode.Gradient, cut.Instance.Mode);
     }
 
+    // The model was handed over after the first render only, so a gradient the page set later left
+    // a bound Gradient at what it held before.
+    [Fact]
+    public void A_gradient_value_set_later_reaches_a_bound_gradient()
+    {
+        var cut = Render<ColorPickerHost>(p => p.Add(x => x.Start, "#ff0000"));
+        Assert.Null(cut.Instance.Gradient);
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)"));
+
+        Assert.Equal(ColorPickerMode.Gradient, cut.Instance.Mode);
+        Assert.NotNull(cut.Instance.Gradient);
+        Assert.Equal(90, cut.Instance.Gradient.Angle);
+        Assert.Equal(["#ff0000", "#0000ff"], cut.Instance.Gradient.Stops.Select(stop => stop.Color));
+    }
+
+    // A bound Gradient still holding the earlier ramp was read, on the page's next render, as a
+    // ramp handed in from outside, and replaced the one the picker had just taken from Value.
+    [Fact]
+    public void A_second_gradient_value_is_not_undone_by_the_ramp_bound_before_it()
+    {
+        var cut = Render<ColorPickerHost>(p => p.Add(x => x.Start, "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)"));
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "linear-gradient(45deg, #00ff00 0%, #ffff00 100%)"));
+        // Any later render of the page.
+        cut.InvokeAsync(() => cut.Instance.Set(_ => { }));
+
+        Assert.Equal(45, cut.Instance.Gradient!.Angle);
+        Assert.Equal(["#00ff00", "#ffff00"], cut.Instance.Gradient.Stops.Select(stop => stop.Color));
+        Assert.Equal("#00ff00", Shown(cut));
+        Assert.Equal("linear-gradient(45deg, #00ff00 0%, #ffff00 100%)", cut.Instance.Value);
+    }
+
+    // The surface is reported after the same render, and the page's render that follows that
+    // report must not find the bound Gradient still holding the earlier ramp either.
+    [Fact]
+    public void A_gradient_value_that_also_moves_the_surface_is_not_undone_by_the_ramp_bound_before_it()
+    {
+        var cut = Render<ColorPickerHost>(p => p.Add(x => x.Start, "linear-gradient(90deg, #ff0000 0%, #0000ff 100%)"));
+        // Back to Solid on the tabs: the page still holds the first ramp.
+        cut.FindAll("[role=radio]")[0].Click();
+        Assert.Equal(ColorPickerMode.Solid, cut.Instance.Mode);
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "linear-gradient(45deg, #00ff00 0%, #ffff00 100%)"));
+
+        Assert.Equal(ColorPickerMode.Gradient, cut.Instance.Mode);
+        Assert.Equal(["#00ff00", "#ffff00"], cut.Instance.Gradient!.Stops.Select(stop => stop.Color));
+        Assert.Equal("#00ff00", Shown(cut));
+    }
+
+    // The ramp is handed over before the surface is reported: a page whose surface handler awaits
+    // renders while it waits, and its bound Gradient must already hold the new ramp by then.
+    [Fact]
+    public void The_new_ramp_is_handed_over_before_a_page_that_awaits_on_the_surface_renders_again()
+    {
+        var cut = Render<ColorPickerSlowModeHost>();
+        cut.WaitForAssertion(() => Assert.Equal(ColorPickerMode.Gradient, cut.Instance.Mode));
+        cut.FindAll("[role=radio]")[0].Click();
+        cut.WaitForAssertion(() => Assert.Equal(ColorPickerMode.Solid, cut.Instance.Mode));
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "linear-gradient(45deg, #00ff00 0%, #ffff00 100%)"));
+
+        cut.WaitForAssertion(() => Assert.Equal(ColorPickerMode.Gradient, cut.Instance.Mode));
+        Assert.Equal(["#00ff00", "#ffff00"], cut.Instance.Gradient!.Stops.Select(stop => stop.Color));
+        Assert.Equal("#00ff00", Shown(cut));
+    }
+
     [Fact]
     public async Task On_the_gradient_surface_the_color_parts_edit_the_selected_stop()
     {
@@ -906,6 +973,20 @@ public class ColorPickerTests : BunitContext
         var cut = Render<ColorPickerHost>(p => p.Add(x => x.ShowImage, true).Add(x => x.Start, "#ff0000"));
         cut.InvokeAsync(() => cut.Instance.Set(host => host.Image = image ?? new ImageFillValue("/photo.png")));
         return cut;
+    }
+
+    // The gradient's hole, one surface over: the fill read from a Value string is not handed to a
+    // bound Image, which the page's next render then reads as a fill handed in from outside.
+    [Fact(Skip = "bug: an image that arrives as a Value string is not handed to a bound Image, and a bound Image holding an earlier fill (an empty one is enough) replaces it on the page's next render, leaving the Image surface with no picture")]
+    public void An_image_value_reaches_a_bound_image_and_keeps_its_picture()
+    {
+        var cut = WithImage(ImageFillValue.Empty);
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "url(/photo.png) center/cover no-repeat"));
+
+        Assert.Equal("/photo.png", cut.Instance.Image!.Src);
+        Assert.Equal("background:url(/photo.png) center/cover no-repeat;filter:none",
+            cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
     }
 
     [Fact]

@@ -500,4 +500,15 @@ public class DataTableColumnsTests : BunitContext
         Assert.Null(cols[0].GetAttribute("style"));
         Assert.Equal("width:140px", cols[1].GetAttribute("style"));
     }
+
+    // A table on a page that is itself a form: opening the Columns menu must not send it.
+    [Fact]
+    public void The_columns_trigger_does_not_submit_a_form_around_the_table()
+    {
+        var columns = new List<DataTableColumn<Person>> { new() { Title = "Name", Cell = p => b => b.AddContent(0, p.Name) } };
+        var cut = Render<BzDataTable<Person>>(p => p
+            .Add(x => x.Items, Person.Sample()).Add(x => x.Columns, columns).Add(x => x.ColumnToggle, true));
+
+        Assert.Equal("button", cut.Find(".bz-data-table-columns-trigger").GetAttribute("type"));
+    }
 }
