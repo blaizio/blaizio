@@ -149,6 +149,7 @@ class ColorArea {
   };
 
   dispose = (): void => {
+    if (!this.root) return; // made for an element that was already gone: nothing was attached
     this.root.removeEventListener('pointerdown', this.onPointerDown);
     this.root.removeEventListener('keydown', this.onKeyDown);
     this.root.removeEventListener('pointermove', this.onPointerMove);

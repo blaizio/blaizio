@@ -47,6 +47,7 @@ class Calendar {
   };
 
   dispose = (): void => {
+    if (!this.root) return; // made for an element that was already gone: nothing was attached
     this.root.removeEventListener('keydown', this.onKeyDown);
   };
 }

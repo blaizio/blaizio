@@ -9,6 +9,8 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Calendar, Color Area**: disposing a script instance made for an element that was already
+  gone no longer throws.
 - **Toast**: a toast behind the front one keeps its height. Each later render measured it as
   drawn in the collapsed stack, 5 percent smaller per place, so an opened stack gave it less
   room than its content takes (a 60 px toast came out at 57 px).
