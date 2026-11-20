@@ -9,6 +9,8 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Combobox**: `DefaultSearch` filters the list from the start. The text was shown in the field
+  over the full list until the user typed.
 - **Navigation Menu**: a menu that starts open (`DefaultValue` or `Value`) shows its panel. The
   trigger was marked open but the shared viewport stayed empty until something rendered the
   menu again. A menu without a viewport was not affected.

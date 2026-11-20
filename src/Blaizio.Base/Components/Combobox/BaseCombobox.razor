@@ -131,7 +131,13 @@
 
     private bool _preloaded;
 
-    protected override void OnInitialized() => _baseId = Identifier.Create("combobox");
+    protected override void OnInitialized()
+    {
+        _baseId = Identifier.Create("combobox");
+        // A seeded search is a search in progress: the list starts filtered by it, as if the text
+        // had been typed. Left as "not typing", the text showed in the field over a full list.
+        _typed = !string.IsNullOrEmpty(DefaultSearch);
+    }
 
     // @bind drives controlled mode per facet: ValueChanged (single), ValuesChanged (multi), OpenChanged,
     // SearchChanged. A bare Default* is uncontrolled.
