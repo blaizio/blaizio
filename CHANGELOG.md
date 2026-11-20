@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Script modules**: an import that the runtime refuses at once is tried again by the next
+  caller. `JsModules` evicted a failed import before it had stored it, so that failure stayed
+  cached and every later caller on the same runtime got it back.
 - **Input Tags**: a disabled field says `aria-disabled="true"` on its group. Only `data-disabled`
   was set, so nothing told assistive technology that the dimmed tags are inactive.
 - **Input Tags**: in a bound field (`@bind-Values`) a paste with several delimiters keeps every

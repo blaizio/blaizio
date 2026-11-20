@@ -32,7 +32,15 @@ public static class JsModules
     public static Task<IJSObjectReference> ImportAsync(IJSRuntime js, string modulePath)
     {
         var cache = s_caches.GetOrCreateValue(js);
-        return cache.GetOrAdd(modulePath, path => ImportCoreAsync(js, cache, path));
+        var import = cache.GetOrAdd(modulePath, path => ImportCoreAsync(js, cache, path));
+
+        // An import the runtime refuses at once has failed before GetOrAdd stores it, so the eviction
+        // in ImportCoreAsync found nothing to remove. Drop the entry here (this exact task only: a
+        // retry another caller has stored since stays).
+        if (import.IsFaulted || import.IsCanceled)
+            cache.TryRemove(new KeyValuePair<string, Task<IJSObjectReference>>(modulePath, import));
+
+        return import;
     }
 
     private static async Task<IJSObjectReference> ImportCoreAsync(
