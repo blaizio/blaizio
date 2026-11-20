@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: `ModeChanged` is raised when the picker changes surface by itself: a `Value`
+  that is a gradient or an image, a `Gradient` or `Image` handed in, a surface turned off. Only
+  a press on the tabs raised it, so a bound `Mode` stayed on Solid over a gradient value.
 - **Color Picker**: switching to the Gradient surface hands the new ramp to `@bind-Gradient`.
   The ramp was created from the color on screen but `GradientChanged` was first raised on the
   next edit, so the bound gradient stayed null while `Value` already held the paint.

@@ -215,6 +215,8 @@
     private string? _applied;
     private ColorPickerMode _mode = ColorPickerMode.Solid;
     private ColorPickerMode? _appliedMode;
+    // The surface the consumer last heard of: from its own Mode, or through ModeChanged.
+    private ColorPickerMode? _reportedMode;
     private GradientValue? _gradient;
     private GradientValue? _appliedGradient;
     private int _stop;
@@ -265,6 +267,7 @@
         {
             _mode = Mode;
             _appliedMode = Mode;
+            _reportedMode = Mode;
         }
 
         // A gradient handed in as a model rather than a string - only when it changed from outside.
@@ -332,9 +335,17 @@
 
     // A gradient that came in as a Value STRING still owes @bind-Gradient its model. Publishing it
     // from the first render (not from OnParametersSet) keeps the parameter write out of the
-    // parameter-setting pass.
+    // parameter-setting pass. The same goes for a surface the picker moved to by itself: the shape
+    // of Value, a model handed in or a surface turned off changes the mode while parameters are
+    // being set, and @bind-Mode hears of it here.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_mode != _reportedMode)
+        {
+            _reportedMode = _mode;
+            await ModeChanged.InvokeAsync(_mode);
+        }
+
         if (!firstRender || _gradient is null || !GradientChanged.HasDelegate) return;
         if (ReferenceEquals(_gradient, Gradient)) return;
 
@@ -392,6 +403,7 @@
 
         _mode = mode;
         _appliedMode = mode;
+        _reportedMode = mode;
         var seeded = false;
         if (mode == ColorPickerMode.Gradient)
         {
