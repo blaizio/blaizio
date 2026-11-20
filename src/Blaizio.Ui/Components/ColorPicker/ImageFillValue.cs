@@ -67,7 +67,20 @@ public sealed record ImageFillValue(
             ImageFillFit.Tile => ("50%", "repeat", "left top"),
             _ => ("cover", "no-repeat", "center"),
         };
-        return $"url({Src}) {position}/{size} {repeat}";
+        return $"url({CssUrl(Src!)}) {position}/{size} {repeat}";
+    }
+
+    // A bare url() cannot hold a space, a quote, a bracket or a backslash: a source with one of
+    // them is written as a quoted string, its own quotes and backslashes escaped. Any other
+    // source stays bare, as it always was.
+    private static string CssUrl(string src)
+    {
+        var plain = true;
+        foreach (var c in src)
+        {
+            if (char.IsWhiteSpace(c) || c is '"' or '\'' or '(' or ')' or '\\') { plain = false; break; }
+        }
+        return plain ? src : $"\"{src.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
     }
 
     /// <summary>
@@ -136,10 +149,12 @@ public sealed record ImageFillValue(
         var trimmed = text?.Trim();
         if (trimmed is null || !trimmed.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) return false;
 
-        var close = trimmed.IndexOf(')');
-        if (close < 0) return false;
-
-        var src = trimmed[4..close].Trim().Trim('\'', '"');
+        if (!TryReadQuotedSource(trimmed, out var src, out var close))
+        {
+            close = trimmed.IndexOf(')');
+            if (close < 0) return false;
+            src = trimmed[4..close].Trim().Trim('\'', '"');
+        }
         if (src.Length == 0) return false;
 
         var rest = trimmed[(close + 1)..];
@@ -153,6 +168,32 @@ public sealed record ImageFillValue(
         };
 
         image = new(src, fit);
+        return true;
+    }
+
+    // A quoted source ends at its own closing quote, not at the first bracket, so it can hold one;
+    // a backslash stands for the character after it. False when the source is not quoted (or the
+    // quote never closes): the caller then reads it bare.
+    private static bool TryReadQuotedSource(string paint, out string src, out int close)
+    {
+        (src, close) = ("", -1);
+        var start = 4; // past "url("
+        while (start < paint.Length && char.IsWhiteSpace(paint[start])) start++;
+        if (start >= paint.Length || paint[start] is not ('"' or '\'')) return false;
+
+        var quote = paint[start];
+        var text = new StringBuilder();
+        var index = start + 1;
+        for (; index < paint.Length && paint[index] != quote; index++)
+        {
+            if (paint[index] == '\\' && index + 1 < paint.Length) index++;
+            text.Append(paint[index]);
+        }
+        if (index >= paint.Length) return false;
+
+        close = paint.IndexOf(')', index + 1);
+        if (close < 0) return false;
+        src = text.ToString();
         return true;
     }
 

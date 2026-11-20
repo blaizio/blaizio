@@ -9,6 +9,11 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: an image source with a space, a bracket or a quote in it makes a valid paint.
+  `ImageFillValue.ToCss` wrote every source bare, so `url(/photos/sunset (1).png)` was dropped by
+  the browser and read back cut at the first bracket. Such a source is now written quoted
+  (`url("/photos/sunset (1).png")`) and `TryParse` reads a quoted source to its closing quote.
+  A source without those characters is written bare, as before.
 - **Color Picker**: an `oklab()` axis that rounds to zero from below is written `0`, not `-0`
   (`oklab(0.263 0 -0.035)`).
 - **Color Picker**: a color function with a word where a number belongs is refused. A channel
