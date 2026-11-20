@@ -1,8 +1,5 @@
 @namespace Blaizio
-@inherits BzComponentBase
-@inject IJSRuntime Js
-@implements IAsyncDisposable
-@using System.Diagnostics.CodeAnalysis
+@inherits FloatingSurfaceBase
 @*
     The popup surface of a combobox: the floating panel holding the empty state and the list. Anchored to
     the input (or chips/trigger) via ts/positioning.js (@floating-ui) - it publishes --bz-anchor-width and
@@ -12,11 +9,12 @@
     open and is removed after the exit animation. Dismissed by an outside pointer-down
     (ts/dismissableLayer.js); Escape / Tab close from the input's own handler. Non-modal: no overlay, no
     scroll lock, the outside press passes through. data-side/data-align reflect the resolved placement.
+    The lifecycle lives in FloatingSurfaceBase.
 *@
 
-@if (_present)
+@if (Present)
 {
-    <div @ref="_element" @attributes="BuildAttributes()">
+    <div @ref="Element" @attributes="BuildAttributes()">
         @ChildContent
     </div>
 }
@@ -50,40 +48,30 @@
 
     [CascadingParameter] private ComboboxContext? Combobox { get; set; }
 
-    private bool _present;
-    private bool _closing;
-    private string _side = "bottom";
-    private string _align = "start";
-    private ElementReference _element;
-    private Task<IJSObjectReference>? _presenceTask;
-    private Task<IJSObjectReference>? _positioningTask;
-    private Task<IJSObjectReference>? _dismissTask;
-    private DotNetObjectReference<BaseComboboxContent>? _selfRef;
+    protected override bool IsOpen => Combobox?.Open ?? false;
+    protected override string AnchorSelector => $"[data-bz-combobox-anchor='{Combobox?.AnchorId}']";
+    protected override Side PreferredSide => Side;
+    protected override Align PreferredAlign => Align;
+    protected override double PreferredSideOffset => SideOffset;
+    protected override double PreferredAlignOffset => AlignOffset;
+    protected override bool RenderInline => Inline;
+    // A press on the anchor (input / chips / trigger) is not "outside": it toggles itself.
+    // Escape and Tab are handled by the input's own keydown, so the layer leaves Escape alone.
+    protected override bool Dismissable => true;
 
-    private string AnchorSelector => $"[data-bz-combobox-anchor='{Combobox?.AnchorId}']";
+    // An outside pointer-down, reported by the dismissable layer.
+    protected override Task RequestCloseAsync() =>
+        Combobox is null ? Task.CompletedTask : Combobox.RequestClose.InvokeAsync();
 
-    protected override void OnParametersSet()
-    {
-        var open = Combobox?.Open ?? false;
-
-        if (open && (!_present || _closing))
-        {
-            _present = true;
-            _closing = false;
-        }
-        else if (!open && _present && !_closing)
-        {
-            _closing = true;
-        }
-    }
+    protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Set("id", $"{Combobox?.AnchorId}-content")
             .Data("bz-combobox-content", "")
-            .Data("state", _closing ? "closed" : "open")
-            .Data("side", _side)
-            .Data("align", _align)
+            .Data("state", Closing ? "closed" : "open")
+            .Data("side", ResolvedSide)
+            .Data("align", ResolvedAlign)
             // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
@@ -93,165 +81,4 @@
             // Blazor never rewrites an unchanged style attribute, so the JS-owned values survive.
             .Set("style", "position:fixed;top:0;left:0;visibility:hidden")
             .Merge(Attributes, Class, Style);
-
-    [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!_present) return;
-
-        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
-        // and a slow module import must not let a second pass attach twice.
-        _presenceTask ??= CreatePresenceAsync();
-        _positioningTask ??= CreatePositioningAsync();
-        _dismissTask ??= CreateDismissableLayerAsync();
-
-        if (_closing)
-        {
-            // No-animation styles report back immediately; otherwise animationend does.
-            var presence = await _presenceTask;
-            await presence.InvokeVoidAsync("onClosing");
-        }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePresenceAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
-        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePositioningAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
-
-        var options = new PositioningOptions
-        {
-            Side = Side.ToAttribute(),
-            Align = Align.ToAttribute(),
-            SideOffset = SideOffset,
-            AlignOffset = AlignOffset,
-            Inline = Inline,
-        };
-
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createPositioning", AnchorSelector, _element, options, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateDismissableLayerAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
-
-        var options = new DismissableLayerOptions
-        {
-            // A press on the anchor (input / chips / trigger) is not "outside" - it toggles itself.
-            AnchorSelector = AnchorSelector,
-            DismissOnEscape = false, // Escape and Tab are handled by the input's own keydown.
-        };
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createDismissableLayer", _element, _selfRef, options);
-    }
-
-    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
-    [JSInvokable]
-    public void OnPlaced(string side, string align)
-    {
-        if (_side == side && _align == align) return;
-        _side = side;
-        _align = align;
-        StateHasChanged();
-    }
-
-    /// <summary>Called by the dismissable layer on an outside pointer-down.</summary>
-    [JSInvokable]
-    public Task OnDismissRequested() =>
-        Combobox is null ? Task.CompletedTask : Combobox.RequestClose.InvokeAsync();
-
-    /// <summary>Called by the presence module once the exit animation has finished.</summary>
-    [JSInvokable]
-    public async Task OnCloseFinished()
-    {
-        if (!_closing) return;
-        _present = false;
-        _closing = false;
-        // Drop the global pointer-down listener first, then stop the positioning loop, then presence;
-        // being removed last keeps the list (and ts/combobox.js) alive until the animation is truly done.
-        await DisposeDismissAsync();
-        await DisposePositioningAsync();
-        await DisposePresenceAsync();
-        StateHasChanged();
-        await OnExitComplete.InvokeAsync();
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeDismissAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var task = _dismissTask;
-        _dismissTask = null;
-        if (task is null) return;
-        try
-        {
-            var dismiss = await task;
-            await dismiss.InvokeVoidAsync("dispose");
-            await dismiss.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePositioningAsync()
-    {
-        var task = _positioningTask;
-        _positioningTask = null;
-        if (task is null) return;
-        try
-        {
-            var positioning = await task;
-            await positioning.InvokeVoidAsync("dispose");
-            await positioning.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePresenceAsync()
-    {
-        var task = _presenceTask;
-        _presenceTask = null;
-        if (task is null) return;
-        try
-        {
-            var presence = await task;
-            await presence.InvokeVoidAsync("dispose");
-            await presence.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposeDismissAsync();
-            await DisposePositioningAsync();
-            await DisposePresenceAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-
-        _selfRef?.Dispose();
-        GC.SuppressFinalize(this);
-    }
 }

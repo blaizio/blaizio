@@ -1,8 +1,5 @@
 @namespace Blaizio
-@inherits BzComponentBase
-@inject IJSRuntime Js
-@implements IAsyncDisposable
-@using System.Diagnostics.CodeAnalysis
+@inherits FloatingSurfaceBase
 @*
     The floating surface of a BaseHoverCard: an INTERACTIVE panel (no pointer-events-none, unlike a
     tooltip) anchored to the trigger via ts/positioning.ts (@floating-ui), presence-managed for the
@@ -12,14 +9,15 @@
     the card holds it open (its own enter cancels the trigger's pending close); leaving it starts the
     close delay. No overlay, no scroll lock, no focus trap - the page stays interactive.
     data-side/data-align reflect the resolved placement (JS reports flips back, so Blazor owns them).
+    The lifecycle lives in FloatingSurfaceBase.
 *@
 
-@if (_present)
+@if (Present)
 {
     <BasePrimitive Element="div"
                     Attributes="BuildAttributes()"
                     ChildContent="@ChildContent"
-                    ElementRefCaptured="@(reference => _element = reference)" />
+                    ElementRefCaptured="@CaptureElement" />
 }
 
 @code {
@@ -51,41 +49,32 @@
 
     [CascadingParameter] private HoverCardContext? HoverCard { get; set; }
 
-    private bool _present;
-    private bool _closing;
-    private string _side = "bottom";
-    private string _align = "center";
-    private ElementReference _element;
-    private Task<IJSObjectReference>? _presenceTask;
-    private Task<IJSObjectReference>? _positioningTask;
-    private Task<IJSObjectReference>? _dismissTask;
-    private DotNetObjectReference<BaseHoverCardContent>? _selfRef;
+    protected override bool IsOpen => HoverCard?.Open ?? false;
+    protected override string AnchorSelector => $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']";
+    protected override Side PreferredSide => Side;
+    protected override Align PreferredAlign => Align;
+    protected override double PreferredSideOffset => SideOffset;
+    protected override double PreferredAlignOffset => AlignOffset;
+    protected override bool RenderInline => Inline;
+    // A press on the trigger is not "outside": moving onto and off it is handled by hover, so it
+    // must not also dismiss.
+    protected override bool Dismissable => true;
+    // The card never holds focus, so Escape cannot reach a key handler here: the layer catches
+    // it at the document level instead.
+    private protected override bool DismissOnEscape => true;
 
-    protected override void OnParametersSet()
-    {
-        var open = HoverCard?.Open ?? false;
+    // Escape or an outside pointer-down, reported by the dismissable layer.
+    protected override Task RequestCloseAsync() =>
+        HoverCard is null ? Task.CompletedTask : HoverCard.Dismiss.InvokeAsync();
 
-        if (open && (!_present || _closing))
-        {
-            // Start from the side that was asked for: the first frame (the entry slide, the arrow)
-            // is painted before the positioning script reports where the surface really landed.
-            _side = Side.ToAttribute();
-            _align = Align.ToAttribute();
-            _present = true;
-            _closing = false;
-        }
-        else if (!open && _present && !_closing)
-        {
-            _closing = true;
-        }
-    }
+    protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
 
     private IReadOnlyDictionary<string, object> BuildAttributes() =>
         new PropBuilder(this)
             .Set("id", HoverCard?.ContentId)
-            .Data("state", _closing ? "closed" : "open")
-            .Data("side", _side)
-            .Data("align", _align)
+            .Data("state", Closing ? "closed" : "open")
+            .Data("side", ResolvedSide)
+            .Data("align", ResolvedAlign)
             // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
@@ -105,191 +94,4 @@
     private Task OnPointerLeave() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
     private Task OnFocusIn() => HoverCard?.OpenDelayed.InvokeAsync() ?? Task.CompletedTask;
     private Task OnFocusOut() => HoverCard?.CloseDelayed.InvokeAsync() ?? Task.CompletedTask;
-
-    [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!_present) return;
-
-        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
-        // and a slow module import must not let a second pass create twice.
-        _presenceTask ??= CreatePresenceAsync();
-        _positioningTask ??= CreatePositioningAsync();
-        _dismissTask ??= CreateDismissableLayerAsync();
-
-        if (_closing)
-        {
-            // No-animation styles report back immediately; otherwise animationend does.
-            var presence = await _presenceTask;
-            await presence.InvokeVoidAsync("onClosing");
-        }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePresenceAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
-        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePositioningAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
-
-        var options = new PositioningOptions
-        {
-            Side = Side.ToAttribute(),
-            Align = Align.ToAttribute(),
-            SideOffset = SideOffset,
-            AlignOffset = AlignOffset,
-            Inline = Inline,
-        };
-        var anchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']";
-
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createPositioning", anchorSelector, _element, options, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateDismissableLayerAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
-
-        var options = new DismissableLayerOptions
-        {
-            // A press on the trigger is not "outside" - moving onto/off it is handled by hover, so it
-            // must not also dismiss.
-            AnchorSelector = $"[data-bz-hover-card-anchor='{HoverCard?.AnchorId}']",
-            // The card never holds focus, so Escape can't reach a C# onkeydown here - let the layer
-            // catch it at the document level instead.
-            DismissOnEscape = true,
-        };
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createDismissableLayer", _element, _selfRef, options);
-    }
-
-    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
-    [JSInvokable]
-    public void OnPlaced(string side, string align)
-    {
-        if (_side == side && _align == align) return;
-        _side = side;
-        _align = align;
-        StateHasChanged();
-    }
-
-    /// <summary>Called by the dismissable layer on Escape or an outside pointer-down.</summary>
-    [JSInvokable]
-    public Task OnDismissRequested() =>
-        HoverCard is null ? Task.CompletedTask : HoverCard.Dismiss.InvokeAsync();
-
-    [JSInvokable]
-    public async Task OnCloseFinished()
-    {
-        if (!_closing) return;
-        _present = false;
-        _closing = false;
-        // Drop the global pointer-down/Escape listener first, then stop the positioning loop, then
-        // the presence listeners.
-        await DisposeDismissAsync();
-        await DisposePositioningAsync();
-        await DisposePresenceAsync();
-        StateHasChanged();
-        await OnExitComplete.InvokeAsync();
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeDismissAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var task = _dismissTask;
-        _dismissTask = null;
-        if (task is null) return;
-        try
-        {
-            var dismiss = await task;
-            await dismiss.InvokeVoidAsync("dispose");
-            await dismiss.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePositioningAsync()
-    {
-        var task = _positioningTask;
-        _positioningTask = null;
-        if (task is null) return;
-        try
-        {
-            var positioning = await task;
-            await positioning.InvokeVoidAsync("dispose");
-            await positioning.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePresenceAsync()
-    {
-        var task = _presenceTask;
-        _presenceTask = null;
-        if (task is null) return;
-        try
-        {
-            var presence = await task;
-            await presence.InvokeVoidAsync("dispose");
-            await presence.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the concurrent caller.
-        }
-    }
-
-    [ExcludeFromCodeCoverage]
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposeDismissAsync();
-            await DisposePositioningAsync();
-            await DisposePresenceAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuit already gone.
-        }
-        catch (ObjectDisposedException)
-        {
-            // Already disposed by the racing close-finish callback.
-        }
-
-        _selfRef?.Dispose();
-    }
 }

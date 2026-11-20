@@ -170,6 +170,11 @@ public sealed class PointerAndKeyboardTests(DocsServerFixture fx)
 
         var region = page.Locator("main [data-slot=context-menu-trigger]").First;
         await region.ScrollIntoViewIfNeededAsync();
+        // The page reports that scroll with its next frame, and a context menu closes on any
+        // scroll of the page. Opened before the report came, the menu was gone again by the time
+        // the pointer reached it, about one run in six. Two frames on, the report is past.
+        await page.EvaluateAsync(
+            "() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)))");
         var box = (await region.BoundingBoxAsync())!;
         await page.Mouse.ClickAsync(box.X + 60, box.Y + 40, new() { Button = MouseButton.Right });
 

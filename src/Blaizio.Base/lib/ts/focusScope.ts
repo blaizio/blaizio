@@ -66,7 +66,7 @@ export class FocusScope {
   }
 
   /** Focus the first tabbable on first render, unless .NET prevents it or focus is already inside. */
-  private autoFocusOnOpen = async (): Promise<void> => {
+  private autoFocusOnOpen = async (reopened = false): Promise<void> => {
     if (this.container.contains(document.activeElement)) return;
 
     const prevented =
@@ -80,8 +80,14 @@ export class FocusScope {
     await this.whenVisible();
     if (this.container.contains(document.activeElement)) return; // focus landed elsewhere meanwhile
 
+    // Where focus stays when nothing inside takes it: the container takes it then. A surface
+    // opened again while closing finds focus wherever the last press left it (its trigger, the
+    // page, nothing at all), not where its first opening found it.
+    const origin = reopened ? document.activeElement : this.previouslyFocused;
     this.focusFirst(this.getTabbableCandidates(), { select: true });
-    if (document.activeElement === this.previouslyFocused) this.focus(this.container);
+    if (document.activeElement === origin) this.focus(this.container);
+    // The element was neither moved nor rendered anew: nothing takes this focus away again.
+    if (reopened) return;
 
     // A first-open can still lose the focus we just set: a portal hop (portal.ts moves the
     // surface to <body> - moving an element clears its focus) or a late cold-circuit re-render
@@ -111,6 +117,23 @@ export class FocusScope {
       };
       check();
     });
+  }
+
+  /**
+   * The scope on <code>container</code> places its opening focus again. A surface opened again
+   * while it was still closing keeps its element and this scope, and the opening focus is placed
+   * once per scope. The press that closed the surface (on its trigger, on the page, on a dialog's
+   * backdrop) or the one that opened it again had moved focus out, and nothing brought it back:
+   * Tab then started from the page behind the open surface.
+   *
+   * Asks as the first opening does: focus that is inside already stays where it is, and the .NET
+   * handler can prevent the rest. Does nothing for a passive scope (whoever drives its focus
+   * places it), for one under another surface (paused), and when no scope is on the element.
+   */
+  public static refocus(container: HTMLElement): void {
+    const scope = FocusScope.stack.find((candidate) => candidate.container === container);
+    if (!scope || scope.options.passive || scope.paused) return;
+    void scope.autoFocusOnOpen(true);
   }
 
   public pause = (): void => {
@@ -252,3 +275,11 @@ export const createFocusScope = (
   dotNetRef: DotNetReference,
   options: FocusScopeOptions,
 ): FocusScope => new FocusScope(container, dotNetRef, options);
+
+/**
+ * Places the opening focus again in the scope on <code>container</code>, for a surface that was
+ * opened again while it was closing (see <code>FocusScope.refocus</code>). By element, not by
+ * instance: the surface that knows it was reopened holds the element, its focus scope component
+ * holds the instance.
+ */
+export const refocus = (container: HTMLElement): void => FocusScope.refocus(container);

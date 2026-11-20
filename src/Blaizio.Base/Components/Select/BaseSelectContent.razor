@@ -1,8 +1,5 @@
 @namespace Blaizio
-@inherits BzComponentBase
-@inject IJSRuntime Js
-@implements IAsyncDisposable
-@using System.Diagnostics.CodeAnalysis
+@inherits FloatingSurfaceBase
 @*
     The listbox surface of a BaseSelect: a role="listbox" of options, anchored to the trigger via
     ts/positioning.js, navigated by ts/menu.js (Arrow / Home / End / typeahead / Enter / Space - it
@@ -13,10 +10,11 @@
     Unlike a menu, the options stay RENDERED while the listbox is closed (the surface is just
     `hidden`), so each option keeps its display content registered with the root - that is how the
     trigger shows a value chosen before the listbox has ever been opened. Only the open behaviour
-    (positioning, navigation, dismissal) is attached on open and torn down on close.
+    (positioning, navigation, dismissal) is attached on open and torn down on close: the lifecycle
+    of FloatingSurfaceBase, with Present deciding `hidden` instead of whether the element exists.
 *@
 
-<div @ref="_element" @attributes="BuildAttributes()">
+<div @ref="Element" @attributes="BuildAttributes()">
     @ChildContent
 </div>
 
@@ -58,39 +56,44 @@
 
     [CascadingParameter] private SelectContext? Select { get; set; }
 
-    // _present: in the DOM and shown (open, or animating closed). The surface element is ALWAYS
-    // rendered (so options register); _present only toggles its `hidden` + the open behaviour.
-    private bool _present;
-    private bool _closing;
-    private string _side = "bottom";
-    private string _align = "start";
-    private ElementReference _element;
-    private Task<IJSObjectReference>? _presenceTask;
-    private Task<IJSObjectReference>? _positioningTask;
-    private Task<IJSObjectReference>? _dismissTask;
-    private Task<IJSObjectReference>? _menuTask;
-    private Task<IJSObjectReference>? _focusScopeTask;
-    private DotNetObjectReference<BaseSelectContent>? _selfRef;
+    private const string MenuModule = "./_content/blaizio.base/dist/menu.js";
+    private const string FocusScopeModule = "./_content/blaizio.base/dist/focusScope.js";
 
-    private string AnchorSelector => $"[data-bz-select-anchor='{Select?.AnchorId}']";
+    // Present: shown (open, or animating closed). The surface element is ALWAYS rendered (so
+    // options register); Present only toggles its `hidden` + the open behaviour.
+    private readonly SurfaceScript _menu = new();
+    private readonly SurfaceScript _focusScope = new();
+
+    protected override bool IsOpen => Select?.Open ?? false;
+    protected override string AnchorSelector => $"[data-bz-select-anchor='{Select?.AnchorId}']";
+    protected override Side PreferredSide => Side;
+    protected override Align PreferredAlign => Align;
+    protected override double PreferredSideOffset => SideOffset;
+    protected override double PreferredAlignOffset => AlignOffset;
+    protected override bool RenderInline => Inline;
+    // A press on the trigger is not "outside": the trigger toggles itself (no double-close).
+    // Escape and Tab both close the list: OnKeyDownAsync handles the pair, not the layer.
+    protected override bool Dismissable => true;
+
+    // Item-aligned overlays the listbox on the trigger (selected option over it); popper floats it
+    // below/above. Both publish --bz-anchor-width and report flips back through OnPlaced.
+    private protected override string PositioningFactory =>
+        Position == SelectPosition.ItemAligned ? "createItemAlignedPositioning" : "createPositioning";
+
+    private protected override SurfaceScript[] Scripts => [_focusScope, DismissLayer, Positioning, _menu, Presence];
+
+    // An outside pointer-down, reported by the dismissable layer.
+    protected override Task RequestCloseAsync() =>
+        Select is null ? Task.CompletedTask : Select.RequestClose.InvokeAsync();
+
+    protected override async ValueTask OnClosedAsync() => await OnExitComplete.InvokeAsync();
 
     protected override void OnParametersSet()
     {
         // Report our positioning mode up so the trigger can match its chevron (up/down for item-aligned,
         // a rotating chevron-down for popper). Guarded in the root, so this static report doesn't loop.
         Select?.SetPosition(Position);
-
-        var open = Select?.Open ?? false;
-
-        if (open && (!_present || _closing))
-        {
-            _present = true;
-            _closing = false;
-        }
-        else if (!open && _present && !_closing)
-        {
-            _closing = true;
-        }
+        base.OnParametersSet();
     }
 
     private IReadOnlyDictionary<string, object> BuildAttributes()
@@ -114,16 +117,16 @@
             .Set("style", "position:fixed;top:0;left:0;visibility:hidden")
             // "open" only while actually open; a hidden (closed) or animating-out surface is "closed",
             // so the open animation re-triggers cleanly each time it is shown again.
-            .Data("state", _present && !_closing ? "open" : "closed")
-            .Data("side", _side)
-            .Data("align", _align)
+            .Data("state", Present && !Closing ? "open" : "closed")
+            .Data("side", ResolvedSide)
+            .Data("align", ResolvedAlign)
             // A portaled surface leaves any subtree direction provider's DOM ancestry, so the
             // cascaded direction is stamped on the element itself (inline keeps inheritance).
             .Set("dir", Inline ? DirAttribute : PortalDirAttribute)
             .On("onkeydown", EventCallback.Factory.Create<KeyboardEventArgs>(this, OnKeyDownAsync));
 
         // Closed (and not animating): keep the options in the DOM for registration, but hide them.
-        if (!_present) props.Set("hidden", "hidden");
+        if (!Present) props.Set("hidden", "hidden");
 
         return props.Merge(Attributes, Class, Style);
     }
@@ -135,72 +138,20 @@
         return e.Key is "Escape" or "Tab" ? Select.RequestClose.InvokeAsync() : Task.CompletedTask;
     }
 
-    [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private protected override void ClaimScripts()
     {
-        if (!_present) return;
-
-        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
-        // and a slow module import must not let a second pass attach twice. The focus scope goes
-        // first so an enclosing dialog's trap is standing down by the time ts/menu.js places focus.
-        _focusScopeTask ??= CreateFocusScopeAsync();
-        _presenceTask ??= CreatePresenceAsync();
-        _positioningTask ??= CreatePositioningAsync();
-        _menuTask ??= CreateMenuAsync();
-        _dismissTask ??= CreateDismissableLayerAsync();
-
-        if (_closing)
-        {
-            // No-animation styles report back immediately; otherwise animationend does. Guarded like
-            // the dispose paths: a component torn down mid close-animation (its whole surface
-            // swapped out, say) disposes the presence reference while this await is still pending,
-            // and the resumed call would otherwise surface as an unhandled render exception.
-            try
-            {
-                var presence = await _presenceTask;
-                await presence.InvokeVoidAsync("onClosing");
-            }
-            catch (JSDisconnectedException) { }
-            catch (ObjectDisposedException) { }
-        }
+        // The focus scope goes first so an enclosing dialog's trap is standing down by the time
+        // ts/menu.js places focus.
+        ClaimFocusScope();
+        ClaimPresence();
+        ClaimPositioning();
+        ClaimMenu();
+        ClaimDismissLayer();
     }
 
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePresenceAsync()
+    private void ClaimMenu()
     {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
-        return await module.InvokeAsync<IJSObjectReference>("createPresence", _element, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePositioningAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
-
-        var options = new PositioningOptions
-        {
-            Side = Side.ToAttribute(),
-            Align = Align.ToAttribute(),
-            SideOffset = SideOffset,
-            AlignOffset = AlignOffset,
-            Inline = Inline,
-        };
-
-        // Item-aligned overlays the listbox on the trigger (selected option over it); popper floats it
-        // below/above. Both publish --bz-anchor-width and report flips back through OnPlaced.
-        var create = Position == SelectPosition.ItemAligned ? "createItemAlignedPositioning" : "createPositioning";
-        return await module.InvokeAsync<IJSObjectReference>(
-            create, AnchorSelector, _element, options, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateMenuAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
-
+        if (_menu.Claimed) return;
         // 'selected' lands the opening focus on the chosen option (or the first), scrolled into view.
         var options = new MenuOptions
         {
@@ -209,16 +160,12 @@
             IsSubmenu = false,
             TriggerSelector = AnchorSelector,
         };
-
-        return await module.InvokeAsync<IJSObjectReference>("createMenu", _element, options, _selfRef);
+        _menu.Claim(Js, MenuModule, "createMenu", Element, options, SelfReference);
     }
 
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateFocusScopeAsync()
+    private void ClaimFocusScope()
     {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/focusScope.js");
-
+        if (_focusScope.Claimed) return;
         // Passive: the scope claims the top of the scope stack and nothing else. Scopes pause the
         // ones beneath them, so this is what stands an enclosing dialog's focus trap down while the
         // listbox is open - the listbox portals to the body, so focus landing on an option is
@@ -226,180 +173,40 @@
         // leaving the keyboard dead (and Escape closing the dialog too). Menus get this from their
         // BaseFocusScope wrapper; the select's surface stays rendered while closed (options register
         // their display content), so its scope must follow the OPEN state instead - created here on
-        // open, disposed with the rest of the open behaviour on close. Focus placement/restoration
+        // open, released with the rest of the open behaviour on close. Focus placement/restoration
         // stays with ts/menu.js (opens on the SELECTED option, restores the trigger).
         var options = new FocusScopeOptions { Passive = true };
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createFocusScope", _element, _selfRef, options);
+        _focusScope.Claim(Js, FocusScopeModule, "createFocusScope", Element, SelfReference, options);
     }
 
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateDismissableLayerAsync()
+    // Reopened while closing: the list and its menu instance stay, and the instance places the
+    // opening focus once. A press on the trigger (the one that closed the list, or the one that
+    // opened it again) left focus on the trigger, which ignores Escape and the arrows while the
+    // list is open: the keyboard reached nothing until the pointer was used again.
+    private protected override ValueTask RefocusAsync() => _menu.InvokeVoidAsync("refocus");
+
+    private protected override async Task FinishCloseAsync()
     {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
-
-        var options = new DismissableLayerOptions
-        {
-            // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
-            AnchorSelector = AnchorSelector,
-            DismissOnEscape = false, // Escape and Tab both close the list: OnKeyDownAsync handles the pair.
-        };
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createDismissableLayer", _element, _selfRef, options);
-    }
-
-    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
-    [JSInvokable]
-    public void OnPlaced(string side, string align)
-    {
-        if (_side == side && _align == align) return;
-        _side = side;
-        _align = align;
-        StateHasChanged();
-    }
-
-    /// <summary>Called by the dismissable layer on an outside pointer-down.</summary>
-    [JSInvokable]
-    public Task OnDismissRequested() =>
-        Select is null ? Task.CompletedTask : Select.RequestClose.InvokeAsync();
-
-    /// <summary>Called by the presence module once the exit animation has finished.</summary>
-    [JSInvokable]
-    public async Task OnCloseFinished()
-    {
-        if (!_closing) return;
-        _present = false;
-        _closing = false;
         // Hide the surface again (options stay rendered for registration), then return focus to the
-        // trigger ourselves via ts/menu.js (a no-op if the trigger has left the DOM). Tear the JS down
-        // last: pointer-down listener, positioning loop, menu + presence listeners.
+        // trigger ourselves via ts/menu.js (a no-op if the trigger has left the DOM). The scripts go
+        // last, the focus scope first among them: focus is back inside the dialog (or wherever the
+        // user clicked) before the scope leaves the stack and the dialog's trap resumes watching.
         StateHasChanged();
         await RestoreFocusAsync();
-        // After the restore: focus is back inside the dialog (or wherever the user clicked) before
-        // the scope pops the stack and the dialog's trap resumes watching.
-        await DisposeFocusScopeAsync();
-        await DisposeDismissAsync();
-        await DisposePositioningAsync();
-        await DisposeMenuAsync();
-        await DisposePresenceAsync();
-        await OnExitComplete.InvokeAsync();
+        foreach (var script in Scripts) await script.ReleaseAsync();
     }
 
-    [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     private async Task RestoreFocusAsync()
     {
-        if (_menuTask is null) return;
+        if (!_menu.Claimed) return;
         try
         {
             // Stranded-only, scoped to our own (closing) surface: a keyboard close restores the
             // trigger, but a dismissing click that already focused something else (a text input)
             // keeps the user's focus - yanking it back would steal it out of the field.
-            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
-            await module.InvokeVoidAsync("focusTrigger", AnchorSelector, true, _element);
+            var module = await JsModules.ImportAsync(Js, MenuModule);
+            await module.InvokeVoidAsync("focusTrigger", AnchorSelector, true, Element);
         }
         catch (JSDisconnectedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeFocusScopeAsync()
-    {
-        var task = _focusScopeTask;
-        _focusScopeTask = null;
-        if (task is null) return;
-        try
-        {
-            var scope = await task;
-            await scope.InvokeVoidAsync("dispose");
-            await scope.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeDismissAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var task = _dismissTask;
-        _dismissTask = null;
-        if (task is null) return;
-        try
-        {
-            var dismiss = await task;
-            await dismiss.InvokeVoidAsync("dispose");
-            await dismiss.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePositioningAsync()
-    {
-        var task = _positioningTask;
-        _positioningTask = null;
-        if (task is null) return;
-        try
-        {
-            var positioning = await task;
-            await positioning.InvokeVoidAsync("dispose");
-            await positioning.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeMenuAsync()
-    {
-        var task = _menuTask;
-        _menuTask = null;
-        if (task is null) return;
-        try
-        {
-            var menu = await task;
-            await menu.InvokeVoidAsync("dispose");
-            await menu.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePresenceAsync()
-    {
-        var task = _presenceTask;
-        _presenceTask = null;
-        if (task is null) return;
-        try
-        {
-            var presence = await task;
-            await presence.InvokeVoidAsync("dispose");
-            await presence.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposeFocusScopeAsync();
-            await DisposeDismissAsync();
-            await DisposePositioningAsync();
-            await DisposeMenuAsync();
-            await DisposePresenceAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-
-        _selfRef?.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -6,20 +5,19 @@ namespace Blaizio;
 
 /// <summary>
 /// Shared machinery for a dropdown-menu surface - the root <see cref="BaseDropdownMenuContent"/> and
-/// each submenu's <see cref="BaseDropdownMenuSubContent"/>. It owns the JS lifecycle: presence-managed
-/// render / removal with an exit animation (ts/presence.js), @floating-ui anchoring (ts/positioning.js),
-/// menu keyboard + pointer navigation (ts/menu.js), and - for the root only - outside-pointer-down
-/// dismissal (ts/dismissableLayer.js). Focus is moved in by a wrapping <see cref="BaseFocusScope"/>
-/// that the concrete <c>.razor</c> renders; this base owns only the JS plumbing and the
-/// <c>data-state</c>/<c>-side</c>/<c>-align</c> contract. The non-blocking floating model matches
-/// <see cref="BasePopoverContent"/>: no overlay, no scroll lock, presses pass through.
+/// each submenu's <see cref="BaseDropdownMenuSubContent"/>. The lifecycle is the one every floating
+/// surface shares (<see cref="FloatingSurfaceBase"/>: presence-managed render / removal with an exit
+/// animation, @floating-ui anchoring, outside-pointer-down dismissal for the root); this class adds
+/// what makes the surface a menu: keyboard + pointer navigation (ts/menu.js), focus that the menu
+/// places and returns itself, and a submenu that leaves with its root. Focus is moved in by a
+/// wrapping <see cref="BaseFocusScope"/> that the concrete <c>.razor</c> renders; this base owns
+/// only the JS plumbing and the <c>data-state</c>/<c>-side</c>/<c>-align</c> contract. The
+/// non-blocking floating model matches <see cref="BasePopoverContent"/>: no overlay, no scroll lock,
+/// presses pass through.
 /// </summary>
-public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
+public abstract class MenuContentBase : FloatingSurfaceBase
 {
-    [Inject] private IJSRuntime Js { get; set; } = default!;
-
-    /// <summary>Whether the owning menu (root or submenu) is currently open.</summary>
-    protected abstract bool IsOpen { get; }
+    private const string MenuModule = "./_content/blaizio.base/dist/menu.js";
 
     /// <summary>Where to place focus the moment the surface renders.</summary>
     protected abstract MenuFocusIntent FocusIntent { get; }
@@ -30,11 +28,8 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// </summary>
     protected virtual bool MenuLoop => true;
 
-    /// <summary>CSS selector for the trigger this surface anchors + positions against.</summary>
-    protected abstract string AnchorSelector { get; }
-
     /// <summary>Attach an outside-pointer-down dismissal layer (root menu only; submenus dismiss with the root).</summary>
-    protected abstract bool Dismissable { get; }
+    protected abstract override bool Dismissable { get; }
 
     /// <summary>
     /// Dismiss when anything outside the surface scrolls. Off by default - element-anchored menus
@@ -86,58 +81,20 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// detection and teardown keep containing it; root surfaces override this from their own
     /// <c>Inline</c> parameter.
     /// </summary>
-    protected virtual bool RenderInline => IsSubmenu;
-
-    /// <summary>Preferred side of the anchor. Flips to the opposite side to stay in view.</summary>
-    protected abstract Side PreferredSide { get; }
-
-    /// <summary>Alignment along the anchor's edge.</summary>
-    protected abstract Align PreferredAlign { get; }
-
-    /// <summary>Gap in pixels between the anchor and the surface.</summary>
-    protected virtual double PreferredSideOffset => 4;
-
-    /// <summary>Offset in pixels along the alignment axis.</summary>
-    protected virtual double PreferredAlignOffset => 0;
+    protected override bool RenderInline => IsSubmenu;
 
     /// <summary>Closes the owning menu - invoked by the base only for the outside-dismiss callback.</summary>
-    protected abstract Task RequestCloseAsync();
+    protected abstract override Task RequestCloseAsync();
 
-    /// <summary>Hook for the concrete surface to react after the exit animation has fully removed it.</summary>
-    protected virtual ValueTask OnClosedAsync() => ValueTask.CompletedTask;
-
-    /// <summary><see langword="true"/> while the surface should be in the DOM (open, or animating closed).</summary>
-    protected bool Present;
-
-    /// <summary><see langword="true"/> while the exit animation is playing (renders <c>data-state="closed"</c>).</summary>
-    protected bool Closing;
-
-    /// <summary>The resolved placement side reported back by the positioning module (Blazor owns the attribute).</summary>
-    protected string ResolvedSide = "bottom";
-
-    /// <summary>The resolved alignment reported back by the positioning module.</summary>
-    protected string ResolvedAlign = "start";
-
-    /// <summary>The surface element, captured by the concrete markup for the JS modules to drive.</summary>
-    protected ElementReference Element;
-
-    private Task<IJSObjectReference>? _presenceTask;
-    private Task<IJSObjectReference>? _positioningTask;
-    private Task<IJSObjectReference>? _dismissTask;
-    private Task<IJSObjectReference>? _menuTask;
-    private DotNetObjectReference<MenuContentBase>? _selfRef;
+    // The instance of ts/menu.js: navigation, typeahead, and where focus goes on open.
+    private readonly SurfaceScript _menu = new();
     private bool _dismissedByPointer;
-    private bool _releasePending;
-    private bool _refocusPending;
-
-    /// <summary>Captures the surface element reference (passed to <c>ElementRefCaptured</c> in the markup).</summary>
-    protected void CaptureElement(ElementReference reference) => Element = reference;
 
     /// <summary>
     /// Suppresses the wrapping <see cref="BaseFocusScope"/>'s own auto-focus, on first render and on removal
     /// alike (wired to both <c>OnOpenAutoFocus</c> and <c>OnCloseAutoFocus</c>). Menus own their
     /// focus end to end: <c>ts/menu.js</c> places it when the surface opens, and
-    /// <see cref="OnCloseFinished"/> returns it to the trigger on close. The focus scope is kept only
+    /// <see cref="PresenceSurfaceBase.OnCloseFinished"/> returns it to the trigger on close. The focus scope is kept only
     /// for its nested-scope stack management - its first-render auto-focus would race <c>ts/menu.js</c> (a
     /// cold-open flicker, an un-highlighted first item), and its removal restore targets an element
     /// captured at first render that the same race can leave pointing at a now-removed item.
@@ -152,112 +109,45 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         _ => "none",
     };
 
+    private protected override IDisposable CreateSelfReference() => DotNetObjectReference.Create(this);
+
+    private protected override SurfaceScript[] Scripts => [DismissLayer, Positioning, _menu, Presence];
+
+    private protected override DismissableLayerOptions DismissLayerOptions => new()
+    {
+        // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
+        AnchorSelector = AnchorSelector,
+        DismissOnEscape = false, // Escape and Tab both close a menu: its own OnKeyDown handles the pair.
+        DismissOnScroll = DismissOnScroll,
+    };
+
+    /// <inheritdoc />
     protected override void OnParametersSet()
     {
         // The whole menu is being dismissed and the root will remove us. Leave the DOM now, in the
         // same render that turns the root to data-state="closed", so the root's exit-animation
         // transform never has a fixed-positioned submenu descendant to reparent (the close "shift").
+        // The element goes with this render; the script instances bound to it follow it.
         if (AncestorClosing)
         {
-            if (Present)
-            {
-                Present = false;
-                Closing = false;
-                // The element goes with this render; the script instances bound to it follow it.
-                _releasePending = true;
-            }
+            DropWithoutAnimation();
             return;
         }
 
-        var open = IsOpen;
-
-        if (open && (!Present || Closing))
-        {
-            // Reopened while closing: the surface and its menu instance stay, and the instance
-            // places the opening focus once, so it has to be asked for again.
-            if (Present && Closing) _refocusPending = true;
-            Present = true;
-            Closing = false;
-        }
-        else if (!open && Present && !Closing)
-        {
-            Closing = true;
-        }
+        base.OnParametersSet();
     }
 
-    [ExcludeFromCodeCoverage] // JS-interop seam: a no-op under bUnit's loose interop, verified in-browser.
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private protected override void ClaimScripts()
     {
-        if (_releasePending)
-        {
-            _releasePending = false;
-            await ReleaseInstancesAsync();
-        }
-
-        if (!Present) return;
-
-        // Guards claimed synchronously before any await: OnAfterRenderAsync re-enters on every render,
-        // and a slow module import must not let a second pass create twice.
-        _presenceTask ??= CreatePresenceAsync();
-        _positioningTask ??= CreatePositioningAsync();
-        var menuTask = _menuTask ??= CreateMenuAsync();
-        if (Dismissable) _dismissTask ??= CreateDismissableLayerAsync();
-
-        if (_refocusPending)
-        {
-            _refocusPending = false;
-            try
-            {
-                // The press that closed the menu moved focus to the page. Without this the
-                // reopened menu had no focus, and Escape, the arrows and typing reached nothing.
-                var menu = await menuTask;
-                if (menu is not null) await menu.InvokeVoidAsync("refocus");
-            }
-            catch (JSDisconnectedException) { }
-            catch (ObjectDisposedException) { }
-        }
-
-        if (Closing)
-        {
-            // No-animation styles report back immediately; otherwise animationend does.
-            var presence = await _presenceTask;
-            await presence.InvokeVoidAsync("onClosing");
-        }
+        ClaimPresence();
+        ClaimPositioning();
+        ClaimMenu();
+        ClaimDismissLayer();
     }
 
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePresenceAsync()
+    private void ClaimMenu()
     {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/presence.js");
-        return await module.InvokeAsync<IJSObjectReference>("createPresence", Element, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreatePositioningAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/positioning.js");
-
-        var options = new PositioningOptions
-        {
-            Side = PreferredSide.ToAttribute(),
-            Align = PreferredAlign.ToAttribute(),
-            SideOffset = PreferredSideOffset,
-            AlignOffset = PreferredAlignOffset,
-            Inline = RenderInline,
-        };
-
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createPositioning", AnchorSelector, Element, options, _selfRef);
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateMenuAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
-
+        if (_menu.Claimed) return;
         var options = new MenuOptions
         {
             InitialFocus = FocusIntentToken,
@@ -267,39 +157,17 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         };
 
         // The ref lets a submenu request its own close (inline-start arrow / focus-out); the root never does.
-        return await module.InvokeAsync<IJSObjectReference>("createMenu", Element, options, _selfRef);
+        _menu.Claim(Js, MenuModule, "createMenu", Element, options, SelfReference);
     }
 
-    [ExcludeFromCodeCoverage]
-    private async Task<IJSObjectReference> CreateDismissableLayerAsync()
-    {
-        _selfRef ??= DotNetObjectReference.Create(this);
-        var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/dismissableLayer.js");
-
-        var options = new DismissableLayerOptions
-        {
-            // A press on the trigger is not "outside" - the trigger toggles itself (no double-close).
-            AnchorSelector = AnchorSelector,
-            DismissOnEscape = false, // Escape and Tab both close a menu: its own OnKeyDown handles the pair.
-            DismissOnScroll = DismissOnScroll,
-        };
-        return await module.InvokeAsync<IJSObjectReference>(
-            "createDismissableLayer", Element, _selfRef, options);
-    }
-
-    /// <summary>Called by the positioning module when the resolved placement flips.</summary>
-    [JSInvokable]
-    public void OnPlaced(string side, string align)
-    {
-        if (ResolvedSide == side && ResolvedAlign == align) return;
-        ResolvedSide = side;
-        ResolvedAlign = align;
-        StateHasChanged();
-    }
+    // Reopened while closing: the surface and its menu instance stay, and the instance places
+    // the opening focus once. The press that closed the menu moved focus to the page: without
+    // this the reopened menu had no focus, and Escape, the arrows and typing reached nothing.
+    private protected override ValueTask RefocusAsync() => _menu.InvokeVoidAsync("refocus");
 
     /// <summary>Called by the dismissable layer on an outside pointer-down (root menu only).</summary>
     [JSInvokable]
-    public Task OnDismissRequested()
+    public override Task OnDismissRequested()
     {
         // Record that this close came from a press OUTSIDE the surface, so RestoreFocusAsync can leave
         // focus where the user clicked instead of pulling it back to the trigger - a menubar clicked
@@ -316,13 +184,8 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     [JSInvokable]
     public Task OnSubCloseRequested() => RequestCloseAsync();
 
-    /// <summary>Called by the presence module once the exit animation has finished.</summary>
-    [JSInvokable]
-    public async Task OnCloseFinished()
+    private protected override async Task FinishCloseAsync()
     {
-        if (!Closing) return;
-        Present = false;
-        Closing = false;
         // Positioning goes down FIRST: its dispose moves a portaled surface back to its placeholder,
         // and that must precede the removal render so Blazor removes the node from the tree it still
         // owns. Then remove it and return focus to the trigger ourselves. We do this rather than lean
@@ -332,21 +195,19 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
         // focusTrigger is a no-op when the trigger is already gone (whole menu torn down), so a parent
         // menu's own restore wins. Then tear down the rest of the JS: pointer-down listener, menu
         // + presence listeners.
-        await DisposePositioningAsync();
+        await Positioning.ReleaseAsync();
         StateHasChanged();
         await RestoreFocusAsync();
-        await DisposeDismissAsync();
-        await DisposeMenuAsync();
-        await DisposePresenceAsync();
-        await OnClosedAsync();
+        await DismissLayer.ReleaseAsync();
+        await _menu.ReleaseAsync();
+        await Presence.ReleaseAsync();
     }
 
-    [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     private async Task RestoreFocusAsync()
     {
         var byPointer = _dismissedByPointer;
         _dismissedByPointer = false;
-        if (_menuTask is null) return;
+        if (!_menu.Claimed) return;
         // A stranded-restore surface (submenu / menubar menu) dismissed by an outside PRESS leaves
         // focus where the press landed: returning it to the trigger would re-highlight a bar the user
         // just clicked away from. A keyboard dismiss (Escape) never sets the flag, so it still restores
@@ -360,7 +221,7 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
             // but a dismissing click that already focused something else - a text input - keeps
             // the user's focus. Submenus additionally skip entirely on pointer dismissal (above):
             // ts/menu.js owns their close-focus (trigger on ArrowLeft, hovered sibling on mouse-out).
-            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            var module = await JsModules.ImportAsync(Js, MenuModule);
             await module.InvokeVoidAsync("focusTrigger", AnchorSelector, true, Element);
         }
         catch (JSDisconnectedException) { }
@@ -374,126 +235,15 @@ public abstract class MenuContentBase : BzComponentBase, IAsyncDisposable
     /// flips and the focus highlight only returns once the animation has finished - a visible flicker.
     /// No-op until the menu module has loaded.
     /// </summary>
-    [ExcludeFromCodeCoverage] // JS-interop seam: verified in-browser.
     protected async Task RefocusTriggerAsync()
     {
-        if (_menuTask is null) return;
+        if (!_menu.Claimed) return;
         try
         {
-            var module = await JsModules.ImportAsync(Js, "./_content/blaizio.base/dist/menu.js");
+            var module = await JsModules.ImportAsync(Js, MenuModule);
             await module.InvokeVoidAsync("focusTrigger", AnchorSelector, false);
         }
         catch (JSDisconnectedException) { }
         catch (ObjectDisposedException) { } // DisposeAsync raced this close and took the module down.
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeDismissAsync()
-    {
-        // Claimed synchronously before any await: the close-finish callback and the component's
-        // DisposeAsync can race here (a navigation disposes the component mid close-animation) -
-        // the second caller must see null and no-op instead of double-disposing the JS reference.
-        var task = _dismissTask;
-        _dismissTask = null;
-        if (task is null) return;
-        try
-        {
-            var dismiss = await task;
-            await dismiss.InvokeVoidAsync("dispose");
-            await dismiss.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePositioningAsync()
-    {
-        var task = _positioningTask;
-        _positioningTask = null;
-        if (task is null) return;
-        try
-        {
-            var positioning = await task;
-            await positioning.InvokeVoidAsync("dispose");
-            await positioning.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposeMenuAsync()
-    {
-        var task = _menuTask;
-        _menuTask = null;
-        if (task is null) return;
-        try
-        {
-            var menu = await task;
-            await menu.InvokeVoidAsync("dispose");
-            await menu.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    [ExcludeFromCodeCoverage]
-    private async Task DisposePresenceAsync()
-    {
-        var task = _presenceTask;
-        _presenceTask = null;
-        if (task is null) return;
-        try
-        {
-            var presence = await task;
-            await presence.InvokeVoidAsync("dispose");
-            await presence.DisposeAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-    }
-
-    // An ancestor closed and took this surface's element with it, while the component stays (a
-    // submenu when the whole menu closes). The instances are bound to that element: kept, the next
-    // opening rendered a new element that no script ever positioned, so the submenu stayed
-    // invisible. All four are claimed before the first await, so a render that comes in meanwhile
-    // finds none and creates fresh ones.
-    [ExcludeFromCodeCoverage]
-    private async Task ReleaseInstancesAsync()
-    {
-        Task<IJSObjectReference>?[] tasks = [_positioningTask, _dismissTask, _menuTask, _presenceTask];
-        _positioningTask = _dismissTask = _menuTask = _presenceTask = null;
-        foreach (var task in tasks)
-        {
-            if (task is null) continue;
-            try
-            {
-                var instance = await task;
-                if (instance is null) continue;
-                await instance.InvokeVoidAsync("dispose");
-                await instance.DisposeAsync();
-            }
-            catch (JSDisconnectedException) { }
-            catch (ObjectDisposedException) { }
-        }
-    }
-
-    [ExcludeFromCodeCoverage]
-    public async ValueTask DisposeAsync()
-    {
-        try
-        {
-            // Instances only - the modules are shared via JsModules and outlive this component.
-            await DisposeDismissAsync();
-            await DisposePositioningAsync();
-            await DisposeMenuAsync();
-            await DisposePresenceAsync();
-        }
-        catch (JSDisconnectedException) { }
-        catch (ObjectDisposedException) { }
-
-        _selfRef?.Dispose();
-        GC.SuppressFinalize(this);
     }
 }

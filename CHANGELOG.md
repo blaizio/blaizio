@@ -20,6 +20,29 @@ lockstep under one version.
   and kept the heights it had measured for other rows, so the scrollbar and the rows drifted
   until each row had been on screen again. Rows of a fixed height were never affected, and a list
   that only grows under the same sort and search is still an append.
+- **Select, Popover, Dialog, Alert Dialog, Sheet, Drawer**: a surface opened again while its exit
+  animation plays gets the keyboard focus back. The press that closed it (on its trigger, on the
+  page, on a dialog's backdrop) or the one that opened it again had moved focus out, and the
+  opening focus was placed only for a new surface. A select list reopened by a press on its
+  trigger was left with focus on the trigger: Escape and the arrows did nothing until the pointer
+  was used again. A popover or a dialog was open with focus behind it, so Tab started from the
+  page. Focus now goes where a first opening puts it (the selected option, the first field, or
+  the surface itself). Focus that is still inside stays where it is, and `OnOpenAutoFocus` is
+  raised again and can prevent the move. The menus already did this.
+- **Popover, Hover Card, Tooltip, Select, Combobox and the menus**: a surface opened again while
+  its exit animation plays keeps the side it is really on. One that had flipped to stay in view
+  (asked for the bottom, placed on top) went back to `data-side="bottom"` and kept saying so for
+  as long as it stayed open, because the positioning script reports a side only when it changes.
+- **Dropdown Menu, Context Menu, Menubar, Select, Combobox**: a surface says from its first frame
+  which side it opens to. `data-side` and `data-align` started as `bottom` and `start` whatever
+  was asked for (and, on a later opening, from wherever the last one ended up) until the
+  positioning script answered. A submenu, which opens to the side, or a menu with `Side="Top"`
+  began its entry slide from the wrong direction and changed it a moment later. Popover, Hover
+  Card and Tooltip already started from the side that was asked for.
+- **Dialog, Popover, Hover Card, Tooltip, Select, Combobox and the menus**: a surface taken off
+  the page while one of its script modules was still loading no longer asks that module for an
+  instance. The call was made for an element that was gone, and the error it ended in was raised
+  while the component was being disposed.
 - **Data Table**: a table fed by `ItemsProvider` can load its rows again. Identical requests are
   deduplicated, so rows added, deleted or edited at the source stayed stale until the user sorted,
   searched or changed page. The new `RefreshDataAsync()` asks for the current page again. And when
@@ -378,6 +401,12 @@ lockstep under one version.
   The rule is `ControllableState.IsControlled` in Blaizio.Base, with `ControllableState.IsSet`
   for values that cannot be null; both are public for your own components. Combobox, Color
   Picker, Input Color, Input Date and Input Time call it and now need Blaizio.Base 0.3.6.
+- **Overlay surfaces** (Blaizio.Base): the window and backdrop of a dialog, and the content of
+  Popover, Hover Card, Tooltip, Select, Combobox and the three menus share one lifecycle
+  (`PresenceSurfaceBase`, and `FloatingSurfaceBase` for the anchored ones) in place of eight
+  copies of it, and hold every script instance through `JsInstance`. Parameters, events and
+  rendered attributes are the same. `BaseTooltipContent` inherits an `OnDismissRequested` that
+  does nothing: a tooltip has no dismissable layer to call it.
 - **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
   components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
   style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset
