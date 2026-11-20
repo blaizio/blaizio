@@ -9,6 +9,8 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Sidebar**: a controlled `BzSidebarProvider` (`Open` set) no longer writes the `sidebar_state`
+  cookie. `PersistState` is for the provider's own state; the cookie was already not read there.
 - **Dialog, Sheet, Drawer**: the corner close button, and the Close button `BzDialogFooter` adds
   with `ShowCloseButton`, are `type="button"`. Inside a form they submitted it.
 - **Color Picker**: `ModeChanged` is raised when the picker changes surface by itself: a `Value`
