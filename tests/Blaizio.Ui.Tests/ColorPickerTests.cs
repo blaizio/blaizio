@@ -677,9 +677,9 @@ public class ColorPickerTests : BunitContext
         Assert.NotNull(cut.Instance.Gradient);
     }
 
-    // The tab press is recorded as the Mode last applied, so the parent's next render, whose Mode
-    // still says Solid, reads as a change made from outside and is applied over it.
-    [Fact(Skip = "bug: with Mode not bound, a surface picked on the tabs goes back to Solid as soon as the parent renders again (a bound Value is enough to cause that render)")]
+    // The tab press was recorded as the Mode last applied, so the parent's next render, whose Mode
+    // still said Solid, read as a change made from outside and was applied over it.
+    [Fact]
     public void A_surface_picked_on_the_tabs_stays_when_only_the_value_is_bound()
     {
         var cut = Render<ColorPickerValueHost>();
