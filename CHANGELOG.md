@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Navigation Menu**: a menu that starts open (`DefaultValue` or `Value`) shows its panel. The
+  trigger was marked open but the shared viewport stayed empty until something rendered the
+  menu again. A menu without a viewport was not affected.
 - **Sidebar**: a controlled `BzSidebarProvider` (`Open` set) no longer writes the `sidebar_state`
   cookie. `PersistState` is for the provider's own state; the cookie was already not read there.
 - **Dialog, Sheet, Drawer**: the corner close button, and the Close button `BzDialogFooter` adds

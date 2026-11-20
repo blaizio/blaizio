@@ -88,7 +88,14 @@
     public bool IsAnyOpen => OpenValue != "";
 
     /// <summary>A content registers its fragment to be relayed into the shared viewport.</summary>
-    public void RegisterContent(string id, RenderFragment fragment) => _contents[id] = fragment;
+    public void RegisterContent(string id, RenderFragment fragment)
+    {
+        _contents[id] = fragment;
+        // A content registers while it initializes, which is after this root has rendered its
+        // viewport. For the item a menu starts open on, that viewport was rendered without the
+        // panel: render again now that the panel is known.
+        if (Viewport && id == OpenValue) InvokeAsync(StateHasChanged);
+    }
 
     /// <summary>An item registers its id (in document order, used for the switch-direction motion).</summary>
     public void RegisterItem(string id)
