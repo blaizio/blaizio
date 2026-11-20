@@ -1,0 +1,292 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzDialogProvider dresses what IDialogService shows: a dialog window, the alert presentation
+    // of ConfirmAsync, or a sheet. The result of each call says how the surface was closed.
+
+    public DialogServiceTests() => JSInterop.Mode = JSRuntimeMode.Loose;
+
+    private (IRenderedComponent<BzDialogProvider> Cut, IDialogService Dialogs) Host(Action<BlaizioOptions>? configure = null)
+    {
+        Services.AddBlaizio(configure);
+        return (Render<BzDialogProvider>(), Services.GetRequiredService<IDialogService>());
+    }
+
+    private static async Task<Task<T>> StartAsync<T>(IRenderedComponent<BzDialogProvider> cut, Func<Task<T>> show)
+    {
+        Task<T> pending = null!;
+        await cut.InvokeAsync(() => { pending = show(); });
+        return pending;
+    }
+
+    private RenderFragment<DialogInstance> Template => instance =>
+        @<div>
+            <BzDialogTitle>Rename</BzDialogTitle>
+            <button id="ok" @onclick="@(() => instance.Close(DialogResult.Ok("renamed")))">OK</button>
+        </div>;
+
+    [Fact]
+    public async Task A_shown_template_renders_in_a_dialog_and_resolves_with_the_value_it_closes_with()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ShowAsync(Template));
+
+        var window = cut.Find("[role=dialog]");
+        Assert.Equal("dialog-content", window.GetAttribute("data-slot"));
+        Assert.False(pending.IsCompleted);
+
+        cut.Find("#ok").Click();
+        var result = await pending;
+
+        Assert.False(result.Cancelled);
+        Assert.Equal("renamed", result.ValueAs<string>());
+        Assert.Equal("closed", cut.Find("[role=dialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public async Task The_corner_button_resolves_the_call_as_cancelled()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ShowAsync(Template));
+
+        cut.Find("button.bz-dialog-close").Click();
+
+        Assert.True((await pending).Cancelled);
+    }
+
+    [Fact]
+    public async Task A_closed_dialog_leaves_the_host_once_its_exit_animation_reports_back()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ShowAsync(Template));
+        cut.Find("#ok").Click();
+        await pending;
+        Assert.NotEmpty(cut.FindAll("[role=dialog]"));
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
+
+        Assert.Empty(cut.FindAll("[role=dialog]"));
+        Assert.Empty(Services.GetRequiredService<IDialogStore>().Instances);
+    }
+
+    [Fact]
+    public async Task Options_reach_the_window()
+    {
+        var (cut, dialogs) = Host();
+        await StartAsync(cut, () => dialogs.ShowAsync(Template,
+            new BzDialogOptions { ContentClass = "sm:max-w-2xl", CloseLabel = "Dismiss", DismissOnOutsideClick = false }));
+
+        Assert.Contains("sm:max-w-2xl", cut.Find("[role=dialog]").ClassList);
+        Assert.Equal("Dismiss", cut.Find("button.bz-dialog-close .sr-only").TextContent);
+        // The backdrop of this call takes no press.
+        Assert.Throws<MissingEventHandlerException>(() => cut.Find("[data-slot=dialog-overlay]").PointerDown());
+    }
+
+    [Fact]
+    public async Task A_call_without_a_corner_button_or_modality_renders_neither()
+    {
+        var (cut, dialogs) = Host();
+        await StartAsync(cut, () => dialogs.ShowAsync(Template, new BzDialogOptions { ShowCloseButton = false, Modal = false }));
+
+        Assert.Empty(cut.FindAll("button.bz-dialog-close"));
+        Assert.Empty(cut.FindAll("[data-slot=dialog-overlay]"));
+        Assert.False(cut.Find("[role=dialog]").HasAttribute("aria-modal"));
+    }
+
+    [Fact]
+    public async Task A_dialog_that_prevents_dismissal_ignores_backdrop_and_Escape_until_it_is_released()
+    {
+        var (cut, dialogs) = Host();
+        DialogInstance shown = null!;
+        RenderFragment<DialogInstance> template = instance =>
+            @<div>@{ shown = instance; }<BzDialogTitle>Saving</BzDialogTitle></div>;
+        var pending = await StartAsync(cut, () => dialogs.ShowAsync(template, new BzDialogOptions { PreventDismiss = true }));
+
+        Assert.Empty(cut.FindAll("button.bz-dialog-close"));
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+        Assert.False(pending.IsCompleted);
+        Assert.Equal("open", cut.Find("[role=dialog]").GetAttribute("data-state"));
+
+        // The work is done: the dialog lets go and the corner button is back.
+        await cut.InvokeAsync(() => shown.PreventDismiss = false);
+        cut.Find("button.bz-dialog-close").Click();
+
+        Assert.True((await pending).Cancelled);
+    }
+
+    [Fact]
+    public async Task Dialogs_shown_on_top_of_each_other_stack_ten_apart()
+    {
+        var (cut, dialogs) = Host();
+        await StartAsync(cut, () => dialogs.ShowAsync(Template));
+        await StartAsync(cut, () => dialogs.ShowAsync(Template));
+
+        var overlays = cut.FindAll("[data-slot=dialog-overlay]");
+        var windows = cut.FindAll("[role=dialog]");
+        Assert.Equal(["z-index:60", "z-index:70"], overlays.Select(o => o.GetAttribute("style")));
+        Assert.Equal(["z-index:61", "z-index:71"], windows.Select(w => w.GetAttribute("style")));
+    }
+
+    [Fact]
+    public async Task Confirm_shows_an_alert_and_answers_true_on_the_confirm_button()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ConfirmAsync("Delete the file?", "It cannot be restored."));
+
+        var alert = cut.Find("[role=alertdialog]");
+        Assert.Equal("Delete the file?", cut.Find("[data-slot=alert-dialog-title]").TextContent);
+        Assert.Equal("It cannot be restored.", cut.Find("[data-slot=alert-dialog-description]").TextContent);
+        Assert.Equal(cut.Find("[data-slot=alert-dialog-title]").Id, alert.GetAttribute("aria-labelledby"));
+        var buttons = cut.FindAll("[data-slot=alert-dialog-footer] button");
+        Assert.Equal(["Cancel", "Continue"], buttons.Select(b => b.TextContent.Trim()));
+
+        buttons[1].Click();
+
+        Assert.True(await pending);
+    }
+
+    [Fact]
+    public async Task Confirm_answers_false_on_cancel()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ConfirmAsync("Delete the file?"));
+        // No description given: none rendered, none referenced.
+        Assert.Empty(cut.FindAll("[data-slot=alert-dialog-description]"));
+        Assert.False(cut.Find("[role=alertdialog]").HasAttribute("aria-describedby"));
+
+        cut.Find("button.bz-alert-dialog-cancel").Click();
+
+        Assert.False(await pending);
+    }
+
+    [Fact]
+    public async Task Confirm_answers_false_on_Escape()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ConfirmAsync("Delete the file?"));
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+
+        Assert.False(await pending);
+    }
+
+    [Fact]
+    public async Task Confirm_takes_its_wording_variant_and_size_from_the_options()
+    {
+        var (cut, dialogs) = Host();
+        await StartAsync(cut, () => dialogs.ConfirmAsync("Delete?", options: new BzDialogOptions
+        {
+            ConfirmText = "Delete",
+            CancelText = "Keep",
+            ConfirmVariant = ButtonVariant.Destructive,
+            Size = AlertDialogSize.Sm,
+            ContentClass = "pinned",
+        }));
+
+        Assert.Equal("Keep", cut.Find("button.bz-alert-dialog-cancel").TextContent.Trim());
+        var confirm = cut.Find("button.bz-alert-dialog-action");
+        Assert.Equal("Delete", confirm.TextContent.Trim());
+        Assert.Equal("destructive", confirm.GetAttribute("data-variant"));
+        var alert = cut.Find("[role=alertdialog]");
+        Assert.Equal("sm", alert.GetAttribute("data-size"));
+        Assert.Contains("pinned", alert.ClassList);
+    }
+
+    [Fact]
+    public async Task A_sheet_slides_in_from_the_end_edge_unless_a_side_is_given()
+    {
+        var (cut, dialogs) = Host();
+        await StartAsync(cut, () => dialogs.ShowSheetAsync(Template));
+        await StartAsync(cut, () => dialogs.ShowSheetAsync(Template, PanelSide.Bottom));
+        // A side in the options wins over the argument.
+        await StartAsync(cut, () => dialogs.ShowSheetAsync(Template, PanelSide.Bottom, new BzDialogOptions { SheetSide = PanelSide.Start }));
+
+        var sheets = cut.FindAll("[data-slot=sheet-content]");
+        Assert.Equal(["end", "bottom", "start"], sheets.Select(s => s.GetAttribute("data-side")));
+        Assert.All(sheets, s => Assert.Equal("dialog", s.GetAttribute("role")));
+    }
+
+    [Fact]
+    public async Task A_sheet_resolves_like_a_dialog_and_takes_the_shared_options()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ShowSheetAsync(Template, PanelSide.Start,
+            new BzDialogOptions { CloseLabel = "Hide", ContentClass = "w-96" }));
+
+        Assert.Contains("w-96", cut.Find("[data-slot=sheet-content]").ClassList);
+        Assert.Equal("Hide", cut.Find("button.bz-sheet-close .sr-only").TextContent);
+
+        cut.Find("#ok").Click();
+        Assert.Equal("renamed", (await pending).ValueAs<string>());
+    }
+
+    private sealed class Greeting : ComponentBase
+    {
+        [Parameter] public string Name { get; set; } = "";
+        [CascadingParameter] public DialogInstance Dialog { get; set; } = default!;
+
+        protected override void BuildRenderTree(Microsoft.AspNetCore.Components.Rendering.RenderTreeBuilder builder)
+        {
+            builder.OpenElement(0, "button");
+            builder.AddAttribute(1, "id", "greet");
+            builder.AddAttribute(2, "onclick", EventCallback.Factory.Create(this, () => Dialog.Close(DialogResult.Ok(Name.Length))));
+            builder.AddContent(3, $"Hello {Name}");
+            builder.CloseElement();
+        }
+    }
+
+    [Fact]
+    public async Task A_component_shown_as_a_sheet_gets_its_parameters_and_the_instance_to_close_with()
+    {
+        var (cut, dialogs) = Host();
+        var pending = await StartAsync(cut, () => dialogs.ShowSheetAsync<Greeting>(
+            new Dictionary<string, object?> { [nameof(Greeting.Name)] = "Ada" }, PanelSide.Top));
+
+        var button = cut.Find("[data-slot=sheet-content][data-side=top] #greet");
+        Assert.Equal("Hello Ada", button.TextContent);
+
+        button.Click();
+        Assert.Equal(3, (await pending).ValueAs<int>());
+    }
+
+    [Fact]
+    public async Task App_wide_defaults_word_the_calls_that_pass_no_options()
+    {
+        var (cut, dialogs) = Host(o => o.DialogDefaults = new BzDialogOptions
+        {
+            CloseLabel = "Fermer",
+            ConfirmText = "Oui",
+            CancelText = "Non",
+        });
+        await StartAsync(cut, () => dialogs.ShowAsync(Template));
+        await StartAsync(cut, () => dialogs.ShowSheetAsync(Template));
+        await StartAsync(cut, () => dialogs.ConfirmAsync("Supprimer ?"));
+
+        Assert.Equal("Fermer", cut.Find("button.bz-dialog-close .sr-only").TextContent);
+        Assert.Equal("Fermer", cut.Find("button.bz-sheet-close .sr-only").TextContent);
+        Assert.Equal("Non", cut.Find("button.bz-alert-dialog-cancel").TextContent.Trim());
+        Assert.Equal("Oui", cut.Find("button.bz-alert-dialog-action").TextContent.Trim());
+    }
+
+    [Fact]
+    public async Task Plain_defaults_still_carry_their_dismissal_rule_into_every_presentation()
+    {
+        // A headless DialogOptions as the app default: no wording, but the lock must survive.
+        var (cut, dialogs) = Host(o => o.DialogDefaults = new DialogOptions { PreventDismiss = true });
+        var shown = await StartAsync(cut, () => dialogs.ShowAsync(Template));
+        var sheet = await StartAsync(cut, () => dialogs.ShowSheetAsync(Template));
+        var confirm = await StartAsync(cut, () => dialogs.ConfirmAsync("Sure?"));
+
+        Assert.Empty(cut.FindAll("button.bz-dialog-close"));
+        Assert.Empty(cut.FindAll("button.bz-sheet-close"));
+        foreach (var content in cut.FindComponents<BaseDialogContent>())
+            await cut.InvokeAsync(() => content.Instance.OnDismissRequested());
+
+        Assert.False(shown.IsCompleted);
+        Assert.False(sheet.IsCompleted);
+        Assert.False(confirm.IsCompleted);
+    }
+}

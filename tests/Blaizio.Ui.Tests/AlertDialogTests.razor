@@ -1,0 +1,272 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzAlertDialog: a modal confirmation that only an explicit choice (or Escape) closes. The
+    // action and cancel buttons run the consumer's click first and close afterwards.
+
+    public AlertDialogTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private RenderFragment Parts(Action? onAction = null, Action? onCancel = null) =>
+        @<text>
+            <BzAlertDialogTrigger>Delete account</BzAlertDialogTrigger>
+            <BzAlertDialogContent>
+                <BzAlertDialogHeader>
+                    <BzAlertDialogTitle>Delete the account?</BzAlertDialogTitle>
+                    <BzAlertDialogDescription>This cannot be undone.</BzAlertDialogDescription>
+                </BzAlertDialogHeader>
+                <BzAlertDialogFooter>
+                    <BzAlertDialogCancel @onclick="@(() => onCancel?.Invoke())">Keep it</BzAlertDialogCancel>
+                    <BzAlertDialogAction @onclick="@(() => onAction?.Invoke())">Delete</BzAlertDialogAction>
+                </BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </text>;
+
+    [Fact]
+    public void The_trigger_opens_a_modal_alert_named_by_its_title_and_description()
+    {
+        var cut = Render(@<BzAlertDialog>@Parts()</BzAlertDialog>);
+        var trigger = cut.Find("[data-slot=alert-dialog-trigger]");
+        Assert.Equal("false", trigger.GetAttribute("aria-expanded"));
+        Assert.Empty(cut.FindAll("[role=alertdialog]"));
+
+        trigger.Click();
+
+        var content = cut.Find("[role=alertdialog]");
+        Assert.Equal("alert-dialog-content", content.GetAttribute("data-slot"));
+        Assert.Equal("true", content.GetAttribute("aria-modal"));
+        Assert.Equal(cut.Find("[data-slot=alert-dialog-title]").Id, content.GetAttribute("aria-labelledby"));
+        Assert.Equal(cut.Find("[data-slot=alert-dialog-description]").Id, content.GetAttribute("aria-describedby"));
+        trigger = cut.Find("[data-slot=alert-dialog-trigger]");
+        Assert.Equal("true", trigger.GetAttribute("aria-expanded"));
+        Assert.Equal(content.Id, trigger.GetAttribute("aria-controls"));
+    }
+
+    [Fact]
+    public void A_press_on_the_backdrop_leaves_the_alert_open()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">@Parts()</BzAlertDialog>);
+
+        // The backdrop of an alert carries no press handler at all.
+        var overlay = cut.Find("[data-slot=alert-dialog-overlay]");
+        Assert.Throws<MissingEventHandlerException>(() => overlay.PointerDown());
+
+        Assert.Equal("open", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_action_runs_the_consumer_click_and_then_closes()
+    {
+        var events = new List<string>();
+        var cut = Render(@<BzAlertDialog DefaultOpen="true" OpenChanged="@((bool open) => events.Add($"open {open}"))">
+            @Parts(onAction: () => events.Add("delete"))
+        </BzAlertDialog>);
+
+        cut.Find("[data-slot=alert-dialog-action]").Click();
+
+        Assert.Equal(["delete", "open False"], events);
+        Assert.Equal("closed", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Cancel_runs_the_consumer_click_and_then_closes()
+    {
+        var events = new List<string>();
+        var cut = Render(@<BzAlertDialog DefaultOpen="true" OpenChanged="@((bool open) => events.Add($"open {open}"))">
+            @Parts(onCancel: () => events.Add("kept"))
+        </BzAlertDialog>);
+
+        cut.Find("[data-slot=alert-dialog-cancel]").Click();
+
+        Assert.Equal(["kept", "open False"], events);
+        Assert.Equal("closed", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Each_button_is_wired_once_so_one_press_is_one_click()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">@Parts(onAction: () => clicks++)</BzAlertDialog>);
+
+        cut.Find("[data-slot=alert-dialog-action]").Click();
+
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void Cancel_is_outlined_and_the_action_takes_the_variant_it_is_given()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">
+            <BzAlertDialogContent>
+                <BzAlertDialogTitle>Sure?</BzAlertDialogTitle>
+                <BzAlertDialogCancel>No</BzAlertDialogCancel>
+                <BzAlertDialogAction Variant="ButtonVariant.Destructive" Size="ButtonSize.Sm" Class="w-full">Yes</BzAlertDialogAction>
+            </BzAlertDialogContent>
+        </BzAlertDialog>);
+
+        Assert.Equal("outline", cut.Find("[data-slot=alert-dialog-cancel]").GetAttribute("data-variant"));
+        var action = cut.Find("[data-slot=alert-dialog-action]");
+        Assert.Equal("destructive", action.GetAttribute("data-variant"));
+        Assert.Equal("sm", action.GetAttribute("data-size"));
+        Assert.Contains("w-full", action.ClassList);
+        Assert.Contains("bz-alert-dialog-action", action.ClassList);
+    }
+
+    [Fact]
+    public void A_controlled_alert_asks_to_close_and_stays_open_until_the_parent_agrees()
+    {
+        var requests = new List<bool>();
+        var cut = Render(@<BzAlertDialog Open="true" OpenChanged="@((bool open) => requests.Add(open))">@Parts()</BzAlertDialog>);
+
+        cut.Find("[data-slot=alert-dialog-cancel]").Click();
+
+        Assert.Equal([false], requests);
+        Assert.Equal("open", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public async Task Escape_closes_the_alert()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">@Parts()</BzAlertDialog>);
+
+        // Escape arrives through the dismissable layer.
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+
+        Assert.Equal("closed", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public async Task A_locked_alert_ignores_Escape_and_still_closes_from_its_buttons()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true" DismissOnOutsideClick="false">@Parts()</BzAlertDialog>);
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+        Assert.Equal("open", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+
+        cut.Find("[data-slot=alert-dialog-action]").Click();
+        Assert.Equal("closed", cut.Find("[role=alertdialog]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Size_class_and_extra_attributes_reach_the_alert_surface()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">
+            <BzAlertDialogContent Size="AlertDialogSize.Sm" Class="max-w-xs" data-testid="confirm">
+                <BzAlertDialogTitle>Sure?</BzAlertDialogTitle>
+            </BzAlertDialogContent>
+        </BzAlertDialog>);
+
+        var content = cut.Find("[role=alertdialog]");
+        Assert.Equal("sm", content.GetAttribute("data-size"));
+        Assert.Equal("confirm", content.GetAttribute("data-testid"));
+        Assert.Contains("max-w-xs", content.ClassList);
+        Assert.Contains("bz-alert-dialog-content", content.ClassList);
+    }
+
+    [Fact]
+    public void The_default_size_is_marked_on_the_surface()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">@Parts()</BzAlertDialog>);
+
+        Assert.Equal("default", cut.Find("[role=alertdialog]").GetAttribute("data-size"));
+    }
+
+    [Fact]
+    public void A_stacked_alert_puts_its_surface_one_step_above_its_backdrop()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">
+            <BzAlertDialogContent ZIndex="70">
+                <BzAlertDialogTitle>Sure?</BzAlertDialogTitle>
+            </BzAlertDialogContent>
+        </BzAlertDialog>);
+
+        Assert.Equal("z-index:70", cut.Find("[data-slot=alert-dialog-overlay]").GetAttribute("style"));
+        Assert.Equal("z-index:71", cut.Find("[role=alertdialog]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Inline_keeps_backdrop_and_surface_out_of_the_portal()
+    {
+        var portaled = Render(@<BzAlertDialog DefaultOpen="true">@Parts()</BzAlertDialog>);
+        Assert.True(portaled.Find("[role=alertdialog]").HasAttribute("data-bz-portal"));
+        Assert.True(portaled.Find("[data-slot=alert-dialog-overlay]").HasAttribute("data-bz-portal"));
+
+        var inline = Render(@<BzAlertDialog DefaultOpen="true">
+            <BzAlertDialogContent Inline="true"><BzAlertDialogTitle>Sure?</BzAlertDialogTitle></BzAlertDialogContent>
+        </BzAlertDialog>);
+        Assert.False(inline.Find("[role=alertdialog]").HasAttribute("data-bz-portal"));
+        Assert.False(inline.Find("[data-slot=alert-dialog-overlay]").HasAttribute("data-bz-portal"));
+    }
+
+    [Fact]
+    public async Task The_surface_is_removed_once_the_exit_animation_reports_back()
+    {
+        var exits = 0;
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">
+            <BzAlertDialogContent OnExitComplete="@(() => exits++)">
+                <BzAlertDialogTitle>Sure?</BzAlertDialogTitle>
+                <BzAlertDialogCancel>No</BzAlertDialogCancel>
+            </BzAlertDialogContent>
+        </BzAlertDialog>);
+
+        cut.Find("[data-slot=alert-dialog-cancel]").Click();
+        // Still rendered while the exit animation plays.
+        Assert.NotEmpty(cut.FindAll("[role=alertdialog]"));
+        Assert.Equal(0, exits);
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
+
+        Assert.Empty(cut.FindAll("[role=alertdialog]"));
+        Assert.Equal(1, exits);
+    }
+
+    [Fact]
+    public void The_trigger_styles_its_default_button_and_can_render_onto_another_element()
+    {
+        var styled = Render(@<BzAlertDialog>
+            <BzAlertDialogTrigger Variant="ButtonVariant.Destructive" Size="ButtonSize.Lg" Class="mt-2">Delete</BzAlertDialogTrigger>
+        </BzAlertDialog>);
+        var button = styled.Find("button[data-slot=alert-dialog-trigger]");
+        Assert.Equal("destructive", button.GetAttribute("data-variant"));
+        Assert.Equal("lg", button.GetAttribute("data-size"));
+        Assert.Equal("button", button.GetAttribute("type"));
+        Assert.Contains("mt-2", button.ClassList);
+
+        var custom = Render(@<BzAlertDialog>
+            <BzAlertDialogTrigger>
+                <RenderAs Context="p"><a href="#" @attributes="p.Attributes">Delete</a></RenderAs>
+            </BzAlertDialogTrigger>
+            <BzAlertDialogContent><BzAlertDialogTitle>Sure?</BzAlertDialogTitle></BzAlertDialogContent>
+        </BzAlertDialog>);
+        var link = custom.Find("a[data-slot=alert-dialog-trigger]");
+        Assert.Equal("dialog", link.GetAttribute("aria-haspopup"));
+        link.Click();
+        Assert.NotEmpty(custom.FindAll("[role=alertdialog]"));
+    }
+
+    [Fact]
+    public void The_footer_and_media_merge_classes_and_forward_attributes()
+    {
+        var cut = Render(@<BzAlertDialog DefaultOpen="true">
+            <BzAlertDialogContent>
+                <BzAlertDialogMedia Class="size-12" data-kind="warning">!</BzAlertDialogMedia>
+                <BzAlertDialogTitle>Sure?</BzAlertDialogTitle>
+                <BzAlertDialogFooter Class="flex-row" id="actions">x</BzAlertDialogFooter>
+            </BzAlertDialogContent>
+        </BzAlertDialog>);
+
+        var media = cut.Find("[data-slot=alert-dialog-media]");
+        Assert.Contains("size-12", media.ClassList);
+        Assert.Equal("warning", media.GetAttribute("data-kind"));
+        var footer = cut.Find("[data-slot=alert-dialog-footer]");
+        Assert.Equal("actions", footer.Id);
+        // The later direction replaces the default one instead of sitting next to it.
+        Assert.Contains("flex-row", footer.ClassList);
+        Assert.DoesNotContain("flex-col-reverse", footer.ClassList);
+    }
+}

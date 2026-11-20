@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Playwright;
 using Xunit;
@@ -55,7 +56,10 @@ public sealed class E2ETheoryAttribute : TheoryAttribute
 /// </summary>
 public sealed class DocsServerFixture : IAsyncLifetime
 {
-    public const string BaseUrl = "http://127.0.0.1:5237";
+    /// <summary>Where the suite's docs app listens. <c>BLAIZIO_E2E_PORT</c> moves it, so two checkouts can
+    /// run the suite at the same time without one testing the other's build.</summary>
+    public static readonly string BaseUrl =
+        "http://127.0.0.1:" + (Environment.GetEnvironmentVariable("BLAIZIO_E2E_PORT") is { Length: > 0 } port ? port : "5237");
 
     private Process? _server;
     private readonly StringBuilder _serverLog = new();
@@ -66,6 +70,24 @@ public sealed class DocsServerFixture : IAsyncLifetime
     public async Task InitializeAsync()
     {
         if (!E2E.Enabled) return;
+
+        // BLAIZIO_E2E_ATTACH=1: the docs app is already running at BaseUrl and was started on
+        // purpose (the quick loop while writing a test, see README.md). Nothing is built or started.
+        if (Environment.GetEnvironmentVariable("BLAIZIO_E2E_ATTACH") == "1")
+        {
+            if (!await IsListeningAsync())
+                throw new InvalidOperationException($"BLAIZIO_E2E_ATTACH is set, but nothing answers at {BaseUrl}.");
+            Microsoft.Playwright.Program.Main(["install", "chromium"]);
+            _playwright = await Playwright.CreateAsync();
+            Browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
+            return;
+        }
+
+        // Something already answering here is another run's server (or a stale one): every test would
+        // pass or fail against THAT build, so stop before starting.
+        if (await IsListeningAsync())
+            throw new InvalidOperationException(
+                $"{BaseUrl} is already in use. Stop that server, or set BLAIZIO_E2E_PORT to a free port.");
 
         var docsProj = Path.Combine(E2E.RepoRoot, "docs", "Blaizio.Docs", "Blaizio.Docs.csproj");
 
@@ -108,6 +130,20 @@ public sealed class DocsServerFixture : IAsyncLifetime
         Browser = await browserTask;
     }
 
+    private static async Task<bool> IsListeningAsync()
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+        try
+        {
+            using var response = await http.GetAsync(BaseUrl);
+            return true;
+        }
+        catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
+        {
+            return false;
+        }
+    }
+
     private async Task WaitForServerAsync()
     {
         using var http = new HttpClient();
@@ -136,7 +172,8 @@ public sealed class DocsServerFixture : IAsyncLifetime
     /// boot script applies before Blazor starts.
     /// </summary>
     public async Task<IBrowserContext> NewContextAsync(
-        string style = "ember", string dir = "ltr", string theme = "light", ViewportSize? viewport = null)
+        string style = "ember", string dir = "ltr", string theme = "light", ViewportSize? viewport = null,
+        [CallerFilePath] string callerFile = "", [CallerMemberName] string callerMember = "")
     {
         var context = await Browser.NewContextAsync(new()
         {
@@ -148,6 +185,17 @@ public sealed class DocsServerFixture : IAsyncLifetime
             $"localStorage.setItem('blaizio-style', '{style}');" +
             $"localStorage.setItem('blaizio-dir', '{dir}');" +
             $"localStorage.setItem('blaizio-theme', '{theme}');");
+        if (ScriptCoverage.Enabled) return ScriptCoverage.Watch(context, ScriptCoverage.TestName(callerFile, callerMember));
+        return context;
+    }
+
+    /// <summary>A context with options of the test's own (touch, a phone-sized screen). Use this
+    /// rather than <see cref="Browser"/> directly, so a script-coverage run sees the test.</summary>
+    public async Task<IBrowserContext> NewContextAsync(BrowserNewContextOptions options,
+        [CallerFilePath] string callerFile = "", [CallerMemberName] string callerMember = "")
+    {
+        var context = await Browser.NewContextAsync(options);
+        if (ScriptCoverage.Enabled) return ScriptCoverage.Watch(context, ScriptCoverage.TestName(callerFile, callerMember));
         return context;
     }
 
@@ -186,6 +234,7 @@ public sealed class DocsServerFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        if (ScriptCoverage.Enabled) await ScriptCoverage.WriteAsync();
         if (Browser is not null) await Browser.CloseAsync();
         _playwright?.Dispose();
         if (_server is { HasExited: false })

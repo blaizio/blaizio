@@ -1,0 +1,30 @@
+@* Test host: a color picker with everything bound, the way a page binds it. *@
+<BzColorPicker @bind-Value="Value" @bind-Format="Format" @bind-Mode="Mode" @bind-Gradient="Gradient"
+               @bind-Image="Image" @bind-SavedColors="Saved"
+               ShowAlpha="ShowAlpha" ShowGradient="true" ShowImage="ShowImage" ShowSaved="true" ShowFormatPicker="true"
+               Swatches="Swatches" OnValueCommit="value => Commits.Add(value)" />
+
+@code {
+    [Parameter] public string? Start { get; set; }
+    [Parameter] public ColorFormat StartFormat { get; set; }
+    [Parameter] public bool ShowAlpha { get; set; }
+    [Parameter] public bool ShowImage { get; set; }
+    [Parameter] public IReadOnlyList<string>? Swatches { get; set; }
+
+    public string? Value;
+    public ColorFormat Format;
+    public ColorPickerMode Mode;
+    public GradientValue? Gradient;
+    public ImageFillValue? Image;
+    public IReadOnlyList<string>? Saved;
+    public List<string> Commits { get; } = [];
+
+    protected override void OnInitialized() => (Value, Format) = (Start, StartFormat);
+
+    /// <summary>What a page does when it sets a bound value itself.</summary>
+    public void Set(Action<ColorPickerHost> change)
+    {
+        change(this);
+        StateHasChanged();
+    }
+}

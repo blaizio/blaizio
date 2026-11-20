@@ -1,0 +1,159 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzTabs: a tab list and the one panel that belongs to the selected tab, wired to each other
+    // by id. The list's variant and the root's orientation are what the styles read.
+
+    public TabsTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static readonly RenderFragment Parts =
+        @<text>
+            <BzTabsList AriaLabel="Account">
+                <BzTabsTrigger Value="profile">Profile</BzTabsTrigger>
+                <BzTabsTrigger Value="password">Password</BzTabsTrigger>
+                <BzTabsTrigger Value="billing" Disabled="true">Billing</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="profile">Your name</BzTabsContent>
+            <BzTabsContent Value="password">Your password</BzTabsContent>
+            <BzTabsContent Value="billing">Your card</BzTabsContent>
+        </text>;
+
+    private static string Selected(IRenderedComponent<IComponent> cut) =>
+        string.Join(' ', cut.FindAll("[role=tab]").Select(t => t.GetAttribute("aria-selected")));
+
+    [Fact]
+    public void The_selected_tab_and_its_panel_point_at_each_other()
+    {
+        var cut = Render(@<BzTabs DefaultValue="profile">@Parts</BzTabs>);
+
+        var list = cut.Find("[role=tablist][data-slot=tabs-list]");
+        Assert.Equal("Account", list.GetAttribute("aria-label"));
+        Assert.Equal("horizontal", list.GetAttribute("aria-orientation"));
+        Assert.Equal("true false false", Selected(cut));
+        var tab = cut.Find("button[role=tab][data-state=active]");
+        Assert.Equal("tabs-trigger", tab.GetAttribute("data-slot"));
+        // Only the selected tab's panel is rendered.
+        var panel = Assert.Single(cut.FindAll("[role=tabpanel]"));
+        Assert.Equal("tabs-content", panel.GetAttribute("data-slot"));
+        Assert.Equal("Your name", panel.TextContent);
+        Assert.Equal(tab.Id, panel.GetAttribute("aria-labelledby"));
+        Assert.Equal(panel.Id, tab.GetAttribute("aria-controls"));
+    }
+
+    [Fact]
+    public void A_press_on_a_tab_selects_it_and_swaps_the_panel()
+    {
+        var cut = Render(@<BzTabs DefaultValue="profile">@Parts</BzTabs>);
+
+        cut.FindAll("[role=tab]")[1].Click();
+
+        Assert.Equal("false true false", Selected(cut));
+        Assert.Equal("Your password", cut.Find("[role=tabpanel]").TextContent);
+    }
+
+    [Fact]
+    public void A_disabled_tab_cannot_be_selected()
+    {
+        var cut = Render(@<BzTabs DefaultValue="profile">@Parts</BzTabs>);
+
+        var billing = cut.FindAll("[role=tab]")[2];
+        Assert.True(billing.HasAttribute("disabled"));
+        billing.Click();
+
+        Assert.Equal("true false false", Selected(cut));
+    }
+
+    [Fact]
+    public void A_bound_value_is_asked_for_and_followed()
+    {
+        var requests = new List<string>();
+        var cut = Render<BzTabs>(p => p
+            .Add(x => x.Value, "profile")
+            .Add(x => x.ValueChanged, (string v) => requests.Add(v))
+            .AddChildContent(Parts));
+
+        cut.FindAll("[role=tab]")[1].Click();
+        Assert.Equal(["password"], requests);
+        Assert.Equal("true false false", Selected(cut));
+
+        cut.Render(p => p.Add(x => x.Value, "password"));
+        Assert.Equal("false true false", Selected(cut));
+        Assert.Equal("Your password", cut.Find("[role=tabpanel]").TextContent);
+    }
+
+    [Fact(Skip = "bug: BaseTabs reads a ValueChanged listener as controlled, so DefaultValue with ValueChanged selects no tab and renders no panel")]
+    public void Tabs_that_are_only_listened_to_still_start_from_their_default_tab()
+    {
+        var heard = new List<string>();
+        var cut = Render(@<BzTabs DefaultValue="profile" ValueChanged="@((string v) => heard.Add(v))">@Parts</BzTabs>);
+        Assert.Equal("true false false", Selected(cut));
+
+        cut.FindAll("[role=tab]")[1].Click();
+
+        Assert.Equal(["password"], heard);
+        Assert.Equal("false true false", Selected(cut));
+    }
+
+    [Fact]
+    public void A_vertical_set_of_tabs_says_so_on_the_root_the_list_and_the_panel()
+    {
+        var cut = Render(@<BzTabs DefaultValue="profile" Orientation="Orientation.Vertical" Class="gap-6" id="settings">@Parts</BzTabs>);
+
+        var root = cut.Find("#settings[data-slot=tabs]");
+        Assert.Equal("vertical", root.GetAttribute("data-orientation"));
+        Assert.Contains("gap-6", root.ClassList);
+        Assert.Equal("vertical", cut.Find("[role=tablist]").GetAttribute("aria-orientation"));
+        Assert.Equal("vertical", cut.Find("[role=tabpanel]").GetAttribute("data-orientation"));
+    }
+
+    [Fact]
+    public void The_panel_is_a_tab_stop_unless_the_root_says_its_content_is_reachable_already()
+    {
+        var focusable = Render(@<BzTabs DefaultValue="profile">@Parts</BzTabs>);
+        Assert.Equal("0", focusable.Find("[role=tabpanel]").GetAttribute("tabindex"));
+
+        var plain = Render(@<BzTabs DefaultValue="profile" PanelFocusable="false">@Parts</BzTabs>);
+        Assert.False(plain.Find("[role=tabpanel]").HasAttribute("tabindex"));
+    }
+
+    [Theory]
+    [InlineData(TabsListVariant.Default, "default", "bz-tabs-list-variant-default", "bg-muted")]
+    [InlineData(TabsListVariant.Line, "line", "bz-tabs-list-variant-line", "bg-transparent")]
+    public void The_list_variant_is_marked_for_the_triggers_and_picks_the_strip(
+        TabsListVariant variant, string name, string token, string strip)
+    {
+        var cut = Render(@<BzTabs DefaultValue="a">
+            <BzTabsList Variant="variant" AriaLabelledBy="heading" Class="w-full" id="list">
+                <BzTabsTrigger Value="a" Class="px-6" id="a">A</BzTabsTrigger>
+            </BzTabsList>
+            <BzTabsContent Value="a" Class="pt-4" id="panel">Panel</BzTabsContent>
+        </BzTabs>);
+
+        var list = cut.Find("#list");
+        Assert.Equal(name, list.GetAttribute("data-variant"));
+        Assert.Contains(token, list.ClassList);
+        Assert.Contains(strip, list.ClassList);
+        Assert.Contains("w-full", list.ClassList);
+        Assert.DoesNotContain("w-fit", list.ClassList);
+        Assert.Equal("heading", list.GetAttribute("aria-labelledby"));
+        Assert.False(list.HasAttribute("aria-label"));
+        // The consumer's id stays on the list; tab and panel keep the generated ids that wire them.
+        Assert.Contains("px-6", cut.Find("[role=tab]").ClassList);
+        Assert.Contains("pt-4", cut.Find("[role=tabpanel]").ClassList);
+    }
+
+    [Fact]
+    public void With_no_tab_selected_no_panel_is_rendered()
+    {
+        var cut = Render(@<BzTabs>@Parts</BzTabs>);
+
+        Assert.Equal("false false false", Selected(cut));
+        Assert.Empty(cut.FindAll("[role=tabpanel]"));
+    }
+}

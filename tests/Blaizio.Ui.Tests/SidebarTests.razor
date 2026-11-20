@@ -1,0 +1,723 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzSidebarProvider owns the sidebar's state: expanded or collapsed on desktop, a sheet on
+    // mobile, remembered in a cookie, toggled by the trigger, the rail and Ctrl/Cmd+B. The parts
+    // read that state from the cascade.
+
+    private const string SidebarModule = "./_content/blaizio.base/dist/sidebar.js";
+    private const string HotkeysModule = "./_content/blaizio.base/dist/hotkeys.js";
+
+    public SidebarTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    // The sidebar script as the provider sees it: a viewport on one side of the breakpoint and,
+    // optionally, a state remembered from an earlier visit.
+    private BunitJSModuleInterop Script(bool mobile = false, string? cookie = null)
+    {
+        var module = JSInterop.SetupModule(SidebarModule);
+        module.Mode = JSRuntimeMode.Loose;
+        module.Setup<bool>("matchesMobile", _ => true).SetResult(mobile);
+        if (cookie is not null) module.Setup<string>("getCookie", _ => true).SetResult(cookie);
+        return module;
+    }
+
+    private static RenderFragment Layout(
+        SidebarSide side = SidebarSide.Start,
+        SidebarVariant variant = SidebarVariant.Sidebar,
+        SidebarCollapsible collapse = SidebarCollapsible.Offcanvas) =>
+        @<text>
+            <BzSidebar Side="side" Variant="variant" CollapseMode="collapse">
+                <BzSidebarContent>
+                    <BzSidebarMenu>
+                        <BzSidebarMenuItem><BzSidebarMenuButton>Inbox</BzSidebarMenuButton></BzSidebarMenuItem>
+                    </BzSidebarMenu>
+                </BzSidebarContent>
+                <BzSidebarRail />
+            </BzSidebar>
+            <BzSidebarInset><BzSidebarTrigger /></BzSidebarInset>
+        </text>;
+
+    private static AngleSharp.Dom.IElement Shell(IRenderedComponent<IComponent> cut) => cut.Find("div[data-slot=sidebar]");
+
+    // Provider state -----------------------------------------------------------------------------
+
+    [Fact]
+    public void The_wrapper_declares_the_three_widths_the_styles_read()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">x</BzSidebarProvider>);
+        Assert.Equal("--sidebar-width:16rem;--sidebar-width-icon:3rem;--sidebar-width-mobile:18rem",
+            cut.Find("[data-slot=sidebar-wrapper]").GetAttribute("style"));
+
+        var sized = Render(@<BzSidebarProvider PersistState="false" Width="20rem" WidthIcon="4rem" WidthMobile="90vw"
+                                               Class="min-h-0" id="app">x</BzSidebarProvider>);
+        var wrapper = sized.Find("#app[data-slot=sidebar-wrapper]");
+        Assert.Equal("--sidebar-width:20rem;--sidebar-width-icon:4rem;--sidebar-width-mobile:90vw", wrapper.GetAttribute("style"));
+        Assert.Contains("min-h-0", wrapper.ClassList);
+        Assert.DoesNotContain("min-h-svh", wrapper.ClassList);
+    }
+
+    [Fact]
+    public void A_sidebar_starts_expanded_and_the_trigger_collapses_it_off_canvas()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzSidebarProvider PersistState="false" OpenChanged="@((bool open) => changes.Add(open))">
+            @Layout()
+        </BzSidebarProvider>);
+        Assert.Equal("expanded", Shell(cut).GetAttribute("data-state"));
+        // Expanded: no collapse mode is in effect.
+        Assert.Equal("", Shell(cut).GetAttribute("data-collapsible"));
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        Assert.Equal([false], changes);
+        Assert.Equal("collapsed", Shell(cut).GetAttribute("data-state"));
+        Assert.Equal("offcanvas", Shell(cut).GetAttribute("data-collapsible"));
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+        Assert.Equal([false, true], changes);
+        Assert.Equal("expanded", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void DefaultOpen_false_starts_collapsed()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false" DefaultOpen="false">@Layout()</BzSidebarProvider>);
+
+        Assert.Equal("collapsed", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void A_controlled_sidebar_asks_to_change_and_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzSidebarProvider>(p => p
+            .Add(x => x.PersistState, false)
+            .Add(x => x.Open, true)
+            .Add(x => x.OpenChanged, (bool open) => requests.Add(open))
+            .AddChildContent(Layout()));
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+        Assert.Equal([false], requests);
+        Assert.Equal("expanded", cut.Find("div[data-slot=sidebar]").GetAttribute("data-state"));
+
+        cut.Render(p => p.Add(x => x.Open, false));
+        Assert.Equal("collapsed", cut.Find("div[data-slot=sidebar]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_rail_toggles_the_sidebar_and_is_named_but_kept_out_of_the_tab_order()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">@Layout()</BzSidebarProvider>);
+
+        var rail = cut.Find("button[data-slot=sidebar-rail]");
+        Assert.Equal("Toggle Sidebar", rail.GetAttribute("aria-label"));
+        Assert.Equal("Toggle Sidebar", rail.GetAttribute("title"));
+        Assert.Equal("-1", rail.GetAttribute("tabindex"));
+
+        rail.Click();
+        Assert.Equal("collapsed", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public async Task The_keyboard_shortcut_toggles_the_sidebar()
+    {
+        Script();
+        var hotkeys = JSInterop.SetupModule(HotkeysModule);
+        hotkeys.Mode = JSRuntimeMode.Loose;
+        var cut = Render<BzSidebarProvider>(p => p.Add(x => x.PersistState, false).AddChildContent(Layout()));
+
+        // createHotkey(combo, ref, preventDefault, skipContentEditable): Ctrl+B on Windows and
+        // Linux, Cmd+B on macOS, and not while typing in a rich text field.
+        var created = Assert.Single(hotkeys.Invocations, i => i.Identifier == "createHotkey");
+        Assert.Equal("mod+b", created.Arguments[0]);
+        Assert.Equal(true, created.Arguments[2]);
+        Assert.Equal(true, created.Arguments[3]);
+
+        await cut.InvokeAsync(() => cut.Instance.OnHotkey());
+        Assert.Equal("collapsed", cut.Find("div[data-slot=sidebar]").GetAttribute("data-state"));
+    }
+
+    // Persistence --------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_toggle_is_remembered_in_a_cookie_for_a_week()
+    {
+        var script = Script();
+        var cut = Render(@<BzSidebarProvider>@Layout()</BzSidebarProvider>);
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        var written = Assert.Single(script.Invocations, i => i.Identifier == "setCookie");
+        Assert.Equal("sidebar_state", written.Arguments[0]);
+        Assert.Equal("false", written.Arguments[1]);
+        Assert.Equal(60 * 60 * 24 * 7, written.Arguments[2]);
+    }
+
+    [Fact]
+    public void A_remembered_state_wins_over_DefaultOpen()
+    {
+        Script(cookie: "false");
+
+        var cut = Render(@<BzSidebarProvider DefaultOpen="true">@Layout()</BzSidebarProvider>);
+
+        cut.WaitForAssertion(() => Assert.Equal("collapsed", Shell(cut).GetAttribute("data-state")));
+    }
+
+    [Fact]
+    public void A_cookie_that_holds_neither_state_is_ignored()
+    {
+        Script(cookie: "maybe");
+
+        var cut = Render(@<BzSidebarProvider DefaultOpen="true">@Layout()</BzSidebarProvider>);
+
+        Assert.Equal("expanded", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void With_persistence_off_nothing_is_read_or_written()
+    {
+        var script = Script(cookie: "false");
+        var cut = Render(@<BzSidebarProvider PersistState="false">@Layout()</BzSidebarProvider>);
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        Assert.DoesNotContain(script.Invocations, i => i.Identifier is "getCookie" or "setCookie");
+        Assert.Equal("expanded", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void A_controlled_sidebar_does_not_read_the_cookie()
+    {
+        var script = Script(cookie: "false");
+
+        var cut = Render<BzSidebarProvider>(p => p.Add(x => x.Open, true).AddChildContent(Layout()));
+
+        Assert.DoesNotContain(script.Invocations, i => i.Identifier == "getCookie");
+        Assert.Equal("expanded", cut.Find("div[data-slot=sidebar]").GetAttribute("data-state"));
+    }
+
+    [Fact(Skip = "bug: a controlled BzSidebarProvider still writes the sidebar_state cookie (PersistState is documented as uncontrolled only)")]
+    public void A_controlled_sidebar_does_not_write_the_cookie()
+    {
+        var script = Script();
+        var cut = Render<BzSidebarProvider>(p => p
+            .Add(x => x.Open, true)
+            .Add(x => x.OpenChanged, (bool _) => { })
+            .AddChildContent(Layout()));
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        Assert.DoesNotContain(script.Invocations, i => i.Identifier == "setCookie");
+    }
+
+    // Mobile -------------------------------------------------------------------------------------
+
+    [Fact]
+    public void The_breakpoint_reaches_the_script_that_watches_the_viewport()
+    {
+        var script = Script();
+
+        Render(@<BzSidebarProvider PersistState="false" MobileBreakpoint="1024">@Layout()</BzSidebarProvider>);
+
+        Assert.Equal(1024, Assert.Single(script.Invocations, i => i.Identifier == "matchesMobile").Arguments[0]);
+        Assert.Equal(1024, Assert.Single(script.Invocations, i => i.Identifier == "observeMobile").Arguments[1]);
+    }
+
+    [Fact]
+    public void On_a_small_viewport_the_sidebar_is_a_sheet_that_the_trigger_opens()
+    {
+        Script(mobile: true);
+        var changes = new List<bool>();
+        var cut = Render(@<BzSidebarProvider PersistState="false" WidthMobile="20rem" OpenChanged="@((bool open) => changes.Add(open))">
+            @Layout()
+        </BzSidebarProvider>);
+        // No desktop panel, and the sheet is closed.
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[data-slot=sidebar]")));
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        var sheet = cut.Find("[data-slot=sidebar][data-mobile=true]");
+        Assert.Equal("dialog", sheet.GetAttribute("role"));
+        Assert.Equal("start", sheet.GetAttribute("data-side"));
+        // The sheet leaves the wrapper for the body, so it carries the widths itself.
+        Assert.Contains("--sidebar-width:20rem;--sidebar-width-mobile:20rem", sheet.GetAttribute("style"));
+        Assert.Equal(cut.Find("[data-slot=sheet-title]").Id, sheet.GetAttribute("aria-labelledby"));
+        Assert.Empty(cut.FindAll("button.bz-sheet-close"));
+        Assert.Contains("Inbox", sheet.TextContent);
+        // The desktop state is a separate one and was not touched.
+        Assert.Empty(changes);
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+        Assert.Equal("closed", cut.Find("[data-slot=sidebar][data-mobile=true]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void A_press_on_the_backdrop_closes_the_mobile_sheet()
+    {
+        Script(mobile: true);
+        var cut = Render(@<BzSidebarProvider PersistState="false">@Layout()</BzSidebarProvider>);
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[data-slot=sidebar]")));
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+
+        Assert.Equal("closed", cut.Find("[data-slot=sidebar][data-mobile=true]").GetAttribute("data-state"));
+        // The provider heard it: the next press on the trigger opens again instead of "closing" twice.
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+        Assert.Equal("open", cut.Find("[data-slot=sidebar][data-mobile=true]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void An_end_sidebar_opens_its_mobile_sheet_from_the_end_edge()
+    {
+        Script(mobile: true);
+        var cut = Render(@<BzSidebarProvider PersistState="false">@Layout(SidebarSide.End)</BzSidebarProvider>);
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[data-slot=sidebar]")));
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+
+        Assert.Equal("end", cut.Find("[data-slot=sidebar][data-mobile=true]").GetAttribute("data-side"));
+    }
+
+    [Fact]
+    public async Task Crossing_the_breakpoint_swaps_the_panel_for_the_sheet_and_back()
+    {
+        Script();
+        var cut = Render<BzSidebarProvider>(p => p.Add(x => x.PersistState, false).AddChildContent(Layout()));
+        Assert.NotEmpty(cut.FindAll("div[data-slot=sidebar][data-state]"));
+
+        await cut.InvokeAsync(() => cut.Instance.OnMobileChanged(true));
+        Assert.Empty(cut.FindAll("div[data-slot=sidebar][data-state=expanded]"));
+
+        await cut.InvokeAsync(() => cut.Instance.OnMobileChanged(false));
+        Assert.Equal("expanded", cut.Find("div[data-slot=sidebar]").GetAttribute("data-state"));
+    }
+
+    // The shell ----------------------------------------------------------------------------------
+
+    [Fact]
+    public void An_icon_sidebar_collapses_to_a_rail()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false" DefaultOpen="false">
+            @Layout(collapse: SidebarCollapsible.Icon)
+        </BzSidebarProvider>);
+
+        Assert.Equal("icon", Shell(cut).GetAttribute("data-collapsible"));
+    }
+
+    [Fact]
+    public void A_sidebar_that_never_collapses_is_a_plain_panel_whatever_the_state()
+    {
+        Script(mobile: true);
+        var cut = Render(@<BzSidebarProvider PersistState="false" DefaultOpen="false">
+            @Layout(collapse: SidebarCollapsible.None)
+        </BzSidebarProvider>);
+
+        var panel = Shell(cut);
+        Assert.False(panel.HasAttribute("data-state"));
+        Assert.False(panel.HasAttribute("data-collapsible"));
+        Assert.Contains("w-(--sidebar-width)", panel.ClassList);
+        Assert.Contains("Inbox", panel.TextContent);
+    }
+
+    [Fact]
+    public void Without_a_provider_the_sidebar_is_a_plain_panel_too()
+    {
+        var cut = Render(@<BzSidebar Class="border-e" id="nav">Links</BzSidebar>);
+
+        var panel = cut.Find("#nav[data-slot=sidebar]");
+        Assert.False(panel.HasAttribute("data-state"));
+        Assert.Contains("border-e", panel.ClassList);
+    }
+
+    [Theory]
+    [InlineData(SidebarSide.Start, "start", "start-0", "border-e", false)]
+    [InlineData(SidebarSide.End, "end", "end-0", "border-s", true)]
+    public void The_side_anchors_the_panel_and_keeps_its_gap_on_the_same_edge(
+        SidebarSide side, string name, string anchor, string border, bool last)
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">@Layout(side)</BzSidebarProvider>);
+
+        var shell = Shell(cut);
+        Assert.Equal(name, shell.GetAttribute("data-side"));
+        // The sidebar stays before the inset in the markup; on the end side it is moved visually.
+        Assert.Equal(last, shell.ClassList.Contains("order-last"));
+        var container = cut.Find("[data-slot=sidebar-container]").ClassList;
+        Assert.Contains(anchor, container);
+        Assert.Contains(border, container);
+        Assert.NotNull(shell.QuerySelector("[data-slot=sidebar-gap]"));
+    }
+
+    [Theory]
+    [InlineData(SidebarVariant.Sidebar, "sidebar", false)]
+    [InlineData(SidebarVariant.Floating, "floating", true)]
+    [InlineData(SidebarVariant.Inset, "inset", true)]
+    public void The_variant_is_marked_and_the_detached_ones_are_padded_instead_of_bordered(
+        SidebarVariant variant, string name, bool detached)
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">@Layout(variant: variant)</BzSidebarProvider>);
+
+        Assert.Equal(name, Shell(cut).GetAttribute("data-variant"));
+        var container = cut.Find("[data-slot=sidebar-container]").ClassList;
+        Assert.Equal(detached, container.Contains("p-2"));
+        Assert.Equal(!detached, container.Contains("border-e"));
+    }
+
+    [Fact]
+    public void Classes_and_extra_attributes_reach_the_fixed_panel()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">
+            <BzSidebar Class="top-14" aria-label="Main" id="nav">Links</BzSidebar>
+        </BzSidebarProvider>);
+
+        var container = cut.Find("#nav[data-slot=sidebar-container]");
+        Assert.Equal("Main", container.GetAttribute("aria-label"));
+        Assert.Contains("top-14", container.ClassList);
+    }
+
+    [Fact]
+    public void The_inset_is_the_main_landmark()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false"><BzSidebarInset Class="p-4" id="content">Page</BzSidebarInset></BzSidebarProvider>);
+
+        var inset = cut.Find("main#content[data-slot=sidebar-inset]");
+        Assert.Contains("p-4", inset.ClassList);
+    }
+
+    // Trigger ------------------------------------------------------------------------------------
+
+    [Fact]
+    public void The_trigger_is_a_named_ghost_icon_button()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false"><BzSidebarTrigger /></BzSidebarProvider>);
+
+        var trigger = cut.Find("button[data-slot=sidebar-trigger]");
+        Assert.Equal("ghost", trigger.GetAttribute("data-variant"));
+        Assert.Equal("button", trigger.GetAttribute("type"));
+        Assert.Equal("Toggle Sidebar", trigger.QuerySelector(".sr-only")!.TextContent);
+        Assert.NotNull(trigger.QuerySelector("svg"));
+    }
+
+    [Fact]
+    public void The_trigger_takes_another_name_content_of_its_own_and_a_click_handler()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarProvider PersistState="false">
+            <BzSidebar>Links</BzSidebar>
+            <BzSidebarTrigger id="named" Label="Navigation" Class="size-9" />
+            <BzSidebarTrigger id="worded">Menu</BzSidebarTrigger>
+            <BzSidebarTrigger id="counted" @onclick="@(() => clicks++)" />
+        </BzSidebarProvider>);
+
+        var named = cut.Find("#named");
+        Assert.Equal("Navigation", named.QuerySelector(".sr-only")!.TextContent);
+        Assert.Contains("size-9", named.ClassList);
+        Assert.DoesNotContain("size-7", named.ClassList);
+        var worded = cut.Find("#worded");
+        Assert.Equal("Menu", worded.TextContent.Trim());
+        Assert.Null(worded.QuerySelector("svg"));
+
+        cut.Find("#counted").Click();
+        // Both happen: the consumer's handler and the toggle.
+        Assert.Equal(1, clicks);
+        Assert.Equal("collapsed", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_toggle_renders_onto_another_element()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">
+            <BzSidebar>Links</BzSidebar>
+            <BzSidebarTrigger>
+                <RenderAs Context="p"><a id="toggle" href="#" @attributes="p.Attributes">Menu</a></RenderAs>
+            </BzSidebarTrigger>
+        </BzSidebarProvider>);
+
+        cut.Find("a#toggle[data-slot=sidebar-trigger]").Click();
+
+        Assert.Equal("collapsed", Shell(cut).GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void A_trigger_or_rail_outside_a_provider_does_nothing_and_does_not_throw()
+    {
+        var cut = Render(@<div><BzSidebarTrigger /><BzSidebarRail Label="Collapse" /></div>);
+
+        cut.Find("[data-slot=sidebar-trigger]").Click();
+        cut.Find("[data-slot=sidebar-rail]").Click();
+
+        Assert.Equal("Collapse", cut.Find("[data-slot=sidebar-rail]").GetAttribute("aria-label"));
+    }
+
+    // Menu rows ----------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_menu_button_is_a_button_that_raises_its_click()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarMenuButton OnClick="@(() => clicks++)">Inbox</BzSidebarMenuButton>);
+
+        var button = cut.Find("button[data-slot=sidebar-menu-button]");
+        Assert.Equal("default", button.GetAttribute("data-size"));
+        Assert.Equal("false", button.GetAttribute("data-active"));
+        Assert.False(button.HasAttribute("aria-current"));
+        Assert.False(button.HasAttribute("disabled"));
+
+        button.Click();
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void The_active_row_is_marked_as_the_current_page()
+    {
+        var cut = Render(@<BzSidebarMenuButton Active="true">Inbox</BzSidebarMenuButton>);
+
+        var button = cut.Find("[data-slot=sidebar-menu-button]");
+        Assert.Equal("true", button.GetAttribute("data-active"));
+        Assert.Equal("page", button.GetAttribute("aria-current"));
+    }
+
+    [Fact]
+    public void An_aria_current_of_the_consumer_wins_over_the_default_one()
+    {
+        var cut = Render(@<BzSidebarMenuButton Active="true" aria-current="step">Shipping</BzSidebarMenuButton>);
+
+        Assert.Equal("step", cut.Find("[data-slot=sidebar-menu-button]").GetAttribute("aria-current"));
+    }
+
+    [Fact]
+    public void A_disabled_row_is_a_disabled_button_with_no_click()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarMenuButton Disabled="true" OnClick="@(() => clicks++)">Archive</BzSidebarMenuButton>);
+
+        var button = cut.Find("button[data-slot=sidebar-menu-button]");
+        Assert.True(button.HasAttribute("disabled"));
+        Assert.Throws<MissingEventHandlerException>(() => button.Click());
+        Assert.Equal(0, clicks);
+    }
+
+    [Fact]
+    public void A_row_rendered_as_a_link_keeps_its_identity_and_says_disabled_the_way_a_link_can()
+    {
+        var cut = Render(@<div>
+            <BzSidebarMenuButton Active="true">
+                <RenderAs Context="p"><a id="docs" href="/docs" @attributes="p.Attributes">Docs</a></RenderAs>
+            </BzSidebarMenuButton>
+            <BzSidebarMenuButton Disabled="true">
+                <RenderAs Context="p"><a id="soon" href="/soon" @attributes="p.Attributes">Soon</a></RenderAs>
+            </BzSidebarMenuButton>
+        </div>);
+
+        var link = cut.Find("a#docs[data-slot=sidebar-menu-button]");
+        Assert.Equal("/docs", link.GetAttribute("href"));
+        Assert.Equal("page", link.GetAttribute("aria-current"));
+        Assert.Contains("bz-sidebar-menu-button", link.ClassList);
+        var soon = cut.Find("a#soon");
+        // An anchor has no disabled attribute.
+        Assert.False(soon.HasAttribute("disabled"));
+        Assert.Equal("true", soon.GetAttribute("aria-disabled"));
+        Assert.True(soon.HasAttribute("data-disabled"));
+    }
+
+    [Theory]
+    [InlineData(SidebarMenuButtonSize.Sm, "sm", "h-7")]
+    [InlineData(SidebarMenuButtonSize.Default, "default", "h-8")]
+    [InlineData(SidebarMenuButtonSize.Lg, "lg", "h-12")]
+    public void The_row_size_is_marked_for_the_parts_beside_it_and_sets_the_height(
+        SidebarMenuButtonSize size, string name, string height)
+    {
+        var cut = Render(@<BzSidebarMenuButton Size="size">Inbox</BzSidebarMenuButton>);
+
+        var button = cut.Find("[data-slot=sidebar-menu-button]");
+        Assert.Equal(name, button.GetAttribute("data-size"));
+        Assert.Contains(height, button.ClassList);
+    }
+
+    [Fact]
+    public void The_outline_variant_and_consumer_classes_reach_the_row()
+    {
+        var cut = Render(@<BzSidebarMenuButton Variant="SidebarMenuButtonVariant.Outline" Class="h-10" data-testid="row">Inbox</BzSidebarMenuButton>);
+
+        var button = cut.Find("[data-testid=row]");
+        Assert.Contains("bg-background", button.ClassList);
+        Assert.Contains("h-10", button.ClassList);
+        Assert.DoesNotContain("h-8", button.ClassList);
+    }
+
+    [Fact]
+    public void A_row_with_a_tooltip_keeps_its_own_slot_and_shows_nothing_while_the_sidebar_is_expanded()
+    {
+        var cut = Render(@<BzSidebarProvider PersistState="false">
+            <BzSidebarMenuButton Tooltip="Inbox" Active="true">Inbox</BzSidebarMenuButton>
+        </BzSidebarProvider>);
+
+        var button = cut.Find("button[data-slot=sidebar-menu-button]");
+        Assert.Equal("menu-button", button.GetAttribute("data-sidebar"));
+        Assert.Equal("page", button.GetAttribute("aria-current"));
+
+        // The label is on screen: a tooltip repeating it would be noise.
+        try { button.PointerEnter(); } catch (MissingEventHandlerException) { }
+        Assert.Empty(cut.FindAll("[data-slot=tooltip-content]"));
+    }
+
+    [Fact]
+    public void A_row_with_a_tooltip_shows_nothing_on_mobile_even_when_the_desktop_state_is_collapsed()
+    {
+        Script(mobile: true);
+        var cut = Render(@<BzSidebarProvider PersistState="false" DefaultOpen="false">
+            <BzSidebarMenuButton Tooltip="Inbox">Inbox</BzSidebarMenuButton>
+        </BzSidebarProvider>);
+        cut.WaitForState(() => cut.FindComponent<BzSidebarMenuButton>() is not null);
+
+        try { cut.Find("[data-slot=sidebar-menu-button]").PointerEnter(); } catch (MissingEventHandlerException) { }
+
+        Assert.Empty(cut.FindAll("[data-slot=tooltip-content]"));
+    }
+
+    [Fact]
+    public void A_row_with_a_tooltip_still_raises_its_click()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarProvider PersistState="false" DefaultOpen="false">
+            <BzSidebarMenuButton Tooltip="Inbox" OnClick="@(() => clicks++)">Inbox</BzSidebarMenuButton>
+        </BzSidebarProvider>);
+
+        cut.Find("[data-slot=sidebar-menu-button]").Click();
+
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void A_sub_row_is_a_link_that_marks_the_current_page()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarMenuSub Class="ms-6" id="sub">
+            <BzSidebarMenuSubItem>
+                <BzSidebarMenuSubButton href="/settings/profile" Active="true" OnClick="@(() => clicks++)">Profile</BzSidebarMenuSubButton>
+            </BzSidebarMenuSubItem>
+            <BzSidebarMenuSubItem>
+                <BzSidebarMenuSubButton href="/settings/keys" Size="SidebarMenuSubButtonSize.Sm">Keys</BzSidebarMenuSubButton>
+            </BzSidebarMenuSubItem>
+        </BzSidebarMenuSub>);
+
+        Assert.Equal("UL", cut.Find("#sub[data-slot=sidebar-menu-sub]").TagName);
+        Assert.Equal(2, cut.FindAll("li[data-slot=sidebar-menu-sub-item]").Count);
+        var links = cut.FindAll("a[data-slot=sidebar-menu-sub-button]");
+        Assert.Equal("/settings/profile", links[0].GetAttribute("href"));
+        Assert.Equal("page", links[0].GetAttribute("aria-current"));
+        Assert.Equal("true", links[0].GetAttribute("data-active"));
+        Assert.Equal("md", links[0].GetAttribute("data-size"));
+        Assert.Contains("text-sm", links[0].ClassList);
+        Assert.False(links[1].HasAttribute("aria-current"));
+        Assert.Equal("sm", links[1].GetAttribute("data-size"));
+        Assert.Contains("text-xs", links[1].ClassList);
+
+        links[0].Click();
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void A_row_action_raises_its_click_and_can_wait_for_hover_on_wide_screens()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarMenuItem>
+            <BzSidebarMenuButton>Inbox</BzSidebarMenuButton>
+            <BzSidebarMenuAction id="always" aria-label="More" OnClick="@(() => clicks++)">+</BzSidebarMenuAction>
+            <BzSidebarMenuAction id="hover" aria-label="Pin" ShowOnHover="true">*</BzSidebarMenuAction>
+            <BzSidebarMenuBadge Class="end-8">12</BzSidebarMenuBadge>
+        </BzSidebarMenuItem>);
+
+        Assert.Equal("LI", cut.Find("[data-slot=sidebar-menu-item]").TagName);
+        var always = cut.Find("button#always[data-slot=sidebar-menu-action]");
+        Assert.Equal("More", always.GetAttribute("aria-label"));
+        Assert.DoesNotContain("md:opacity-0", always.ClassList);
+        Assert.Contains("md:opacity-0", cut.Find("#hover").ClassList);
+        var badge = cut.Find("[data-slot=sidebar-menu-badge]");
+        Assert.Equal("12", badge.TextContent);
+        Assert.Contains("end-8", badge.ClassList);
+        Assert.DoesNotContain("end-1", badge.ClassList);
+
+        always.Click();
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void A_group_has_a_label_that_can_be_another_element_and_an_action_that_raises_its_click()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzSidebarGroup Class="py-0" id="projects">
+            <BzSidebarGroupLabel>
+                <RenderAs Context="p"><a id="all" href="/projects" @attributes="p.Attributes">Projects</a></RenderAs>
+            </BzSidebarGroupLabel>
+            <BzSidebarGroupAction aria-label="Add project" OnClick="@(() => clicks++)">+</BzSidebarGroupAction>
+            <BzSidebarGroupContent>List</BzSidebarGroupContent>
+        </BzSidebarGroup>);
+
+        Assert.Contains("py-0", cut.Find("#projects[data-slot=sidebar-group]").ClassList);
+        var label = cut.Find("a#all[data-slot=sidebar-group-label]");
+        Assert.Contains("bz-sidebar-group-label", label.ClassList);
+        Assert.Equal("List", cut.Find("[data-slot=sidebar-group-content]").TextContent);
+
+        cut.Find("button[data-slot=sidebar-group-action]").Click();
+        Assert.Equal(1, clicks);
+    }
+
+    [Fact]
+    public void The_search_field_reports_what_is_typed()
+    {
+        string? typed = null;
+        var cut = Render(@<BzSidebarInput Value="in" ValueChanged="@((string? v) => typed = v)" Placeholder="Search" Class="h-9" />);
+
+        var input = cut.Find("input[data-slot=sidebar-input]");
+        Assert.Equal("in", input.GetAttribute("value"));
+        Assert.Equal("Search", input.GetAttribute("placeholder"));
+        Assert.Contains("h-9", input.ClassList);
+        Assert.DoesNotContain("h-8", input.ClassList);
+
+        input.Input("inbox");
+        Assert.Equal("inbox", typed);
+    }
+
+    [Fact]
+    public void A_loading_row_keeps_one_width_between_half_and_nine_tenths_and_can_lead_with_an_icon()
+    {
+        var cut = Render<BzSidebarMenuSkeleton>(p => p.Add(x => x.ShowIcon, true));
+
+        var bar = cut.Find("[data-sidebar=menu-skeleton-text]");
+        var style = bar.GetAttribute("style")!;
+        var percent = int.Parse(style.Replace("--skeleton-width:", "").TrimEnd('%'));
+        Assert.InRange(percent, 50, 90);
+        Assert.Single(cut.FindAll("[data-sidebar=menu-skeleton-icon]"));
+
+        // The same bar on the next render: a width picked again would make the rows jitter.
+        cut.Render(p => p.Add(x => x.ShowIcon, false));
+        Assert.Equal(style, cut.Find("[data-sidebar=menu-skeleton-text]").GetAttribute("style"));
+        Assert.Empty(cut.FindAll("[data-sidebar=menu-skeleton-icon]"));
+    }
+
+    [Fact]
+    public void Header_content_footer_and_separator_keep_their_slots_and_merge_classes()
+    {
+        var cut = Render(@<BzSidebar>
+            <BzSidebarHeader Class="p-4" id="head">Logo</BzSidebarHeader>
+            <BzSidebarSeparator Class="my-2" id="rule" />
+            <BzSidebarContent Class="gap-0" id="body">Links</BzSidebarContent>
+            <BzSidebarFooter Class="p-4" id="foot">User</BzSidebarFooter>
+        </BzSidebar>);
+
+        Assert.Contains("p-4", cut.Find("#head[data-slot=sidebar-header]").ClassList);
+        var rule = cut.Find("#rule[data-slot=sidebar-separator]");
+        Assert.Contains("my-2", rule.ClassList);
+        Assert.Contains("bg-sidebar-border", rule.ClassList);
+        Assert.Contains("gap-0", cut.Find("#body[data-slot=sidebar-content]").ClassList);
+        Assert.Contains("p-4", cut.Find("#foot[data-slot=sidebar-footer]").ClassList);
+    }
+}

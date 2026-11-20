@@ -21,4 +21,29 @@
     <ProjectReference Include="..\..\src\Blaizio.Ui\Blaizio.Ui.csproj" />
   </ItemGroup>
 
+  <!--
+    The docs examples, compiled into this project as they are (linked, not copied), so
+    StaticRenderTests can render every one of them with no interactivity. A new example joins by
+    being added to the docs; nothing is listed here.
+
+    Left out by content: examples that use a type only the docs app has (its demo data, its script
+    service, the right-to-left demo frame, dialogs declared among its pages) or an icon set this
+    project does not reference. An example that starts using such a type fails this project's
+    build with "type not found": add the name to the pattern below.
+  -->
+  <PropertyGroup>
+    <DocsExamplesDir>$(MSBuildProjectDirectory)\..\..\docs\Blaizio.Docs\Examples\</DocsExamplesDir>
+    <DocsOnlyPattern>DemoRows|DocsJs|DocsThemes|Presets\.|RtlDemo|global::Blaizio\.Docs|CodeSamples|DocsNav|LogGrammar|PromptDialog|BusyDialog|Lucide\.|Phosphor\.|Remix\.|HugeIcons\.</DocsOnlyPattern>
+  </PropertyGroup>
+
+  <Target Name="BlaizioLinkDocsExamples" BeforeTargets="ResolveRazorComponentInputs">
+    <ItemGroup>
+      <_DocsExample Include="$(DocsExamplesDir)**\*.razor" />
+      <_DocsExample Update="@(_DocsExample)">
+        <DocsOnly>$([System.Text.RegularExpressions.Regex]::IsMatch($([System.IO.File]::ReadAllText('%(FullPath)')), '$(DocsOnlyPattern)'))</DocsOnly>
+      </_DocsExample>
+      <Content Include="@(_DocsExample)" Condition="'%(_DocsExample.DocsOnly)' != 'True'" Link="DocsExamples\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
+
 </Project>

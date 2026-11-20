@@ -1,0 +1,577 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzMenubar: a bar of menus with one open at a time. The bar owns which one; each menu is a
+    // dropdown surface, so items, checkbox and radio items and submenus behave as they do there.
+
+    private const string PositioningModule = "./_content/blaizio.base/dist/positioning.js";
+    private const string MenuModule = "./_content/blaizio.base/dist/menu.js";
+
+    public MenubarTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+
+    private static readonly RenderFragment Menus =
+        @<text>
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent><BzMenubarItem id="new">New tab</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu Value="edit">
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent><BzMenubarItem id="undo">Undo</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+        </text>;
+
+    // "File Edit" as the states of the two triggers.
+    private static string Triggers(IRenderedComponent<IComponent> cut) =>
+        string.Join(' ', cut.FindAll("[data-slot=menubar-trigger]").Select(t => t.GetAttribute("data-state")));
+
+    private static string[] OpenMenus(IRenderedComponent<IComponent> cut) =>
+        cut.FindAll("[data-slot=menubar-content][data-state=open]").Select(m => m.TextContent.Trim()).ToArray();
+
+    [Fact]
+    public void The_bar_is_a_named_menubar_and_its_triggers_are_menu_items()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" Class="h-10" id="bar">@Menus</BzMenubar>);
+
+        var bar = cut.Find("#bar[data-slot=menubar]");
+        Assert.Equal("menubar", bar.GetAttribute("role"));
+        Assert.Equal("Main menu", bar.GetAttribute("aria-label"));
+        Assert.Contains("h-10", bar.ClassList);
+        Assert.DoesNotContain("h-9", bar.ClassList);
+        var triggers = cut.FindAll("button[data-slot=menubar-trigger]");
+        Assert.Equal(["File", "Edit"], triggers.Select(t => t.TextContent));
+        Assert.All(triggers, t =>
+        {
+            Assert.Equal("menuitem", t.GetAttribute("role"));
+            Assert.Equal("menu", t.GetAttribute("aria-haspopup"));
+            Assert.Equal("false", t.GetAttribute("aria-expanded"));
+            Assert.Equal("button", t.GetAttribute("type"));
+            // One tab stop for the bar: the arrows move between the triggers.
+            Assert.True(t.HasAttribute("data-bz-roving-item"));
+        });
+        Assert.Empty(cut.FindAll("[role=menu]"));
+    }
+
+    [Fact]
+    public void The_bar_can_be_named_by_another_element()
+    {
+        var cut = Render(@<BzMenubar AriaLabelledBy="app-title">@Menus</BzMenubar>);
+
+        var bar = cut.Find("[role=menubar]");
+        Assert.Equal("app-title", bar.GetAttribute("aria-labelledby"));
+        Assert.False(bar.HasAttribute("aria-label"));
+    }
+
+    [Theory]
+    [InlineData(true, "true")]
+    [InlineData(false, "false")]
+    public void Loop_is_written_on_the_bar_for_the_script_that_steps_between_menus(bool loop, string expected)
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" Loop="loop">@Menus</BzMenubar>);
+
+        Assert.Equal(expected, cut.Find("[role=menubar]").GetAttribute("data-bz-menubar-loop"));
+    }
+
+    [Fact]
+    public void A_press_on_a_trigger_opens_its_menu_named_by_that_trigger()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">@Menus</BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+
+        Assert.Equal("open closed", Triggers(cut));
+        var trigger = cut.FindAll("[data-slot=menubar-trigger]")[0];
+        var menu = cut.Find("[role=menu]");
+        Assert.Equal("menubar-content", menu.GetAttribute("data-slot"));
+        Assert.Equal(trigger.Id, menu.GetAttribute("aria-labelledby"));
+        Assert.Equal(menu.Id, trigger.GetAttribute("aria-controls"));
+        Assert.Equal("true", trigger.GetAttribute("aria-expanded"));
+        Assert.Equal(["New tab"], OpenMenus(cut));
+    }
+
+    [Fact]
+    public void Opening_another_menu_closes_the_one_that_was_open()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">@Menus</BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+        cut.FindAll("[data-slot=menubar-trigger]")[1].Click();
+
+        Assert.Equal("closed open", Triggers(cut));
+        Assert.Equal(["Undo"], OpenMenus(cut));
+    }
+
+    [Fact]
+    public void A_second_press_on_the_open_trigger_closes_the_bar()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">@Menus</BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+
+        Assert.Equal("closed closed", Triggers(cut));
+        Assert.Empty(OpenMenus(cut));
+    }
+
+    [Fact]
+    public void Hovering_a_trigger_switches_menus_only_while_one_is_open()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">@Menus</BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-trigger]")[1].PointerEnter(new PointerEventArgs { PointerType = "mouse" });
+        Assert.Equal("closed closed", Triggers(cut));
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+        cut.FindAll("[data-slot=menubar-trigger]")[1].PointerEnter(new PointerEventArgs { PointerType = "mouse" });
+        Assert.Equal("closed open", Triggers(cut));
+    }
+
+    [Theory]
+    [InlineData("ArrowDown", "first")]
+    [InlineData("ArrowUp", "last")]
+    public void An_arrow_key_on_a_trigger_opens_its_menu_with_focus_on_that_end(string key, string focus)
+    {
+        var script = JSInterop.SetupModule(MenuModule);
+        script.Mode = JSRuntimeMode.Loose;
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">@Menus</BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-trigger]")[1].KeyDown(new KeyboardEventArgs { Key = key });
+
+        Assert.Equal("closed open", Triggers(cut));
+        var options = Assert.Single(script.Invocations, i => i.Identifier == "createMenu").Arguments[1]!;
+        Assert.Equal(focus, Option(options, "initialFocus"));
+    }
+
+    [Fact]
+    public void DefaultValue_opens_that_menu_from_the_start()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="edit">@Menus</BzMenubar>);
+
+        Assert.Equal("closed open", Triggers(cut));
+        Assert.Equal(["Undo"], OpenMenus(cut));
+    }
+
+    [Fact(Skip = "bug: BaseMenubar reads a ValueChanged listener as controlled, so DefaultValue is ignored as soon as the bar is listened to")]
+    public void A_bar_that_is_only_listened_to_still_starts_from_its_default_value()
+    {
+        var changes = new List<string?>();
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="edit" ValueChanged="@((string? v) => changes.Add(v))">
+            @Menus
+        </BzMenubar>);
+        Assert.Equal("closed open", Triggers(cut));
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+
+        Assert.Equal(["file"], changes);
+        Assert.Equal("open closed", Triggers(cut));
+    }
+
+    [Fact]
+    public void A_controlled_bar_asks_for_each_change_and_shows_the_value_it_is_given()
+    {
+        var requests = new List<string?>();
+        var cut = Render<BzMenubar>(p => p
+            .Add(x => x.AriaLabel, "Main menu")
+            .Add(x => x.Value, "edit")
+            .Add(x => x.ValueChanged, (string? v) => requests.Add(v))
+            .AddChildContent(Menus));
+        Assert.Equal("closed open", Triggers(cut));
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+        Assert.Equal(["file"], requests);
+        Assert.Equal("closed open", Triggers(cut));
+
+        // Selecting an item asks to close the bar: no menu is the value null.
+        cut.Find("#undo").Click();
+        Assert.Equal(["file", null], requests);
+
+        cut.Render(p => p.Add(x => x.Value, null));
+        Assert.Equal("closed closed", Triggers(cut));
+    }
+
+    [Fact]
+    public void Selecting_an_item_reports_it_and_closes_the_bar()
+    {
+        var selected = 0;
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem OnSelect="@((MenuSelectEventArgs _) => selected++)">New tab</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        cut.Find("[data-slot=menubar-item]").Click();
+
+        Assert.Equal(1, selected);
+        Assert.Equal("closed", Triggers(cut));
+        Assert.Equal("closed", cut.Find("[data-slot=menubar-content]").GetAttribute("data-state"));
+    }
+
+    [Theory]
+    [InlineData("Escape")]
+    [InlineData("Tab")]
+    public void Escape_and_Tab_close_the_open_menu(string key)
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">@Menus</BzMenubar>);
+
+        cut.Find("[role=menu]").KeyDown(new KeyboardEventArgs { Key = key });
+
+        Assert.Equal("closed closed", Triggers(cut));
+    }
+
+    [Fact]
+    public async Task A_press_outside_closes_the_open_menu()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">@Menus</BzMenubar>);
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseMenubarContent>().Instance.OnDismissRequested());
+
+        Assert.Equal("closed closed", Triggers(cut));
+    }
+
+    [Fact]
+    public void Menus_without_a_value_still_open_one_at_a_time()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">
+            <BzMenubarMenu>
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent><BzMenubarItem>New tab</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+            <BzMenubarMenu>
+                <BzMenubarTrigger>Edit</BzMenubarTrigger>
+                <BzMenubarContent><BzMenubarItem>Undo</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-trigger]")[0].Click();
+        Assert.Equal("open closed", Triggers(cut));
+        cut.FindAll("[data-slot=menubar-trigger]")[1].Click();
+        Assert.Equal("closed open", Triggers(cut));
+    }
+
+    [Fact]
+    public void Two_bars_that_use_the_same_menu_value_do_not_share_ids()
+    {
+        var cut = Render(@<div>
+            <BzMenubar AriaLabel="First" DefaultValue="file">@Menus</BzMenubar>
+            <BzMenubar AriaLabel="Second" DefaultValue="file">@Menus</BzMenubar>
+        </div>);
+
+        var ids = cut.FindAll("[data-slot=menubar-trigger], [data-slot=menubar-content]").Select(e => e.Id).ToList();
+        Assert.Equal(6, ids.Count);
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        // Each open menu is anchored to the trigger of its own bar.
+        var menus = cut.FindAll("[data-slot=menubar-content]");
+        var triggers = cut.FindAll("[data-slot=menubar-trigger][data-state=open]");
+        Assert.Equal(triggers.Select(t => t.Id), menus.Select(m => m.GetAttribute("aria-labelledby")));
+    }
+
+    [Fact]
+    public void A_menu_value_with_a_quote_in_it_does_not_reach_the_selector_the_menu_is_anchored_by()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="what's new">
+            <BzMenubarMenu Value="what's new">
+                <BzMenubarTrigger>News</BzMenubarTrigger>
+                <BzMenubarContent><BzMenubarItem>Changelog</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        Assert.Equal("open", Triggers(cut));
+        var selector = (string)Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[0]!;
+        var anchor = cut.Find("[data-slot=menubar-trigger]").GetAttribute("data-bz-dropdown-menu-anchor");
+        Assert.Equal($"[data-bz-dropdown-menu-anchor='{anchor}']", selector);
+        Assert.DoesNotContain("what", selector);
+    }
+
+    [Fact]
+    public void The_menu_opens_below_its_trigger_with_a_gap_of_eight()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">@Menus</BzMenubar>);
+
+        var options = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[2]!;
+        Assert.Equal("bottom", Option(options, "side"));
+        Assert.Equal("start", Option(options, "align"));
+        // Wider than a dropdown's: the menu clears the bar's own padding and border.
+        Assert.Equal(8d, Option(options, "sideOffset"));
+        Assert.Equal(0d, Option(options, "alignOffset"));
+        Assert.Equal(false, Option(options, "inline"));
+    }
+
+    [Fact]
+    public void Placement_parameters_reach_the_positioning_script()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent Side="Side.Top" Align="Align.End" SideOffset="2" AlignOffset="-4" Inline="true">
+                    <BzMenubarItem>New tab</BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        var options = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[2]!;
+        Assert.Equal("top", Option(options, "side"));
+        Assert.Equal("end", Option(options, "align"));
+        Assert.Equal(2d, Option(options, "sideOffset"));
+        Assert.Equal(-4d, Option(options, "alignOffset"));
+        Assert.Equal(true, Option(options, "inline"));
+    }
+
+    [Fact]
+    public void Classes_and_extra_attributes_reach_trigger_and_menu()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger Class="px-3" data-testid="file">File</BzMenubarTrigger>
+                <BzMenubarContent Class="w-56" data-testid="file-menu"><BzMenubarItem>New tab</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        var trigger = cut.Find("[data-testid=file]");
+        Assert.Contains("px-3", trigger.ClassList);
+        Assert.DoesNotContain("px-2", trigger.ClassList);
+        var menu = cut.Find("[data-testid=file-menu]");
+        Assert.Contains("w-56", menu.ClassList);
+        Assert.Contains("bz-menubar-content", menu.ClassList);
+    }
+
+    [Fact]
+    public void A_trigger_renders_onto_another_element_and_still_opens_its_menu()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>
+                    <RenderAs Context="p"><div tabindex="0" @attributes="p.Attributes">File</div></RenderAs>
+                </BzMenubarTrigger>
+                <BzMenubarContent><BzMenubarItem>New tab</BzMenubarItem></BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        var trigger = cut.Find("div[data-slot=menubar-trigger]");
+        Assert.Equal("menuitem", trigger.GetAttribute("role"));
+        Assert.False(trigger.HasAttribute("type"));
+
+        trigger.Click();
+        Assert.Equal(["New tab"], OpenMenus(cut));
+    }
+
+    [Fact]
+    public void Inset_variant_disabled_and_a_link_element_reach_the_item()
+    {
+        var selected = 0;
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarItem id="plain">New tab</BzMenubarItem>
+                    <BzMenubarItem id="styled" Inset="true" Variant="MenubarItemVariant.Destructive" Class="font-medium">Close all</BzMenubarItem>
+                    <BzMenubarItem id="off" Disabled="true" OnSelect="@((MenuSelectEventArgs _) => selected++)">Print</BzMenubarItem>
+                    <BzMenubarItem>
+                        <RenderAs Context="p"><a id="link" href="/downloads" @attributes="p.Attributes">Downloads</a></RenderAs>
+                    </BzMenubarItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        var plain = cut.Find("#plain[data-slot=menubar-item]");
+        Assert.Equal("menuitem", plain.GetAttribute("role"));
+        Assert.False(plain.HasAttribute("data-inset"));
+        var styled = cut.Find("#styled");
+        Assert.True(styled.HasAttribute("data-inset"));
+        Assert.Equal("destructive", styled.GetAttribute("data-variant"));
+        Assert.Contains("font-medium", styled.ClassList);
+        Assert.Equal("/downloads", cut.Find("a#link[data-slot=menubar-item]").GetAttribute("href"));
+
+        var off = cut.Find("#off");
+        Assert.Equal("true", off.GetAttribute("aria-disabled"));
+        off.Click();
+        Assert.Equal(0, selected);
+        Assert.Equal("open", Triggers(cut));
+    }
+
+    [Fact]
+    public void A_checkbox_item_toggles_reports_and_shows_its_check_only_while_checked()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="view">
+            <BzMenubarMenu Value="view">
+                <BzMenubarTrigger>View</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarCheckboxItem CheckedChanged="@((bool c) => changes.Add(c))"
+                                           OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Always show bookmarks</BzMenubarCheckboxItem>
+                    <BzMenubarCheckboxItem id="fixed" Checked="true" CheckedChanged="@((bool c) => changes.Add(!c))"
+                                           OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Always show full URLs</BzMenubarCheckboxItem>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+        var box = cut.Find("[data-slot=menubar-checkbox-item]");
+        Assert.Equal("menuitemcheckbox", box.GetAttribute("role"));
+        Assert.Equal("false", box.GetAttribute("aria-checked"));
+        Assert.Null(box.QuerySelector("svg"));
+
+        box.Click();
+
+        Assert.Equal([true], changes);
+        box = cut.Find("[data-slot=menubar-checkbox-item]");
+        Assert.Equal("true", box.GetAttribute("aria-checked"));
+        Assert.NotNull(box.QuerySelector("svg"));
+        Assert.Equal("open", Triggers(cut));
+
+        // A controlled one asks and keeps what it is given.
+        cut.Find("#fixed").Click();
+        Assert.Equal([true, true], changes);
+        Assert.Equal("true", cut.Find("#fixed").GetAttribute("aria-checked"));
+    }
+
+    [Fact]
+    public void A_radio_group_marks_its_default_value_and_moves_it_on_selection()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="profiles">
+            <BzMenubarMenu Value="profiles">
+                <BzMenubarTrigger>Profiles</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarRadioGroup DefaultValue="ada" id="people">
+                        <BzMenubarRadioItem Value="ada">Ada</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="grace" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Grace</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="alan" Disabled="true">Alan</BzMenubarRadioItem>
+                    </BzMenubarRadioGroup>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+        Assert.Equal("group", cut.Find("#people[data-slot=menubar-radio-group]").GetAttribute("role"));
+        var items = cut.FindAll("[data-slot=menubar-radio-item]");
+        Assert.All(items, i => Assert.Equal("menuitemradio", i.GetAttribute("role")));
+        Assert.Equal(["true", "false", "false"], items.Select(i => i.GetAttribute("aria-checked")));
+        Assert.Equal([true, false, false], items.Select(i => i.QuerySelector("svg") is not null));
+
+        items[2].Click();
+        cut.FindAll("[data-slot=menubar-radio-item]")[1].Click();
+
+        Assert.Equal(["false", "true", "false"],
+            cut.FindAll("[data-slot=menubar-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+    }
+
+    [Fact]
+    public void A_controlled_radio_group_asks_and_keeps_the_value_it_is_given()
+    {
+        var requests = new List<string>();
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="profiles">
+            <BzMenubarMenu Value="profiles">
+                <BzMenubarTrigger>Profiles</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarRadioGroup Value="ada" ValueChanged="@((string v) => requests.Add(v))">
+                        <BzMenubarRadioItem Value="ada">Ada</BzMenubarRadioItem>
+                        <BzMenubarRadioItem Value="grace" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Grace</BzMenubarRadioItem>
+                    </BzMenubarRadioGroup>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        cut.FindAll("[data-slot=menubar-radio-item]")[1].Click();
+
+        Assert.Equal(["grace"], requests);
+        Assert.Equal(["true", "false"],
+            cut.FindAll("[data-slot=menubar-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+    }
+
+    [Fact]
+    public void A_label_names_its_group_and_separator_and_shortcut_keep_their_parts()
+    {
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarGroup>
+                        <BzMenubarLabel Inset="true" Class="uppercase">Recent</BzMenubarLabel>
+                        <BzMenubarItem>Report<BzMenubarShortcut Class="opacity-60">Ctrl+R</BzMenubarShortcut></BzMenubarItem>
+                    </BzMenubarGroup>
+                    <BzMenubarSeparator Class="my-2" />
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+
+        var label = cut.Find("[data-slot=menubar-label]");
+        Assert.True(label.HasAttribute("data-inset"));
+        Assert.Contains("uppercase", label.ClassList);
+        var group = cut.Find("[data-slot=menubar-group]");
+        Assert.Equal("group", group.GetAttribute("role"));
+        Assert.Equal(label.Id, group.GetAttribute("aria-labelledby"));
+        var separator = cut.Find("[data-slot=menubar-separator]");
+        Assert.Equal("separator", separator.GetAttribute("role"));
+        Assert.Contains("my-2", separator.ClassList);
+        var shortcut = cut.Find("span[data-slot=menubar-shortcut]");
+        Assert.Equal("Ctrl+R", shortcut.TextContent);
+        Assert.Contains("opacity-60", shortcut.ClassList);
+    }
+
+    [Fact]
+    public void A_submenu_opens_from_its_item_and_selecting_inside_closes_the_bar()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzMenubar AriaLabel="Main menu" DefaultValue="file">
+            <BzMenubarMenu Value="file">
+                <BzMenubarTrigger>File</BzMenubarTrigger>
+                <BzMenubarContent>
+                    <BzMenubarSub OpenChanged="@((bool open) => changes.Add(open))">
+                        <BzMenubarSubTrigger Inset="true">Share</BzMenubarSubTrigger>
+                        <BzMenubarSubContent Class="w-44" data-testid="share">
+                            <BzMenubarItem id="email">Email link</BzMenubarItem>
+                        </BzMenubarSubContent>
+                    </BzMenubarSub>
+                    <BzMenubarSub>
+                        <BzMenubarSubTrigger id="off" Disabled="true">Export</BzMenubarSubTrigger>
+                        <BzMenubarSubContent><BzMenubarItem>PDF</BzMenubarItem></BzMenubarSubContent>
+                    </BzMenubarSub>
+                </BzMenubarContent>
+            </BzMenubarMenu>
+        </BzMenubar>);
+        var subTrigger = cut.Find("[data-slot=menubar-sub-trigger]");
+        Assert.Equal("menu", subTrigger.GetAttribute("aria-haspopup"));
+        Assert.True(subTrigger.HasAttribute("data-inset"));
+        Assert.NotNull(subTrigger.QuerySelector("svg"));
+
+        cut.Find("#off").Click();
+        Assert.Empty(cut.FindAll("[data-slot=menubar-sub-content]"));
+
+        subTrigger.Click();
+        Assert.Equal([true], changes);
+        var sub = cut.Find("[data-testid=share][data-slot=menubar-sub-content]");
+        Assert.Equal("menu", sub.GetAttribute("role"));
+        Assert.Contains("w-44", sub.ClassList);
+
+        cut.Find("#email").Click();
+        Assert.Equal("closed", Triggers(cut));
+    }
+
+    [Fact]
+    public void Inside_a_raised_dialog_the_menu_lifts_itself_above_the_window()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ZIndex="60">
+                <BzDialogTitle>Edit</BzDialogTitle>
+                <BzMenubar AriaLabel="Main menu" DefaultValue="file">@Menus</BzMenubar>
+            </BzDialogContent>
+        </BzDialog>);
+
+        Assert.Contains("z-index:65", cut.Find("[data-slot=menubar-content]").GetAttribute("style"));
+    }
+}

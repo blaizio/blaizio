@@ -1,0 +1,237 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzSheet: a dialog anchored to an edge. The side decides where it sits and which way it
+    // slides; everything else (naming, dismissal, the corner button) follows the dialog.
+
+    public SheetTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static readonly RenderFragment Body =
+        @<text>
+            <BzSheetHeader>
+                <BzSheetTitle>Filters</BzSheetTitle>
+                <BzSheetDescription>Narrow the list.</BzSheetDescription>
+            </BzSheetHeader>
+        </text>;
+
+    private static string? State(IRenderedComponent<IComponent> cut) =>
+        cut.Find("[data-slot=sheet-content]").GetAttribute("data-state");
+
+    [Fact]
+    public void The_trigger_opens_a_modal_sheet_named_by_its_title_and_description()
+    {
+        var cut = Render(@<BzSheet>
+            <BzSheetTrigger Variant="ButtonVariant.Outline">Filters</BzSheetTrigger>
+            <BzSheetContent>@Body</BzSheetContent>
+        </BzSheet>);
+        var trigger = cut.Find("button[data-slot=sheet-trigger]");
+        Assert.Equal("outline", trigger.GetAttribute("data-variant"));
+        Assert.Equal("false", trigger.GetAttribute("aria-expanded"));
+
+        trigger.Click();
+
+        var sheet = cut.Find("[data-slot=sheet-content]");
+        Assert.Equal("dialog", sheet.GetAttribute("role"));
+        Assert.Equal("true", sheet.GetAttribute("aria-modal"));
+        Assert.Equal(cut.Find("[data-slot=sheet-title]").Id, sheet.GetAttribute("aria-labelledby"));
+        Assert.Equal(cut.Find("[data-slot=sheet-description]").Id, sheet.GetAttribute("aria-describedby"));
+        Assert.Equal(sheet.Id, cut.Find("button[data-slot=sheet-trigger]").GetAttribute("aria-controls"));
+    }
+
+    [Fact]
+    public void A_sheet_sits_on_the_end_edge_by_default()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true"><BzSheetContent>@Body</BzSheetContent></BzSheet>);
+
+        var sheet = cut.Find("[data-slot=sheet-content]");
+        Assert.Equal("end", sheet.GetAttribute("data-side"));
+        Assert.Contains("end-0", sheet.ClassList);
+        Assert.Contains("border-s", sheet.ClassList);
+    }
+
+    [Theory]
+    [InlineData(PanelSide.Start, "start", "start-0", "border-e")]
+    [InlineData(PanelSide.End, "end", "end-0", "border-s")]
+    [InlineData(PanelSide.Top, "top", "top-0", "border-b")]
+    [InlineData(PanelSide.Bottom, "bottom", "bottom-0", "border-t")]
+    public void The_side_anchors_the_sheet_and_borders_its_inner_edge(PanelSide side, string name, string anchor, string border)
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true"><BzSheetContent Side="side">@Body</BzSheetContent></BzSheet>);
+
+        var sheet = cut.Find("[data-slot=sheet-content]");
+        Assert.Equal(name, sheet.GetAttribute("data-side"));
+        Assert.Contains(anchor, sheet.ClassList);
+        Assert.Contains(border, sheet.ClassList);
+    }
+
+    [Fact]
+    public void An_inline_edge_slides_the_other_way_in_a_right_to_left_page()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true"><BzSheetContent Side="PanelSide.Start">@Body</BzSheetContent></BzSheet>);
+
+        var classes = cut.Find("[data-slot=sheet-content]").ClassList;
+        Assert.Contains("ltr:data-open:slide-in-from-left", classes);
+        Assert.Contains("rtl:data-open:slide-in-from-right", classes);
+    }
+
+    [Fact]
+    public void A_press_on_the_backdrop_closes_the_sheet()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzSheet DefaultOpen="true" OpenChanged="@((bool open) => changes.Add(open))">
+            <BzSheetContent>@Body</BzSheetContent>
+        </BzSheet>);
+
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+
+        Assert.Equal([false], changes);
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public async Task A_locked_sheet_ignores_backdrop_and_Escape_hides_its_corner_button_and_closes_explicitly()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzSheetContent>
+                @Body
+                <BzSheetFooter><BzSheetClose>Apply</BzSheetClose></BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>);
+
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+        Assert.Equal("open", State(cut));
+        Assert.Empty(cut.FindAll("button.bz-sheet-close"));
+
+        var apply = cut.Find("[data-slot=sheet-footer] button[data-slot=sheet-close]");
+        Assert.Equal("outline", apply.GetAttribute("data-variant"));
+        apply.Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void The_corner_button_is_named_and_closes_the_sheet()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true"><BzSheetContent CloseLabel="Hide filters">@Body</BzSheetContent></BzSheet>);
+
+        var corner = cut.Find("button.bz-sheet-close");
+        Assert.Equal("Hide filters", corner.QuerySelector(".sr-only")!.TextContent);
+
+        corner.Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void The_corner_button_can_be_left_out()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true"><BzSheetContent ShowCloseButton="false">@Body</BzSheetContent></BzSheet>);
+
+        Assert.Empty(cut.FindAll("button.bz-sheet-close"));
+    }
+
+    [Fact]
+    public void A_non_modal_sheet_has_no_backdrop()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true" Modal="false"><BzSheetContent>@Body</BzSheetContent></BzSheet>);
+
+        Assert.Empty(cut.FindAll("[data-slot=dialog-overlay]"));
+        Assert.False(cut.Find("[data-slot=sheet-content]").HasAttribute("aria-modal"));
+    }
+
+    [Fact]
+    public void A_controlled_sheet_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzSheet>(p => p
+            .Add(x => x.Open, false)
+            .Add(x => x.OpenChanged, (bool open) => requests.Add(open))
+            .AddChildContent<BzSheetContent>(c => c.AddChildContent(Body)));
+        Assert.Empty(cut.FindAll("[data-slot=sheet-content]"));
+
+        cut.Render(p => p.Add(x => x.Open, true));
+        Assert.Equal("open", cut.Find("[data-slot=sheet-content]").GetAttribute("data-state"));
+
+        cut.Find("button.bz-sheet-close").Click();
+        Assert.Equal([false], requests);
+        Assert.Equal("open", cut.Find("[data-slot=sheet-content]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Classes_stacking_and_extra_attributes_reach_the_right_element()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true">
+            <BzSheetContent Class="sm:max-w-md" OverlayClass="bg-black/70" ZIndex="90" data-testid="filters">@Body</BzSheetContent>
+        </BzSheet>);
+
+        var sheet = cut.Find("[data-slot=sheet-content]");
+        Assert.Contains("sm:max-w-md", sheet.ClassList);
+        // The consumer's width replaces the default one of the side.
+        Assert.DoesNotContain("sm:max-w-sm", sheet.ClassList);
+        Assert.Equal("filters", sheet.GetAttribute("data-testid"));
+        Assert.Equal("z-index:91", sheet.GetAttribute("style"));
+        var overlay = cut.Find("[data-slot=dialog-overlay]");
+        Assert.Contains("bg-black/70", overlay.ClassList);
+        Assert.Equal("z-index:90", overlay.GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_popup_inside_a_raised_sheet_lifts_itself_above_it()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true">
+            <BzSheetContent ZIndex="90">
+                @Body
+                <BzPopover DefaultOpen="true">
+                    <BzPopoverTrigger>More</BzPopoverTrigger>
+                    <BzPopoverContent>Details</BzPopoverContent>
+                </BzPopover>
+            </BzSheetContent>
+        </BzSheet>);
+
+        Assert.Contains("z-index:95", cut.Find("[data-slot=popover-content]").GetAttribute("style") ?? "");
+    }
+
+    [Fact]
+    public void The_trigger_and_close_parts_render_onto_another_element()
+    {
+        var cut = Render(@<BzSheet>
+            <BzSheetTrigger>
+                <RenderAs Context="p"><a id="open" href="#" @attributes="p.Attributes">Open</a></RenderAs>
+            </BzSheetTrigger>
+            <BzSheetContent ShowCloseButton="false">
+                @Body
+                <BzSheetClose>
+                    <RenderAs Context="p"><a id="back" href="#" @attributes="p.Attributes">Back</a></RenderAs>
+                </BzSheetClose>
+            </BzSheetContent>
+        </BzSheet>);
+
+        cut.Find("a#open[data-slot=sheet-trigger]").Click();
+        Assert.Equal("open", State(cut));
+
+        cut.Find("a#back[data-slot=sheet-close]").Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void Header_and_footer_merge_classes_and_forward_attributes()
+    {
+        var cut = Render(@<BzSheet DefaultOpen="true">
+            <BzSheetContent>
+                <BzSheetHeader Class="flex-row" id="head"><BzSheetTitle Class="text-lg">Filters</BzSheetTitle></BzSheetHeader>
+                <BzSheetFooter Class="mt-auto" id="foot">x</BzSheetFooter>
+            </BzSheetContent>
+        </BzSheet>);
+
+        var header = cut.Find("#head[data-slot=sheet-header]");
+        Assert.Contains("flex-row", header.ClassList);
+        Assert.DoesNotContain("flex-col", header.ClassList);
+        Assert.Contains("text-lg", cut.Find("[data-slot=sheet-title]").ClassList);
+        Assert.Contains("mt-auto", cut.Find("#foot[data-slot=sheet-footer]").ClassList);
+    }
+}

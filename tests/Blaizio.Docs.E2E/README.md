@@ -23,6 +23,39 @@ running from the project's normal `bin` keeps serving while the tests run - with
 the test build deletes the fingerprinted `_framework` files the live server is handing out and
 every open tab dies with a blank body.
 
+Two checkouts (or two sessions) can run the suite at the same time: set `BLAIZIO_E2E_PORT` to a free
+port in one of them. A port that already answers stops the run before any test, because every test
+would otherwise exercise whatever build that server holds.
+
+```bash
+BLAIZIO_E2E=1 BLAIZIO_E2E_PORT=5241 dotnet test tests/Blaizio.Docs.E2E
+```
+
+While writing a test, the build and the server start of every run can be skipped: start the docs app
+once with the fixture's two properties, then attach to it. Rebuild and restart it yourself after a
+change to the docs or to `src`; an attached run tests whatever that server holds.
+
+```bash
+dotnet run --project docs/Blaizio.Docs/Blaizio.Docs.csproj --no-launch-profile --urls http://127.0.0.1:5249 --property:BlaizioIsolatedOutput="<repo>/artifacts/e2e-docs" --property:BlaizioFetchStars=false
+```
+
+```bash
+BLAIZIO_E2E=1 BLAIZIO_E2E_ATTACH=1 BLAIZIO_E2E_PORT=5249 dotnet test tests/Blaizio.Docs.E2E --filter "FullyQualifiedName~ScriptModuleTests"
+```
+
+## Script coverage
+
+`BLAIZIO_E2E_SCRIPT_COVERAGE=1` records which functions of each Blaizio.Base script module the run
+called, and in which test, using the browser's own profiler (nothing is instrumented). The result is
+written to `ScriptCoverage/modules.json` (gitignored): per module the number of functions, how many
+were called, and the tests that reach it: the ones that called a function which merely opening a page
+(the routing and axe tests) does not call. The profiler slows the page down, so this is a measuring
+run, not a gate: a test that depends on timing can fail in it (the context menu reopen test does).
+
+```bash
+BLAIZIO_E2E=1 BLAIZIO_E2E_SCRIPT_COVERAGE=1 dotnet test tests/Blaizio.Docs.E2E --filter "FullyQualifiedName!~VisualRegressionTests"
+```
+
 ## Axe results
 
 Every axe run writes the full violation list (all impacts, moderate and minor included) to

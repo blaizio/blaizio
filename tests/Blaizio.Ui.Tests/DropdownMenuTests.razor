@@ -1,0 +1,644 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzDropdownMenu: a menu opened from a trigger. Items report their selection and close the
+    // menu unless told otherwise; checkbox and radio items carry state; submenus open from an item.
+
+    private const string PositioningModule = "./_content/blaizio.base/dist/positioning.js";
+    private const string MenuModule = "./_content/blaizio.base/dist/menu.js";
+
+    public DropdownMenuTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+
+    private static string? State(IRenderedComponent<IComponent> cut) =>
+        cut.Find("[data-slot=dropdown-menu-content]").GetAttribute("data-state");
+
+    [Fact]
+    public void The_trigger_opens_a_menu_that_is_named_by_it()
+    {
+        var cut = Render(@<BzDropdownMenu>
+            <BzDropdownMenuTrigger Class="px-2">Options</BzDropdownMenuTrigger>
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        var trigger = cut.Find("button[data-slot=dropdown-menu-trigger]");
+        Assert.Equal("menu", trigger.GetAttribute("aria-haspopup"));
+        Assert.Equal("false", trigger.GetAttribute("aria-expanded"));
+        Assert.Contains("px-2", trigger.ClassList);
+        Assert.Empty(cut.FindAll("[role=menu]"));
+
+        trigger.Click();
+
+        var menu = cut.Find("[role=menu]");
+        Assert.Equal("dropdown-menu-content", menu.GetAttribute("data-slot"));
+        trigger = cut.Find("button[data-slot=dropdown-menu-trigger]");
+        Assert.Equal(trigger.Id, menu.GetAttribute("aria-labelledby"));
+        Assert.Equal(menu.Id, trigger.GetAttribute("aria-controls"));
+        Assert.Equal("true", trigger.GetAttribute("aria-expanded"));
+        Assert.Equal("vertical", menu.GetAttribute("aria-orientation"));
+    }
+
+    [Fact]
+    public void The_trigger_renders_onto_a_styled_button()
+    {
+        var cut = Render(@<BzDropdownMenu>
+            <BzDropdownMenuTrigger>
+                <RenderAs Context="p"><BzButton Variant="ButtonVariant.Outline" @attributes="p.Attributes">Open</BzButton></RenderAs>
+            </BzDropdownMenuTrigger>
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var button = cut.Find("button[data-slot=dropdown-menu-trigger]");
+        Assert.Equal("outline", button.GetAttribute("data-variant"));
+        Assert.Contains("bz-button", button.ClassList);
+
+        button.Click();
+        Assert.Equal("open", State(cut));
+    }
+
+    [Theory]
+    [InlineData("ArrowDown", "first")]
+    [InlineData("ArrowUp", "last")]
+    public void An_arrow_key_on_the_trigger_opens_the_menu_with_focus_on_that_end(string key, string focus)
+    {
+        var script = JSInterop.SetupModule(MenuModule);
+        script.Mode = JSRuntimeMode.Loose;
+        var cut = Render(@<BzDropdownMenu>
+            <BzDropdownMenuTrigger>Options</BzDropdownMenuTrigger>
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("[data-slot=dropdown-menu-trigger]").KeyDown(new KeyboardEventArgs { Key = key });
+
+        Assert.Equal("open", State(cut));
+        var options = Assert.Single(script.Invocations, i => i.Identifier == "createMenu").Arguments[1]!;
+        Assert.Equal(focus, Option(options, "initialFocus"));
+    }
+
+    [Fact]
+    public void A_pointer_click_opens_the_menu_with_nothing_highlighted_and_a_key_press_with_the_first_item()
+    {
+        var script = JSInterop.SetupModule(MenuModule);
+        script.Mode = JSRuntimeMode.Loose;
+        RenderFragment menu = @<BzDropdownMenu>
+            <BzDropdownMenuTrigger>Options</BzDropdownMenuTrigger>
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>;
+
+        // A real press reports a click count; Enter and Space on a button report none.
+        Render(menu).Find("[data-slot=dropdown-menu-trigger]").Click(new MouseEventArgs { Detail = 1 });
+        Render(menu).Find("[data-slot=dropdown-menu-trigger]").Click(new MouseEventArgs { Detail = 0 });
+
+        var created = script.Invocations.Where(i => i.Identifier == "createMenu").ToList();
+        Assert.Equal(["none", "first"], created.Select(i => Option(i.Arguments[1]!, "initialFocus")));
+    }
+
+    [Fact]
+    public void The_menu_opens_below_its_trigger_aligned_to_the_start_with_a_gap_of_four()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuTrigger>Options</BzDropdownMenuTrigger>
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var created = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning");
+        var anchor = cut.Find("[data-slot=dropdown-menu-trigger]").GetAttribute("data-bz-dropdown-menu-anchor");
+        Assert.Equal($"[data-bz-dropdown-menu-anchor='{anchor}']", created.Arguments[0]);
+        var options = created.Arguments[2]!;
+        Assert.Equal("bottom", Option(options, "side"));
+        Assert.Equal("start", Option(options, "align"));
+        Assert.Equal(4d, Option(options, "sideOffset"));
+        Assert.Equal(0d, Option(options, "alignOffset"));
+        Assert.Equal(false, Option(options, "inline"));
+    }
+
+    [Fact]
+    public void Placement_parameters_reach_the_positioning_script()
+    {
+        var positioning = JSInterop.SetupModule(PositioningModule);
+        positioning.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent Side="Side.Top" Align="Align.End" SideOffset="10" AlignOffset="3" Inline="true">
+                <BzDropdownMenuItem>Rename</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var options = Assert.Single(positioning.Invocations, i => i.Identifier == "createPositioning").Arguments[2]!;
+        Assert.Equal("top", Option(options, "side"));
+        Assert.Equal("end", Option(options, "align"));
+        Assert.Equal(10d, Option(options, "sideOffset"));
+        Assert.Equal(3d, Option(options, "alignOffset"));
+        Assert.Equal(true, Option(options, "inline"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Loop_tells_the_menu_script_whether_the_arrows_wrap(bool loop)
+    {
+        var script = JSInterop.SetupModule(MenuModule);
+        script.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent Loop="loop"><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var options = Assert.Single(script.Invocations, i => i.Identifier == "createMenu").Arguments[1]!;
+        Assert.Equal(loop, Option(options, "loop"));
+        Assert.Equal(false, Option(options, "isSubmenu"));
+    }
+
+    [Fact]
+    public async Task A_flip_reported_by_the_script_moves_the_side_the_styles_read()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        Assert.Equal("bottom", cut.Find("[role=menu]").GetAttribute("data-side"));
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDropdownMenuContent>().Instance.OnPlaced("top", "end"));
+
+        Assert.Equal("top", cut.Find("[role=menu]").GetAttribute("data-side"));
+        Assert.Equal("end", cut.Find("[role=menu]").GetAttribute("data-align"));
+    }
+
+    [Fact]
+    public void Selecting_an_item_reports_it_and_closes_the_menu()
+    {
+        var events = new List<string>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true" OpenChanged="@((bool open) => events.Add($"open {open}"))">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuItem OnSelect="@((MenuSelectEventArgs _) => events.Add("rename"))">Rename</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("[data-slot=dropdown-menu-item]").Click();
+
+        Assert.Equal(["rename", "open False"], events);
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void An_item_that_prevents_the_default_keeps_the_menu_open()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuItem OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Copy link</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("[data-slot=dropdown-menu-item]").Click();
+
+        Assert.Equal("open", State(cut));
+    }
+
+    [Fact]
+    public void A_disabled_item_says_so_and_ignores_the_press()
+    {
+        var selected = 0;
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuItem Disabled="true" OnSelect="@((MenuSelectEventArgs _) => selected++)">Delete</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var item = cut.Find("[data-slot=dropdown-menu-item]");
+        Assert.Equal("true", item.GetAttribute("aria-disabled"));
+        Assert.True(item.HasAttribute("data-disabled"));
+
+        item.Click();
+        Assert.Equal(0, selected);
+        Assert.Equal("open", State(cut));
+    }
+
+    [Fact]
+    public void Inset_variant_classes_and_extra_attributes_reach_the_item()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuItem id="plain">Rename</BzDropdownMenuItem>
+                <BzDropdownMenuItem id="styled" Inset="true" Variant="DropdownMenuItemVariant.Destructive" Class="font-medium">Delete</BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var plain = cut.Find("#plain");
+        Assert.Equal("menuitem", plain.GetAttribute("role"));
+        Assert.Equal("-1", plain.GetAttribute("tabindex"));
+        Assert.False(plain.HasAttribute("data-inset"));
+        Assert.False(plain.HasAttribute("data-variant"));
+        var styled = cut.Find("#styled");
+        Assert.True(styled.HasAttribute("data-inset"));
+        Assert.Equal("destructive", styled.GetAttribute("data-variant"));
+        Assert.Contains("font-medium", styled.ClassList);
+        Assert.Contains("bz-dropdown-menu-item", styled.ClassList);
+    }
+
+    [Fact]
+    public void An_item_rendered_as_a_link_is_still_a_menu_item_that_closes_the_menu()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuItem>
+                    <RenderAs Context="p"><a href="/settings" @attributes="p.Attributes">Settings</a></RenderAs>
+                </BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var link = cut.Find("a[data-slot=dropdown-menu-item]");
+        Assert.Equal("menuitem", link.GetAttribute("role"));
+        Assert.Equal("/settings", link.GetAttribute("href"));
+
+        link.Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void A_checkbox_item_toggles_reports_and_shows_its_check_only_while_checked()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuCheckboxItem CheckedChanged="@((bool c) => changes.Add(c))"
+                                            OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Status bar</BzDropdownMenuCheckboxItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        var box = cut.Find("[data-slot=dropdown-menu-checkbox-item]");
+        Assert.Equal("menuitemcheckbox", box.GetAttribute("role"));
+        Assert.Equal("false", box.GetAttribute("aria-checked"));
+        Assert.Null(box.QuerySelector("svg"));
+
+        box.Click();
+
+        box = cut.Find("[data-slot=dropdown-menu-checkbox-item]");
+        Assert.Equal([true], changes);
+        Assert.Equal("true", box.GetAttribute("aria-checked"));
+        Assert.Equal("checked", box.GetAttribute("data-state"));
+        Assert.NotNull(box.QuerySelector("svg"));
+
+        box.Click();
+        Assert.Equal([true, false], changes);
+        Assert.Null(cut.Find("[data-slot=dropdown-menu-checkbox-item]").QuerySelector("svg"));
+    }
+
+    [Fact]
+    public void A_checkbox_item_closes_the_menu_when_nothing_prevents_it()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuCheckboxItem DefaultChecked="true">Status bar</BzDropdownMenuCheckboxItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        Assert.Equal("true", cut.Find("[data-slot=dropdown-menu-checkbox-item]").GetAttribute("aria-checked"));
+
+        cut.Find("[data-slot=dropdown-menu-checkbox-item]").Click();
+
+        Assert.Equal("closed", State(cut));
+        Assert.Equal("false", cut.Find("[data-slot=dropdown-menu-checkbox-item]").GetAttribute("aria-checked"));
+    }
+
+    [Fact]
+    public void A_controlled_checkbox_item_asks_and_keeps_the_state_it_is_given()
+    {
+        var requests = new List<bool>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuCheckboxItem Checked="false" CheckedChanged="@((bool c) => requests.Add(c))"
+                                            OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Status bar</BzDropdownMenuCheckboxItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("[data-slot=dropdown-menu-checkbox-item]").Click();
+
+        Assert.Equal([true], requests);
+        Assert.Equal("false", cut.Find("[data-slot=dropdown-menu-checkbox-item]").GetAttribute("aria-checked"));
+    }
+
+    [Fact]
+    public void A_disabled_checkbox_item_does_not_toggle()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuCheckboxItem Disabled="true" CheckedChanged="@((bool c) => changes.Add(c))">Status bar</BzDropdownMenuCheckboxItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var box = cut.Find("[data-slot=dropdown-menu-checkbox-item]");
+        Assert.Equal("true", box.GetAttribute("aria-disabled"));
+        box.Click();
+
+        Assert.Empty(changes);
+        Assert.Equal("open", State(cut));
+    }
+
+    [Fact]
+    public void A_radio_group_marks_its_default_value_and_moves_it_on_selection()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuRadioGroup DefaultValue="top" id="position">
+                    <BzDropdownMenuRadioItem Value="top">Top</BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="bottom" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Bottom</BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="right" Disabled="true">Right</BzDropdownMenuRadioItem>
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        var group = cut.Find("#position[data-slot=dropdown-menu-radio-group]");
+        Assert.Equal("group", group.GetAttribute("role"));
+        var items = cut.FindAll("[data-slot=dropdown-menu-radio-item]");
+        Assert.All(items, i => Assert.Equal("menuitemradio", i.GetAttribute("role")));
+        Assert.Equal(["true", "false", "false"], items.Select(i => i.GetAttribute("aria-checked")));
+        // The check is drawn on the selected option only.
+        Assert.Equal([true, false, false], items.Select(i => i.QuerySelector("svg") is not null));
+
+        // A disabled option cannot be picked.
+        items[2].Click();
+        Assert.Equal("true", cut.FindAll("[data-slot=dropdown-menu-radio-item]")[0].GetAttribute("aria-checked"));
+
+        cut.FindAll("[data-slot=dropdown-menu-radio-item]")[1].Click();
+        items = cut.FindAll("[data-slot=dropdown-menu-radio-item]");
+        Assert.Equal(["false", "true", "false"], items.Select(i => i.GetAttribute("aria-checked")));
+        Assert.Equal([false, true, false], items.Select(i => i.QuerySelector("svg") is not null));
+    }
+
+    [Fact(Skip = "bug: BaseDropdownMenuRadioGroup reads a ValueChanged listener as controlled, so DefaultValue with ValueChanged selects nothing and no pick sticks")]
+    public void A_radio_group_that_is_only_listened_to_still_starts_from_its_default_value()
+    {
+        var changes = new List<string>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuRadioGroup DefaultValue="top" ValueChanged="@((string v) => changes.Add(v))">
+                    <BzDropdownMenuRadioItem Value="top">Top</BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="bottom" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Bottom</BzDropdownMenuRadioItem>
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        Assert.Equal(["true", "false"],
+            cut.FindAll("[data-slot=dropdown-menu-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+
+        cut.FindAll("[data-slot=dropdown-menu-radio-item]")[1].Click();
+
+        Assert.Equal(["bottom"], changes);
+        Assert.Equal(["false", "true"],
+            cut.FindAll("[data-slot=dropdown-menu-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+    }
+
+    [Fact]
+    public void A_controlled_radio_group_asks_and_keeps_the_value_it_is_given()
+    {
+        var requests = new List<string>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuRadioGroup Value="top" ValueChanged="@((string v) => requests.Add(v))">
+                    <BzDropdownMenuRadioItem Value="top">Top</BzDropdownMenuRadioItem>
+                    <BzDropdownMenuRadioItem Value="bottom" OnSelect="@((MenuSelectEventArgs e) => e.PreventDefault())">Bottom</BzDropdownMenuRadioItem>
+                </BzDropdownMenuRadioGroup>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.FindAll("[data-slot=dropdown-menu-radio-item]")[1].Click();
+
+        Assert.Equal(["bottom"], requests);
+        Assert.Equal(["true", "false"],
+            cut.FindAll("[data-slot=dropdown-menu-radio-item]").Select(i => i.GetAttribute("aria-checked")));
+    }
+
+    [Fact]
+    public void A_label_names_the_group_it_sits_in()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuGroup>
+                    <BzDropdownMenuLabel Inset="true" Class="uppercase">Account</BzDropdownMenuLabel>
+                    <BzDropdownMenuItem>Profile</BzDropdownMenuItem>
+                </BzDropdownMenuGroup>
+                <BzDropdownMenuSeparator Class="my-2" />
+                <BzDropdownMenuItem>Sign out<BzDropdownMenuShortcut Class="opacity-60">Ctrl+Q</BzDropdownMenuShortcut></BzDropdownMenuItem>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var label = cut.Find("[data-slot=dropdown-menu-label]");
+        Assert.True(label.HasAttribute("data-inset"));
+        Assert.Contains("uppercase", label.ClassList);
+        var group = cut.Find("[data-slot=dropdown-menu-group]");
+        Assert.Equal("group", group.GetAttribute("role"));
+        Assert.Equal(label.Id, group.GetAttribute("aria-labelledby"));
+        var separator = cut.Find("[data-slot=dropdown-menu-separator]");
+        Assert.Equal("separator", separator.GetAttribute("role"));
+        Assert.Contains("my-2", separator.ClassList);
+        Assert.DoesNotContain("my-1", separator.ClassList);
+        var shortcut = cut.Find("span[data-slot=dropdown-menu-shortcut]");
+        Assert.Equal("Ctrl+Q", shortcut.TextContent);
+        Assert.Contains("opacity-60", shortcut.ClassList);
+        Assert.Contains("ms-auto", shortcut.ClassList);
+    }
+
+    [Fact]
+    public void A_submenu_opens_from_its_item_and_reports_it()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuSub OpenChanged="@((bool open) => changes.Add(open))">
+                    <BzDropdownMenuSubTrigger Inset="true" Class="font-medium">Share</BzDropdownMenuSubTrigger>
+                    <BzDropdownMenuSubContent Class="w-48" data-testid="share">
+                        <BzDropdownMenuItem>Email</BzDropdownMenuItem>
+                    </BzDropdownMenuSubContent>
+                </BzDropdownMenuSub>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        var subTrigger = cut.Find("[data-slot=dropdown-menu-sub-trigger]");
+        Assert.Equal("menuitem", subTrigger.GetAttribute("role"));
+        Assert.Equal("menu", subTrigger.GetAttribute("aria-haspopup"));
+        Assert.Equal("false", subTrigger.GetAttribute("aria-expanded"));
+        Assert.True(subTrigger.HasAttribute("data-inset"));
+        Assert.Contains("font-medium", subTrigger.ClassList);
+        // The chevron that says "more this way".
+        Assert.NotNull(subTrigger.QuerySelector("svg"));
+        Assert.Empty(cut.FindAll("[data-slot=dropdown-menu-sub-content]"));
+
+        subTrigger.Click();
+
+        Assert.Equal([true], changes);
+        var sub = cut.Find("[data-testid=share][data-slot=dropdown-menu-sub-content]");
+        Assert.Equal("menu", sub.GetAttribute("role"));
+        Assert.Contains("w-48", sub.ClassList);
+        subTrigger = cut.Find("[data-slot=dropdown-menu-sub-trigger]");
+        Assert.Equal("true", subTrigger.GetAttribute("aria-expanded"));
+        Assert.Equal(sub.Id, subTrigger.GetAttribute("aria-controls"));
+        Assert.Equal(subTrigger.Id, sub.GetAttribute("aria-labelledby"));
+    }
+
+    [Fact]
+    public void The_inline_end_arrow_opens_a_submenu_and_the_other_arrow_does_not()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuSub>
+                    <BzDropdownMenuSubTrigger>Share</BzDropdownMenuSubTrigger>
+                    <BzDropdownMenuSubContent><BzDropdownMenuItem>Email</BzDropdownMenuItem></BzDropdownMenuSubContent>
+                </BzDropdownMenuSub>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("[data-slot=dropdown-menu-sub-trigger]").KeyDown(new KeyboardEventArgs { Key = "ArrowLeft" });
+        Assert.Empty(cut.FindAll("[data-slot=dropdown-menu-sub-content]"));
+
+        cut.Find("[data-slot=dropdown-menu-sub-trigger]").KeyDown(new KeyboardEventArgs { Key = "ArrowRight" });
+        Assert.NotEmpty(cut.FindAll("[data-slot=dropdown-menu-sub-content]"));
+    }
+
+    [Fact]
+    public void In_a_right_to_left_menu_the_arrows_that_open_a_submenu_swap()
+    {
+        var cut = Render(@<BzDirectionProvider Dir="Direction.Rtl">
+            <BzDropdownMenu DefaultOpen="true">
+                <BzDropdownMenuContent>
+                    <BzDropdownMenuSub>
+                        <BzDropdownMenuSubTrigger>Share</BzDropdownMenuSubTrigger>
+                        <BzDropdownMenuSubContent><BzDropdownMenuItem>Email</BzDropdownMenuItem></BzDropdownMenuSubContent>
+                    </BzDropdownMenuSub>
+                </BzDropdownMenuContent>
+            </BzDropdownMenu>
+        </BzDirectionProvider>);
+
+        cut.Find("[data-slot=dropdown-menu-sub-trigger]").KeyDown(new KeyboardEventArgs { Key = "ArrowRight" });
+        Assert.Empty(cut.FindAll("[data-slot=dropdown-menu-sub-content]"));
+
+        cut.Find("[data-slot=dropdown-menu-sub-trigger]").KeyDown(new KeyboardEventArgs { Key = "ArrowLeft" });
+        Assert.NotEmpty(cut.FindAll("[data-slot=dropdown-menu-sub-content]"));
+        // The menu left the provider's subtree for the body, so it states its direction itself.
+        Assert.Equal("rtl", cut.Find("[data-slot=dropdown-menu-content]").GetAttribute("dir"));
+    }
+
+    [Fact]
+    public void A_disabled_submenu_item_does_not_open()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuSub>
+                    <BzDropdownMenuSubTrigger Disabled="true">Share</BzDropdownMenuSubTrigger>
+                    <BzDropdownMenuSubContent><BzDropdownMenuItem>Email</BzDropdownMenuItem></BzDropdownMenuSubContent>
+                </BzDropdownMenuSub>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var subTrigger = cut.Find("[data-slot=dropdown-menu-sub-trigger]");
+        Assert.Equal("true", subTrigger.GetAttribute("aria-disabled"));
+        subTrigger.Click();
+        subTrigger.KeyDown(new KeyboardEventArgs { Key = "ArrowRight" });
+
+        Assert.Empty(cut.FindAll("[data-slot=dropdown-menu-sub-content]"));
+    }
+
+    [Fact]
+    public void Selecting_inside_a_submenu_closes_the_whole_menu()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent>
+                <BzDropdownMenuSub DefaultOpen="true">
+                    <BzDropdownMenuSubTrigger>Share</BzDropdownMenuSubTrigger>
+                    <BzDropdownMenuSubContent><BzDropdownMenuItem id="email">Email</BzDropdownMenuItem></BzDropdownMenuSubContent>
+                </BzDropdownMenuSub>
+            </BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("#email").Click();
+
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Theory]
+    [InlineData("Escape", "closed")]
+    [InlineData("Tab", "closed")]
+    [InlineData("a", "open")]
+    public void Escape_and_Tab_close_the_menu_and_other_keys_are_the_scripts(string key, string state)
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        cut.Find("[role=menu]").KeyDown(new KeyboardEventArgs { Key = key });
+
+        Assert.Equal(state, State(cut));
+    }
+
+    [Fact]
+    public async Task A_press_outside_closes_the_menu_and_it_is_removed_after_its_exit_animation()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+        var content = cut.FindComponent<BaseDropdownMenuContent>();
+
+        await cut.InvokeAsync(() => content.Instance.OnDismissRequested());
+        Assert.Equal("closed", State(cut));
+
+        await cut.InvokeAsync(() => content.Instance.OnCloseFinished());
+        Assert.Empty(cut.FindAll("[data-slot=dropdown-menu-content]"));
+    }
+
+    [Fact]
+    public void A_controlled_menu_asks_to_close_and_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzDropdownMenu>(p => p
+            .Add(x => x.Open, true)
+            .Add(x => x.OpenChanged, (bool open) => requests.Add(open))
+            .AddChildContent<BzDropdownMenuContent>(c => c.AddChildContent<BzDropdownMenuItem>(i => i.AddChildContent("Rename"))));
+
+        cut.Find("[data-slot=dropdown-menu-item]").Click();
+        Assert.Equal([false], requests);
+        Assert.Equal("open", cut.Find("[role=menu]").GetAttribute("data-state"));
+
+        cut.Render(p => p.Add(x => x.Open, false));
+        Assert.Equal("closed", cut.Find("[role=menu]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void Classes_and_extra_attributes_reach_the_menu_surface()
+    {
+        var cut = Render(@<BzDropdownMenu DefaultOpen="true">
+            <BzDropdownMenuContent Class="w-56 scrollbar-none" data-testid="options"><BzDropdownMenuItem>Rename</BzDropdownMenuItem></BzDropdownMenuContent>
+        </BzDropdownMenu>);
+
+        var menu = cut.Find("[data-testid=options]");
+        Assert.Contains("w-56", menu.ClassList);
+        Assert.Contains("bz-dropdown-menu-content", menu.ClassList);
+        // A scrollbar class of the consumer replaces the default thin one.
+        Assert.Contains("scrollbar-none", menu.ClassList);
+        Assert.DoesNotContain("scrollbar-thin", menu.ClassList);
+        Assert.Equal("position:fixed;top:0;left:0;visibility:hidden", menu.GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Inside_a_raised_dialog_the_menu_and_its_submenu_lift_themselves_above_the_window()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ZIndex="60">
+                <BzDialogTitle>Edit</BzDialogTitle>
+                <BzDropdownMenu DefaultOpen="true">
+                    <BzDropdownMenuContent>
+                        <BzDropdownMenuSub DefaultOpen="true">
+                            <BzDropdownMenuSubTrigger>Share</BzDropdownMenuSubTrigger>
+                            <BzDropdownMenuSubContent><BzDropdownMenuItem>Email</BzDropdownMenuItem></BzDropdownMenuSubContent>
+                        </BzDropdownMenuSub>
+                    </BzDropdownMenuContent>
+                </BzDropdownMenu>
+            </BzDialogContent>
+        </BzDialog>);
+
+        Assert.Contains("z-index:65", cut.Find("[data-slot=dropdown-menu-content]").GetAttribute("style"));
+        Assert.Contains("z-index:65", cut.Find("[data-slot=dropdown-menu-sub-content]").GetAttribute("style"));
+    }
+}

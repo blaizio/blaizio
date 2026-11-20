@@ -9,7 +9,7 @@ namespace Blaizio.Docs.E2E;
 /// observers, key defaults and form submission are the browser's, which bUnit does not have.
 /// </summary>
 [Collection("docs-e2e")]
-public sealed class ScriptModuleTests(DocsServerFixture fx)
+public sealed partial class ScriptModuleTests(DocsServerFixture fx)
 {
     // Helpers every page script below shares: the module import, a recording stand-in for the
     // .NET reference, and a wait.

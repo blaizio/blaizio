@@ -161,6 +161,51 @@ public class ToastStoreTests
     }
 
     [Fact]
+    public void A_disposed_store_no_longer_notifies_its_listeners()
+    {
+        var store = new ToastStore();
+        var changed = 0;
+        store.Changed += () => changed++;
+
+        store.Dispose();
+        store.Show(new ToastData());   // a late caller holding the scoped store
+
+        Assert.Equal(0, changed);
+    }
+
+    [Fact]
+    public void Missing_data_is_refused_and_changes_nothing()
+    {
+        var store = new ToastStore();
+        var id = store.Show(new ToastData { Title = "Kept" });
+        var changed = 0;
+        store.Changed += () => changed++;
+
+        Assert.Throws<ArgumentNullException>(() => store.Show(null!));
+        Assert.Throws<ArgumentNullException>(() => store.Update(id, null!));
+
+        Assert.Equal("Kept", Assert.Single(store.Toasts).Data.Title);
+        Assert.Equal(0, store.Toasts[0].Revision);
+        Assert.Equal(0, changed);
+    }
+
+    [Fact]
+    public void An_update_keeps_the_toasts_place_and_a_pending_dismissal()
+    {
+        var store = new ToastStore();
+        var first = store.Show(new ToastData { Title = "first" });
+        store.Show(new ToastData { Title = "second" });
+        store.Dismiss(first);
+
+        store.Update(first, new ToastData { Title = "first, edited" });
+
+        Assert.Equal(first, store.Toasts[0].Id);
+        Assert.Equal("first, edited", store.Toasts[0].Data.Title);
+        // Unlike a re-show, an update is not a reason to keep a toast that was asked to go.
+        Assert.True(store.Toasts[0].DismissRequested);
+    }
+
+    [Fact]
     public void A_throwing_OnDismiss_still_removes_the_toast()
     {
         var store = new ToastStore();

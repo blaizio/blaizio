@@ -1,0 +1,247 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzNavigationMenu: triggers that open a panel of links, one at a time, either into a shared
+    // viewport under the bar or inline under their own item. Choosing a link closes the menu.
+
+    public NavigationMenuTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private RenderFragment Menu(Action? onDocs = null) =>
+        @<BzNavigationMenuList Class="gap-2" id="list">
+            <BzNavigationMenuItem Value="products" Class="shrink-0">
+                <BzNavigationMenuTrigger Class="px-3">Products</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent Class="w-80">
+                    <BzNavigationMenuLink id="docs" href="/docs" OnClick="@(() => onDocs?.Invoke())">Docs</BzNavigationMenuLink>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem Value="company">
+                <BzNavigationMenuTrigger>Company</BzNavigationMenuTrigger>
+                <BzNavigationMenuContent>
+                    <BzNavigationMenuLink id="about" href="/about" Active="true">About</BzNavigationMenuLink>
+                </BzNavigationMenuContent>
+            </BzNavigationMenuItem>
+            <BzNavigationMenuItem>
+                <BzNavigationMenuLink id="pricing" href="/pricing" Class="font-semibold">Pricing</BzNavigationMenuLink>
+            </BzNavigationMenuItem>
+        </BzNavigationMenuList>;
+
+    private static string Triggers(IRenderedComponent<IComponent> cut) =>
+        string.Join(' ', cut.FindAll("[data-slot=navigation-menu-trigger]").Select(t => t.GetAttribute("data-state")));
+
+    [Fact]
+    public void The_menu_is_a_list_of_closed_triggers_and_links()
+    {
+        var cut = Render(@<BzNavigationMenu Class="mx-auto" aria-label="Main">@Menu()</BzNavigationMenu>);
+
+        var root = cut.Find("[data-slot=navigation-menu]");
+        Assert.Equal("Main", root.GetAttribute("aria-label"));
+        Assert.Equal("true", root.GetAttribute("data-viewport"));
+        Assert.Contains("mx-auto", root.ClassList);
+        var list = cut.Find("ul#list[data-slot=navigation-menu-list]");
+        Assert.Contains("gap-2", list.ClassList);
+        Assert.DoesNotContain("gap-1", list.ClassList);
+        Assert.Equal(3, list.QuerySelectorAll("li[data-slot=navigation-menu-item]").Length);
+        Assert.Contains("shrink-0", list.QuerySelector("li")!.ClassList);
+        var triggers = cut.FindAll("button[data-slot=navigation-menu-trigger]");
+        Assert.All(triggers, t =>
+        {
+            Assert.Equal("button", t.GetAttribute("type"));
+            Assert.Equal("false", t.GetAttribute("aria-expanded"));
+            // The chevron that turns over while the panel is open.
+            Assert.NotNull(t.QuerySelector("svg"));
+        });
+        Assert.Contains("px-3", triggers[0].ClassList);
+        Assert.DoesNotContain("px-4", triggers[0].ClassList);
+        Assert.Empty(cut.FindAll("[data-slot=navigation-menu-content]"));
+        Assert.Empty(cut.FindAll("[data-slot=navigation-menu-viewport]"));
+    }
+
+    [Fact]
+    public void A_press_on_a_trigger_opens_its_panel_in_the_shared_viewport()
+    {
+        var cut = Render(@<BzNavigationMenu>@Menu()</BzNavigationMenu>);
+
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[0].Click();
+
+        Assert.Equal("open closed", Triggers(cut));
+        Assert.Equal("true", cut.FindAll("[data-slot=navigation-menu-trigger]")[0].GetAttribute("aria-expanded"));
+        var viewport = cut.Find("[data-slot=navigation-menu-viewport]");
+        Assert.Contains("bz-navigation-menu-viewport", viewport.ClassList);
+        var panel = viewport.QuerySelector("[data-slot=navigation-menu-content]")!;
+        Assert.Contains("w-80", panel.ClassList);
+        Assert.Equal("Docs", panel.TextContent.Trim());
+        // The panel is in the viewport, not under its own item.
+        Assert.Empty(cut.FindAll("li [data-slot=navigation-menu-content]"));
+    }
+
+    [Fact]
+    public void Opening_another_trigger_swaps_the_panel_and_a_second_press_closes_it()
+    {
+        var cut = Render(@<BzNavigationMenu>@Menu()</BzNavigationMenu>);
+
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[0].Click();
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[1].Click();
+        Assert.Equal("closed open", Triggers(cut));
+        Assert.Equal("About", cut.Find("[data-slot=navigation-menu-viewport]").TextContent.Trim());
+
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[1].Click();
+        Assert.Equal("closed closed", Triggers(cut));
+        Assert.Empty(cut.FindAll("[data-slot=navigation-menu-viewport]"));
+    }
+
+    [Fact]
+    public void Without_a_viewport_the_panel_opens_under_its_own_item()
+    {
+        var cut = Render(@<BzNavigationMenu Viewport="false">@Menu()</BzNavigationMenu>);
+        Assert.Equal("false", cut.Find("[data-slot=navigation-menu]").GetAttribute("data-viewport"));
+
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[0].Click();
+
+        Assert.Empty(cut.FindAll("[data-slot=navigation-menu-viewport]"));
+        Assert.Equal("Docs", cut.Find("li [data-slot=navigation-menu-content]").TextContent.Trim());
+    }
+
+    [Fact]
+    public void Hover_opens_a_panel_once_the_open_delay_has_passed()
+    {
+        var cut = Render(@<BzNavigationMenu OpenDelay="0">@Menu()</BzNavigationMenu>);
+
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[1].PointerEnter();
+
+        cut.WaitForAssertion(() => Assert.Equal("closed open", Triggers(cut)));
+    }
+
+    [Fact]
+    public void DefaultValue_marks_that_trigger_as_open_from_the_start()
+    {
+        var cut = Render(@<BzNavigationMenu DefaultValue="company">@Menu()</BzNavigationMenu>);
+
+        Assert.Equal("closed open", Triggers(cut));
+    }
+
+    [Fact(Skip = "bug: a navigation menu that starts open (DefaultValue or Value) marks its trigger open but renders no panel in the viewport until something renders it again")]
+    public void A_menu_that_starts_open_shows_its_panel()
+    {
+        var cut = Render(@<BzNavigationMenu DefaultValue="company">@Menu()</BzNavigationMenu>);
+
+        Assert.Equal("closed open", Triggers(cut));
+        Assert.Equal("About", cut.Find("[data-slot=navigation-menu-viewport] [data-slot=navigation-menu-content]").TextContent.Trim());
+    }
+
+    [Fact]
+    public void Without_a_viewport_a_menu_that_starts_open_shows_its_panel_under_its_item()
+    {
+        var cut = Render(@<BzNavigationMenu DefaultValue="company" Viewport="false">@Menu()</BzNavigationMenu>);
+
+        Assert.Equal("About", cut.Find("li [data-slot=navigation-menu-content]").TextContent.Trim());
+    }
+
+    [Fact]
+    public void A_controlled_menu_asks_for_each_change_and_shows_the_value_it_is_given()
+    {
+        var requests = new List<string?>();
+        var cut = Render<BzNavigationMenu>(p => p
+            .Add(x => x.Value, "products")
+            .Add(x => x.ValueChanged, (string? v) => requests.Add(v))
+            .AddChildContent(Menu()));
+        Assert.Equal("open closed", Triggers(cut));
+
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[1].Click();
+        Assert.Equal(["company"], requests);
+        Assert.Equal("open closed", Triggers(cut));
+
+        cut.Render(p => p.Add(x => x.Value, "company"));
+        Assert.Equal("closed open", Triggers(cut));
+    }
+
+    [Fact]
+    public void Choosing_a_link_runs_its_click_and_closes_the_menu()
+    {
+        var clicks = 0;
+        var cut = Render(@<BzNavigationMenu>@Menu(() => clicks++)</BzNavigationMenu>);
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[0].Click();
+
+        cut.Find("#docs").Click();
+
+        Assert.Equal(1, clicks);
+        Assert.Equal("closed closed", Triggers(cut));
+        Assert.Empty(cut.FindAll("[data-slot=navigation-menu-viewport]"));
+    }
+
+    [Fact]
+    public void A_link_without_a_click_handler_still_closes_the_menu()
+    {
+        var cut = Render(@<BzNavigationMenu>@Menu()</BzNavigationMenu>);
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[1].Click();
+
+        cut.Find("#about").Click();
+
+        Assert.Equal("closed closed", Triggers(cut));
+    }
+
+    [Fact]
+    public void A_link_is_an_anchor_that_marks_the_active_page_and_takes_classes_and_attributes()
+    {
+        var cut = Render(@<BzNavigationMenu>@Menu()</BzNavigationMenu>);
+        cut.FindAll("[data-slot=navigation-menu-trigger]")[1].Click();
+
+        var pricing = cut.Find("a#pricing[data-slot=navigation-menu-link]");
+        Assert.Equal("/pricing", pricing.GetAttribute("href"));
+        Assert.Equal("false", pricing.GetAttribute("data-active"));
+        Assert.Contains("font-semibold", pricing.ClassList);
+        Assert.Contains("bz-navigation-menu-link", pricing.ClassList);
+        Assert.Equal("true", cut.Find("a#about").GetAttribute("data-active"));
+    }
+
+    [Fact]
+    public void Trigger_and_link_render_onto_other_elements()
+    {
+        var cut = Render(@<BzNavigationMenu>
+            <BzNavigationMenuList>
+                <BzNavigationMenuItem Value="more">
+                    <BzNavigationMenuTrigger>
+                        <RenderAs Context="p"><a id="more" href="#" @attributes="p.Attributes">More</a></RenderAs>
+                    </BzNavigationMenuTrigger>
+                    <BzNavigationMenuContent>
+                        <BzNavigationMenuLink>
+                            <RenderAs Context="p"><button id="logout" type="button" @attributes="p.Attributes">Log out</button></RenderAs>
+                        </BzNavigationMenuLink>
+                    </BzNavigationMenuContent>
+                </BzNavigationMenuItem>
+            </BzNavigationMenuList>
+        </BzNavigationMenu>);
+
+        var trigger = cut.Find("a#more[data-slot=navigation-menu-trigger]");
+        // The button type belongs to the default element only.
+        Assert.False(trigger.HasAttribute("type"));
+        trigger.Click();
+        Assert.Equal("true", cut.Find("a#more").GetAttribute("aria-expanded"));
+
+        cut.Find("button#logout[data-slot=navigation-menu-link]").Click();
+        Assert.Equal("false", cut.Find("a#more").GetAttribute("aria-expanded"));
+    }
+
+    [Fact]
+    public void The_arrow_is_decorative_starts_hidden_and_follows_the_position_the_script_measures()
+    {
+        var cut = Render(@<BzNavigationMenu>
+            <BzNavigationMenuList><BzNavigationMenuArrow Class="z-[70]" id="arrow" /></BzNavigationMenuList>
+        </BzNavigationMenu>);
+
+        var arrow = cut.Find("#arrow[data-slot=navigation-menu-arrow]");
+        // It sits inside the list, whose children must all be items: out of the accessibility tree.
+        Assert.Equal("true", arrow.GetAttribute("aria-hidden"));
+        Assert.Equal("hidden", arrow.GetAttribute("data-state"));
+        Assert.Contains("var(--bz-nav-ind-left", arrow.GetAttribute("style"));
+        Assert.Contains("var(--bz-nav-ind-width", arrow.GetAttribute("style"));
+        Assert.Contains("z-[70]", arrow.ClassList);
+        Assert.DoesNotContain("z-[60]", arrow.ClassList);
+        Assert.NotNull(arrow.QuerySelector("svg"));
+    }
+}

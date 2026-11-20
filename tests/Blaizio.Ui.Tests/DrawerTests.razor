@@ -1,0 +1,400 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzDrawer: the edge it sits on, its handle and corner button, what it tells the drag script,
+    // snap points through a binding, and the page that recedes behind it under a provider.
+
+    private const string DragModule = "./_content/blaizio.base/dist/drawerDrag.js";
+
+    public DrawerTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static readonly RenderFragment Body =
+        @<text>
+            <BzDrawerHeader>
+                <BzDrawerTitle>Move goal</BzDrawerTitle>
+                <BzDrawerDescription>Set your daily target.</BzDrawerDescription>
+            </BzDrawerHeader>
+        </text>;
+
+    private static object? Option(object options, string name) => options.GetType().GetProperty(name)!.GetValue(options);
+
+    [Fact]
+    public void A_drawer_sits_on_the_bottom_edge_with_a_handle_by_default()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent>@Body</BzDrawerContent></BzDrawer>);
+
+        var drawer = cut.Find("[data-slot=drawer-content]");
+        Assert.Equal("bottom", drawer.GetAttribute("data-side"));
+        Assert.Equal("dialog", drawer.GetAttribute("role"));
+        Assert.Contains("bottom-0", drawer.ClassList);
+        var handle = cut.Find("[data-slot=drawer-handle]");
+        Assert.Equal("true", handle.GetAttribute("aria-hidden"));
+        // The handle is the first thing in the panel, above the consumer's content.
+        Assert.Equal("drawer-handle", drawer.FirstElementChild!.GetAttribute("data-slot"));
+    }
+
+    [Theory]
+    [InlineData(PanelSide.Bottom, null, true)]
+    [InlineData(PanelSide.Bottom, false, false)]
+    [InlineData(PanelSide.Top, null, false)]
+    [InlineData(PanelSide.End, null, false)]
+    [InlineData(PanelSide.End, true, true)]
+    public void The_handle_shows_on_bottom_drawers_unless_it_is_set_either_way(PanelSide side, bool? showHandle, bool expected)
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent Side="side" ShowHandle="showHandle">@Body</BzDrawerContent></BzDrawer>);
+
+        Assert.Equal(expected, cut.FindAll("[data-slot=drawer-handle]").Count == 1);
+    }
+
+    [Theory]
+    [InlineData(PanelSide.Start, "start", "start-0", "rounded-e-xl")]
+    [InlineData(PanelSide.End, "end", "end-0", "rounded-s-xl")]
+    [InlineData(PanelSide.Top, "top", "top-0", "rounded-b-xl")]
+    [InlineData(PanelSide.Bottom, "bottom", "bottom-0", "rounded-t-xl")]
+    public void The_side_anchors_the_drawer_and_rounds_its_inner_edge(PanelSide side, string name, string anchor, string rounding)
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent Side="side">@Body</BzDrawerContent></BzDrawer>);
+
+        var drawer = cut.Find("[data-slot=drawer-content]");
+        Assert.Equal(name, drawer.GetAttribute("data-side"));
+        Assert.Contains(anchor, drawer.ClassList);
+        Assert.Contains(rounding, drawer.ClassList);
+    }
+
+    [Fact]
+    public void The_backdrop_is_tagged_with_the_panel_it_belongs_to()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent OverlayClass="bg-black/60">@Body</BzDrawerContent></BzDrawer>);
+
+        // The drag script fades the backdrop it finds by this tag.
+        var overlay = cut.Find("[data-slot=dialog-overlay]");
+        Assert.Equal(cut.Find("[data-slot=drawer-content]").Id, overlay.GetAttribute("data-drawer-overlay"));
+        Assert.Contains("bg-black/60", overlay.ClassList);
+    }
+
+    [Fact]
+    public void The_corner_button_is_named_and_closes_the_drawer()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzDrawer DefaultOpen="true" OpenChanged="@((bool open) => changes.Add(open))">
+            <BzDrawerContent CloseLabel="Put away">@Body</BzDrawerContent>
+        </BzDrawer>);
+
+        var corner = cut.Find("button.bz-drawer-close");
+        Assert.Equal("Put away", corner.QuerySelector(".sr-only")!.TextContent);
+
+        corner.Click();
+        Assert.Equal([false], changes);
+        Assert.Equal("closed", cut.Find("[data-slot=drawer-content]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public async Task A_locked_drawer_has_no_corner_button_refuses_the_drag_and_closes_explicitly()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzDrawerContent>
+                @Body
+                <BzDrawerFooter><BzDrawerClose>Done</BzDrawerClose></BzDrawerFooter>
+            </BzDrawerContent>
+        </BzDrawer>);
+        Assert.Empty(cut.FindAll("button.bz-drawer-close"));
+
+        var closed = await cut.InvokeAsync(() => cut.FindComponent<BzDrawerContent>().Instance.OnDragDismiss());
+        Assert.False(closed);
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+        Assert.Equal("open", cut.Find("[data-slot=drawer-content]").GetAttribute("data-state"));
+
+        var done = cut.Find("[data-slot=drawer-footer] button[data-slot=drawer-close]");
+        Assert.Equal("outline", done.GetAttribute("data-variant"));
+        done.Click();
+        Assert.Equal("closed", cut.Find("[data-slot=drawer-content]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_drag_script_is_told_the_edge_and_that_the_drawer_may_be_dismissed()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent Side="PanelSide.End">@Body</BzDrawerContent></BzDrawer>);
+
+        // createDrawerDrag(contentId, ref, options): once, however often the open drawer renders.
+        cut.Render();
+        var created = Assert.Single(module.Invocations, i => i.Identifier == "createDrawerDrag");
+        Assert.Equal(cut.Find("[data-slot=drawer-content]").Id, created.Arguments[0]);
+        var options = created.Arguments[2]!;
+        Assert.Equal("end", Option(options, "direction"));
+        Assert.Equal(true, Option(options, "dismissible"));
+        Assert.Empty((double[])Option(options, "snapPoints")!);
+    }
+
+    [Fact]
+    public void A_locked_drawer_tells_the_drag_script_it_cannot_be_dismissed()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzDrawer DefaultOpen="true" DismissOnOutsideClick="false"><BzDrawerContent>@Body</BzDrawerContent></BzDrawer>);
+
+        var created = Assert.Single(module.Invocations, i => i.Identifier == "createDrawerDrag");
+        Assert.Equal(false, Option(created.Arguments[2]!, "dismissible"));
+    }
+
+    [Fact]
+    public void A_closed_drawer_wires_no_drag()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+
+        Render(@<BzDrawer><BzDrawerContent>@Body</BzDrawerContent></BzDrawer>);
+
+        Assert.DoesNotContain(module.Invocations, i => i.Identifier == "createDrawerDrag");
+    }
+
+    [Fact]
+    public void Snap_points_reach_the_script_in_order_with_the_bound_one_active()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+        IReadOnlyList<double> snaps = [1, 0.25, 0.5];
+
+        Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent SnapPoints="snaps" SnapPoint="0.5">@Body</BzDrawerContent></BzDrawer>);
+
+        var options = Assert.Single(module.Invocations, i => i.Identifier == "createDrawerDrag").Arguments[2]!;
+        Assert.Equal([0.25, 0.5, 1], (double[])Option(options, "snapPoints")!);
+        Assert.Equal(1, Option(options, "activeSnap"));
+    }
+
+    [Fact]
+    public void Without_a_bound_snap_the_drawer_opens_at_its_largest_one()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+        IReadOnlyList<double> snaps = [0.25, 0.5, 1];
+
+        Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent SnapPoints="snaps">@Body</BzDrawerContent></BzDrawer>);
+
+        var options = Assert.Single(module.Invocations, i => i.Identifier == "createDrawerDrag").Arguments[2]!;
+        Assert.Equal(2, Option(options, "activeSnap"));
+    }
+
+    [Fact]
+    public void A_bound_snap_between_two_points_opens_at_the_nearer_one()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+        IReadOnlyList<double> snaps = [0.25, 0.5, 1];
+
+        Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent SnapPoints="snaps" SnapPoint="0.3">@Body</BzDrawerContent></BzDrawer>);
+
+        var options = Assert.Single(module.Invocations, i => i.Identifier == "createDrawerDrag").Arguments[2]!;
+        Assert.Equal(0, Option(options, "activeSnap"));
+    }
+
+    [Fact]
+    public void A_snapping_drawer_leaves_its_opening_motion_to_the_script_and_a_plain_one_does_not()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+        var drag = module.SetupModule(i => i.Identifier == "createDrawerDrag");
+        drag.Mode = JSRuntimeMode.Loose;
+        IReadOnlyList<double> snaps = [0.5, 1];
+
+        Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent>@Body</BzDrawerContent></BzDrawer>);
+        Assert.DoesNotContain(drag.Invocations, i => i.Identifier == "open");
+
+        Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent SnapPoints="snaps">@Body</BzDrawerContent></BzDrawer>);
+        Assert.Single(drag.Invocations, i => i.Identifier == "open");
+    }
+
+    [Fact]
+    public async Task A_drag_to_another_snap_is_reported_as_its_fraction()
+    {
+        var reported = new List<double>();
+        IReadOnlyList<double> snaps = [1, 0.25, 0.5];
+        var cut = Render(@<BzDrawer DefaultOpen="true">
+            <BzDrawerContent SnapPoints="snaps" SnapPointChanged="@((double f) => reported.Add(f))">@Body</BzDrawerContent>
+        </BzDrawer>);
+        var content = cut.FindComponent<BzDrawerContent>();
+
+        // The script speaks in indexes of the ordered list.
+        await cut.InvokeAsync(() => content.Instance.OnSnapChanged(0));
+        await cut.InvokeAsync(() => content.Instance.OnSnapChanged(2));
+        // An index the list does not have reports nothing.
+        await cut.InvokeAsync(() => content.Instance.OnSnapChanged(3));
+        await cut.InvokeAsync(() => content.Instance.OnSnapChanged(-1));
+
+        Assert.Equal([0.25, 1], reported);
+    }
+
+    [Fact]
+    public async Task A_drawer_dragged_to_another_snap_goes_back_to_its_first_one_when_it_closes()
+    {
+        var open = true;
+        double? snap = 0.5;
+        IReadOnlyList<double> snaps = [0.25, 0.5, 1];
+        var cut = Render(@<OverlayTestHost>
+            <BzDrawer Open="open" OpenChanged="@((bool o) => open = o)">
+                <BzDrawerContent SnapPoints="snaps" SnapPoint="snap" SnapPointChanged="@((double f) => snap = f)">@Body</BzDrawerContent>
+            </BzDrawer>
+        </OverlayTestHost>);
+        var host = cut.FindComponent<OverlayTestHost>().Instance;
+
+        await cut.InvokeAsync(() => cut.FindComponent<BzDrawerContent>().Instance.OnSnapChanged(2));
+        await host.Refresh();
+        Assert.Equal(1, snap);
+
+        cut.Find("button.bz-drawer-close").Click();
+        await host.Refresh();
+
+        Assert.False(open);
+        // The next opening starts where the first one did, not where the last one was left.
+        Assert.Equal(0.5, snap);
+    }
+
+    [Fact]
+    public async Task Closing_drops_the_drag_and_the_next_opening_wires_a_fresh_one()
+    {
+        var module = JSInterop.SetupModule(DragModule);
+        module.Mode = JSRuntimeMode.Loose;
+        var drag = module.SetupModule(i => i.Identifier == "createDrawerDrag");
+        drag.Mode = JSRuntimeMode.Loose;
+        var cut = Render(@<BzDrawer>
+            <BzDrawerTrigger>Open</BzDrawerTrigger>
+            <BzDrawerContent>@Body</BzDrawerContent>
+        </BzDrawer>);
+
+        cut.Find("[data-slot=drawer-trigger]").Click();
+        Assert.Single(module.Invocations, i => i.Identifier == "createDrawerDrag");
+
+        cut.Find("button.bz-drawer-close").Click();
+        cut.WaitForAssertion(() => Assert.Single(drag.Invocations, i => i.Identifier == "dispose"));
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
+
+        cut.Find("[data-slot=drawer-trigger]").Click();
+        cut.WaitForAssertion(() =>
+            Assert.Equal(2, module.Invocations.Count(i => i.Identifier == "createDrawerDrag")));
+    }
+
+    [Fact]
+    public void Classes_stacking_and_extra_attributes_reach_the_panel()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true">
+            <BzDrawerContent Class="max-h-[50vh]" ZIndex="60" data-testid="goal">@Body</BzDrawerContent>
+        </BzDrawer>);
+
+        var drawer = cut.Find("[data-slot=drawer-content]");
+        Assert.Contains("max-h-[50vh]", drawer.ClassList);
+        Assert.DoesNotContain("max-h-[80vh]", drawer.ClassList);
+        Assert.Equal("goal", drawer.GetAttribute("data-testid"));
+        Assert.Equal("z-index:61", drawer.GetAttribute("style"));
+        Assert.Equal("z-index:60", cut.Find("[data-slot=dialog-overlay]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void The_drawer_is_named_by_its_title_and_description()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true"><BzDrawerContent>@Body</BzDrawerContent></BzDrawer>);
+
+        var drawer = cut.Find("[data-slot=drawer-content]");
+        Assert.Equal(cut.Find("[data-slot=drawer-title]").Id, drawer.GetAttribute("aria-labelledby"));
+        Assert.Equal(cut.Find("[data-slot=drawer-description]").Id, drawer.GetAttribute("aria-describedby"));
+        Assert.Equal("true", drawer.GetAttribute("aria-modal"));
+    }
+
+    [Fact]
+    public void Without_a_provider_a_scaling_drawer_renders_where_it_is_declared()
+    {
+        var cut = Render(@<div id="page">
+            <BzDrawer DefaultOpen="true"><BzDrawerContent ScaleBackground="true">@Body</BzDrawerContent></BzDrawer>
+        </div>);
+
+        Assert.NotNull(cut.Find("#page [data-slot=drawer-content]"));
+    }
+
+    [Fact]
+    public async Task Under_a_provider_the_page_recedes_while_a_scaling_drawer_is_open()
+    {
+        var cut = Render(@<BzDrawerProvider>
+            <BzDrawer>
+                <BzDrawerTrigger>Open</BzDrawerTrigger>
+                <BzDrawerContent ScaleBackground="true">@Body</BzDrawerContent>
+            </BzDrawer>
+        </BzDrawerProvider>);
+        Assert.Equal("off", cut.Find(".bz-drawer-scale-bg").GetAttribute("data-scaled"));
+
+        cut.Find("[data-slot=drawer-trigger]").Click();
+
+        Assert.Equal("on", cut.Find(".bz-drawer-scale-bg").GetAttribute("data-scaled"));
+        // The panel is fixed: inside the scaled wrapper it would shrink with the page, so it is
+        // rendered next to the wrapper instead.
+        Assert.Single(cut.FindAll("[data-slot=drawer-content]"));
+        Assert.Empty(cut.FindAll(".bz-drawer-scale-bg [data-slot=drawer-content]"));
+        Assert.Empty(cut.FindAll(".bz-drawer-scale-bg [data-slot=dialog-overlay]"));
+
+        cut.Find("button.bz-drawer-close").Click();
+
+        // The page comes back at once; the panel stays for its exit animation.
+        Assert.Equal("off", cut.Find(".bz-drawer-scale-bg").GetAttribute("data-scaled"));
+        Assert.Equal("closed", cut.Find("[data-slot=drawer-content]").GetAttribute("data-state"));
+
+        await cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnCloseFinished());
+        Assert.Empty(cut.FindAll("[data-slot=drawer-content]"));
+    }
+
+    [Fact]
+    public void A_drawer_that_does_not_scale_stays_inside_the_provider_and_leaves_the_page_alone()
+    {
+        var cut = Render(@<BzDrawerProvider>
+            <BzDrawer DefaultOpen="true"><BzDrawerContent>@Body</BzDrawerContent></BzDrawer>
+        </BzDrawerProvider>);
+
+        Assert.Equal("off", cut.Find(".bz-drawer-scale-bg").GetAttribute("data-scaled"));
+        Assert.NotNull(cut.Find(".bz-drawer-scale-bg [data-slot=drawer-content]"));
+    }
+
+    [Fact]
+    public async Task Content_that_changes_while_a_scaling_drawer_is_open_reaches_the_relayed_panel()
+    {
+        var steps = 1;
+        var cut = Render(@<BzDrawerProvider>
+            <OverlayTestHost>
+                <BzDrawer DefaultOpen="true">
+                    <BzDrawerContent ScaleBackground="true">
+                        <BzDrawerTitle>Goal</BzDrawerTitle>
+                        <p id="steps">@steps</p>
+                    </BzDrawerContent>
+                </BzDrawer>
+            </OverlayTestHost>
+        </BzDrawerProvider>);
+        Assert.Equal("1", cut.Find("#steps").TextContent);
+
+        // The provider sits above the owner of the drawer, so the owner rendering again does not
+        // reach the relayed copy unless the drawer passes it on.
+        steps = 2;
+        await cut.FindComponent<OverlayTestHost>().Instance.Refresh();
+
+        cut.WaitForAssertion(() => Assert.Equal("2", cut.Find("#steps").TextContent));
+    }
+
+    [Fact]
+    public void Header_and_footer_merge_classes_and_forward_attributes()
+    {
+        var cut = Render(@<BzDrawer DefaultOpen="true">
+            <BzDrawerContent>
+                <BzDrawerHeader Class="gap-3" id="head"><BzDrawerTitle Class="text-lg">Goal</BzDrawerTitle></BzDrawerHeader>
+                <BzDrawerFooter Class="mt-auto" id="foot">x</BzDrawerFooter>
+            </BzDrawerContent>
+        </BzDrawer>);
+
+        Assert.Contains("gap-3", cut.Find("#head[data-slot=drawer-header]").ClassList);
+        Assert.Contains("text-lg", cut.Find("[data-slot=drawer-title]").ClassList);
+        Assert.Contains("mt-auto", cut.Find("#foot[data-slot=drawer-footer]").ClassList);
+    }
+}

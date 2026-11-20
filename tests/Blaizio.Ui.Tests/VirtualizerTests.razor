@@ -1,0 +1,585 @@
+@using System.Globalization
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzVirtualizer: only the window of items the script reports is in the markup, between two
+    // spacers. The list is either owned by the caller (Items, grown through OnLoadMore) or
+    // fetched one window at a time (ItemsProvider).
+
+    private const string VirtualizerModule = "./_content/blaizio.base/dist/virtualizer.js";
+
+    public VirtualizerTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static IReadOnlyList<string> Rows(int count) => Enumerable.Range(0, count).Select(i => $"row {i}").ToList();
+
+    private static readonly RenderFragment<VirtualItem<string>> Row =
+        context => @<div class="row" @attributes="context.Attributes">@context.Index: @context.Item</div>;
+
+    // The script reports the window it wants after measuring the viewport.
+    private static Task ScrollTo(IRenderedComponent<IComponent> cut, int start, int end) =>
+        cut.InvokeAsync(() => cut.FindComponent<BaseWindowVirtualizer>().Instance.OnRangeChanged(start, end, -1, -1));
+
+    private static string[] Spacers(IRenderedComponent<IComponent> cut) =>
+        cut.FindAll("[data-bz-virtualizer] > div[aria-hidden=true]:not([data-bz-virtual-index])")
+            .Select(s => s.GetAttribute("style")!).ToArray();
+
+    // Items owned by the caller ------------------------------------------------------------------
+
+    [Fact]
+    public void Only_a_first_slice_of_a_long_list_is_rendered_between_two_spacers()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.Items, Rows(1000)).Add(x => x.ChildContent, Row));
+
+        var rows = cut.FindAll(".row");
+        Assert.Equal(30, rows.Count);
+        Assert.Equal("0: row 0", rows[0].TextContent);
+        Assert.Equal("0", rows[0].GetAttribute("data-bz-virtual-index"));
+        // Fixed mode: every item is exactly the item size, so the spacers are plain multiples.
+        Assert.Equal("height:40px", rows[0].GetAttribute("style"));
+        Assert.Equal(["height:0px", "height:38800px"], Spacers(cut));
+    }
+
+    [Fact]
+    public async Task The_window_the_script_reports_replaces_the_rendered_items_and_resizes_the_spacers()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.Items, Rows(1000)).Add(x => x.ChildContent, Row));
+
+        await ScrollTo(cut, 100, 120);
+
+        var rows = cut.FindAll(".row");
+        Assert.Equal(20, rows.Count);
+        Assert.Equal("100: row 100", rows[0].TextContent);
+        Assert.Equal("119", rows[^1].GetAttribute("data-bz-virtual-index"));
+        Assert.Equal(["height:4000px", "height:35200px"], Spacers(cut));
+    }
+
+    [Fact]
+    public async Task A_window_past_the_end_is_clamped_to_the_list()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.Items, Rows(50)).Add(x => x.ChildContent, Row));
+
+        await ScrollTo(cut, 40, 500);
+
+        var rows = cut.FindAll(".row");
+        Assert.Equal(10, rows.Count);
+        Assert.Equal("49: row 49", rows[^1].TextContent);
+        Assert.Equal(["height:1600px", "height:0px"], Spacers(cut));
+    }
+
+    [Fact]
+    public void The_item_size_is_written_with_a_dot_whatever_the_culture()
+    {
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = new CultureInfo("de-DE");
+        try
+        {
+            var cut = Render<BzVirtualizer<string>>(p => p
+                .Add(x => x.Items, Rows(100))
+                .Add(x => x.ItemSize, 32.5)
+                .Add(x => x.ChildContent, Row));
+
+            Assert.Equal("height:32.5px", cut.Find(".row").GetAttribute("style"));
+            Assert.Equal(["height:0px", "height:2275px"], Spacers(cut));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
+    [Fact]
+    public void Measured_items_carry_no_fixed_height()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(100))
+            .Add(x => x.Dynamic, true)
+            .Add(x => x.ChildContent, Row));
+
+        var row = cut.Find(".row");
+        Assert.False(row.HasAttribute("style"));
+        // The marker the script measures each item by is still there.
+        Assert.Equal("0", row.GetAttribute("data-bz-virtual-index"));
+        Assert.Equal("true", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-dynamic"));
+    }
+
+    [Fact]
+    public void Item_size_overscan_and_count_reach_the_script_through_the_items_element()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(250))
+            .Add(x => x.ItemSize, 56)
+            .Add(x => x.Overscan, 12)
+            .Add(x => x.ChildContent, Row));
+
+        var root = cut.Find("[data-bz-virtualizer]");
+        Assert.Equal("250", root.GetAttribute("data-bz-virtual-count"));
+        Assert.Equal("56", root.GetAttribute("data-bz-virtual-row-height"));
+        Assert.Equal("12", root.GetAttribute("data-bz-virtual-overscan"));
+        Assert.False(root.HasAttribute("data-bz-virtual-dynamic"));
+    }
+
+    [Fact]
+    public void The_items_element_can_be_another_tag_and_takes_classes_style_and_attributes()
+    {
+        var cut = Render(@<BzVirtualizer TItem="string" Items="Rows(5)" Element="ul" Class="divide-y" Style="contain:content"
+                                         role="list" aria-label="Rows">
+            <li @attributes="context.Attributes">@context.Item</li>
+        </BzVirtualizer>);
+
+        var list = cut.Find("ul[data-bz-virtualizer]");
+        Assert.Contains("divide-y", list.ClassList);
+        Assert.Equal("contain:content", list.GetAttribute("style"));
+        Assert.Equal("list", list.GetAttribute("role"));
+        Assert.Equal("Rows", list.GetAttribute("aria-label"));
+        Assert.Equal(5, list.QuerySelectorAll("li[data-bz-virtual-index]").Length);
+    }
+
+    [Fact]
+    public void A_spacer_template_replaces_the_default_div_where_a_div_cannot_go()
+    {
+        var cut = Render(@<table>
+            <BzVirtualizer TItem="string" Items="Rows(100)" Element="tbody">
+                <Spacer Context="height"><tr class="gap" style="height:@(height)px"><td></td></tr></Spacer>
+                <ChildContent><tr @attributes="context.Attributes"><td>@context.Item</td></tr></ChildContent>
+            </BzVirtualizer>
+        </table>);
+
+        var gaps = cut.FindAll("tbody > tr.gap");
+        Assert.Equal(["height:0px", "height:2800px"], gaps.Select(g => g.GetAttribute("style")));
+        Assert.Empty(cut.FindAll("tbody > div"));
+    }
+
+    // The scroll box -----------------------------------------------------------------------------
+
+    [Fact]
+    public void Without_a_height_cap_the_items_flow_in_the_page()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.Items, Rows(10)).Add(x => x.ChildContent, Row));
+
+        Assert.Empty(cut.FindAll("[data-slot=virtualizer-viewport]"));
+        Assert.False(cut.Find("[data-bz-virtualizer]").HasAttribute("data-bz-virtual-viewport"));
+    }
+
+    [Fact]
+    public void A_height_cap_wraps_the_items_in_a_focusable_scroll_box_that_the_script_tracks()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(10))
+            .Add(x => x.MaxHeight, "24rem")
+            .Add(x => x.ViewportClass, "rounded-md scrollbar-none")
+            .Add(x => x.ChildContent, Row));
+
+        var box = cut.Find("[data-slot=virtualizer-viewport]");
+        Assert.Equal("max-height:24rem;overflow:auto", box.GetAttribute("style"));
+        // A scroll box that cannot take focus cannot be scrolled from the keyboard.
+        Assert.Equal("0", box.GetAttribute("tabindex"));
+        Assert.Contains("rounded-md", box.ClassList);
+        Assert.Contains("scrollbar-none", box.ClassList);
+        Assert.DoesNotContain("scrollbar-thin", box.ClassList);
+        Assert.Equal("#" + box.Id, box.QuerySelector("[data-bz-virtualizer]")!.GetAttribute("data-bz-virtual-viewport"));
+    }
+
+    [Fact]
+    public void A_scroll_container_of_the_caller_is_tracked_by_its_selector()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(10))
+            .Add(x => x.Viewport, "#feed")
+            .Add(x => x.ChildContent, Row));
+
+        Assert.Empty(cut.FindAll("[data-slot=virtualizer-viewport]"));
+        Assert.Equal("#feed", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-viewport"));
+    }
+
+    [Fact]
+    public async Task A_jump_to_an_index_is_handed_to_the_script_and_the_first_one_can_come_from_a_parameter()
+    {
+        var module = JSInterop.SetupModule(VirtualizerModule);
+        module.Mode = JSRuntimeMode.Loose;
+        var instance = module.SetupModule(i => i.Identifier == "createVirtualizer");
+        instance.Mode = JSRuntimeMode.Loose;
+
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(1000))
+            .Add(x => x.InitialItemIndex, 400)
+            .Add(x => x.ChildContent, Row));
+        Assert.Equal(400, Assert.Single(instance.Invocations, i => i.Identifier == "scrollToIndex").Arguments[0]);
+
+        await cut.InvokeAsync(async () => await cut.Instance.ScrollToIndexAsync(750));
+
+        Assert.Equal([400, 750], instance.Invocations.Where(i => i.Identifier == "scrollToIndex").Select(i => i.Arguments[0]));
+    }
+
+    // Empty and loading --------------------------------------------------------------------------
+
+    [Fact]
+    public void An_empty_list_shows_the_empty_content()
+    {
+        var cut = Render(@<BzVirtualizer TItem="string" Items="Rows(0)">
+            <EmptyContent><p id="none">Nothing here</p></EmptyContent>
+            <ChildContent><div @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+
+        Assert.Equal("Nothing here", cut.Find("#none").TextContent);
+        Assert.Empty(cut.FindAll("[data-bz-virtual-index]"));
+    }
+
+    [Fact]
+    public void A_list_that_is_still_loading_shows_item_sized_skeleton_rows_instead_of_looking_empty()
+    {
+        var cut = Render(@<BzVirtualizer TItem="string" Items="Rows(0)" Loading="true" ItemSize="48">
+            <EmptyContent><p id="none">Nothing here</p></EmptyContent>
+            <ChildContent><div @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+
+        Assert.Empty(cut.FindAll("#none"));
+        var band = cut.FindAll("[data-bz-virtualizer] > div[aria-hidden=true]");
+        Assert.Equal(8, band.Count);
+        Assert.All(band, row => Assert.Equal("height:48px", row.GetAttribute("style")));
+        Assert.All(band, row => Assert.NotNull(row.QuerySelector("[data-slot=skeleton]")));
+    }
+
+    [Fact]
+    public void Loading_content_of_the_caller_replaces_the_skeleton_rows()
+    {
+        var cut = Render(@<BzVirtualizer TItem="string" Items="Rows(0)" Loading="true">
+            <LoadingContent><p id="wait">Fetching</p></LoadingContent>
+            <ChildContent><div @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+
+        Assert.Equal("Fetching", cut.Find("#wait").TextContent);
+        Assert.Empty(cut.FindAll("[data-slot=skeleton]"));
+    }
+
+    [Fact]
+    public void Items_that_are_already_there_are_shown_even_while_more_are_loading()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(3))
+            .Add(x => x.Loading, true)
+            .Add(x => x.ChildContent, Row));
+
+        Assert.Equal(3, cut.FindAll(".row").Count);
+        Assert.Empty(cut.FindAll("[data-slot=skeleton]"));
+    }
+
+    // Growing the list ---------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Nearing_the_end_asks_for_more_once_and_shows_a_skeleton_tail_until_it_arrives()
+    {
+        var asked = 0;
+        var fetch = new TaskCompletionSource();
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(100))
+            .Add(x => x.OnLoadMore, () => { asked++; return fetch.Task; })
+            .Add(x => x.ChildContent, Row));
+        // Before the script has measured anything the first slice always "ends near the end" of
+        // a short list: that must not count.
+        Assert.Equal(0, asked);
+
+        await ScrollTo(cut, 40, 60);
+        Assert.Equal(0, asked);
+
+        // Within ten items of the end.
+        await ScrollTo(cut, 75, 91);
+        cut.WaitForAssertion(() => Assert.Equal(1, asked));
+        cut.WaitForAssertion(() => Assert.Equal(3, cut.FindAll("[data-bz-virtualizer] > div[aria-hidden=true] [data-slot=skeleton]").Count));
+
+        // Still in flight: scrolling on does not ask again.
+        await ScrollTo(cut, 80, 100);
+        Assert.Equal(1, asked);
+
+        fetch.SetResult();
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("[data-slot=skeleton]")));
+    }
+
+    [Fact]
+    public async Task A_fetch_that_adds_nothing_is_the_last_one_and_a_list_that_grew_asks_again()
+    {
+        var asked = 0;
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(100))
+            .Add(x => x.OnLoadMore, () => { asked++; })
+            .Add(x => x.ChildContent, Row));
+
+        await ScrollTo(cut, 80, 100);
+        cut.WaitForAssertion(() => Assert.Equal(1, asked));
+
+        // The source is drained: the same list comes back, so nothing re-arms the request.
+        cut.Render(p => p.Add(x => x.Items, Rows(100)));
+        await ScrollTo(cut, 81, 100);
+        Assert.Equal(1, asked);
+
+        cut.Render(p => p.Add(x => x.Items, Rows(150)));
+        await ScrollTo(cut, 130, 150);
+        cut.WaitForAssertion(() => Assert.Equal(2, asked));
+    }
+
+    [Fact]
+    public async Task The_distance_from_the_end_that_asks_for_more_can_be_set()
+    {
+        var asked = 0;
+        var cut = Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(100))
+            .Add(x => x.LoadMoreOffset, 40)
+            .Add(x => x.OnLoadMore, () => { asked++; })
+            .Add(x => x.ChildContent, Row));
+
+        await ScrollTo(cut, 30, 59);
+        Assert.Equal(0, asked);
+
+        await ScrollTo(cut, 40, 60);
+        cut.WaitForAssertion(() => Assert.Equal(1, asked));
+    }
+
+    [Fact]
+    public async Task A_tail_of_the_caller_replaces_the_skeleton_tail()
+    {
+        var fetch = new TaskCompletionSource();
+        var cut = Render(@<BzVirtualizer TItem="string" Items="Rows(40)" OnLoadMore="@(() => fetch.Task)">
+            <LoadMoreContent><p id="more">Loading more</p></LoadMoreContent>
+            <ChildContent><div @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+
+        await ScrollTo(cut, 20, 40);
+
+        cut.WaitForAssertion(() => Assert.Equal("Loading more", cut.Find("#more").TextContent));
+        // After the last item and the bottom spacer.
+        Assert.Equal("more", cut.Find("[data-bz-virtualizer]").LastElementChild!.Id);
+        fetch.SetResult();
+        cut.WaitForAssertion(() => Assert.Empty(cut.FindAll("#more")));
+    }
+
+    [Fact]
+    public async Task A_fetch_that_throws_reaches_the_error_boundary()
+    {
+        var cut = Render(@<ErrorBoundary>
+            <ChildContent>
+                <BzVirtualizer TItem="string" Items="Rows(40)" OnLoadMore="@(() => throw new InvalidOperationException("feed down"))">
+                    <div @attributes="context.Attributes">@context.Item</div>
+                </BzVirtualizer>
+            </ChildContent>
+            <ErrorContent Context="error"><p id="failed">@error.Message</p></ErrorContent>
+        </ErrorBoundary>);
+
+        await ScrollTo(cut, 20, 40);
+
+        cut.WaitForAssertion(() => Assert.Equal("feed down", cut.Find("#failed").TextContent));
+    }
+
+    // One source ---------------------------------------------------------------------------------
+
+    [Fact]
+    public void Items_and_a_provider_together_are_refused()
+    {
+        VirtualizerItemsProvider<string> provider = _ => ValueTask.FromResult(new VirtualizerResult<string>([], 0));
+
+        var error = Assert.Throws<InvalidOperationException>(() => Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.Items, Rows(3))
+            .Add(x => x.ItemsProvider, provider)
+            .Add(x => x.ChildContent, Row)));
+
+        Assert.Contains("ONE data source", error.Message);
+    }
+
+    [Fact]
+    public void A_provider_with_a_load_more_handler_is_refused()
+    {
+        VirtualizerItemsProvider<string> provider = _ => ValueTask.FromResult(new VirtualizerResult<string>([], 0));
+
+        var error = Assert.Throws<InvalidOperationException>(() => Render<BzVirtualizer<string>>(p => p
+            .Add(x => x.ItemsProvider, provider)
+            .Add(x => x.OnLoadMore, () => { })
+            .Add(x => x.ChildContent, Row)));
+
+        Assert.Contains("OnLoadMore", error.Message);
+    }
+
+    // A provider ---------------------------------------------------------------------------------
+
+    // Serves slices of "row N" out of a set of the given size and records every request.
+    private sealed class Source(int total)
+    {
+        public List<VirtualizerRequest> Requests { get; } = [];
+        public TaskCompletionSource? Gate { get; set; }
+
+        public async ValueTask<VirtualizerResult<string>> Fetch(VirtualizerRequest request)
+        {
+            Requests.Add(request);
+            if (Gate is { } gate) await gate.Task.WaitAsync(request.CancellationToken);
+            var count = Math.Max(0, Math.Min(request.Count, total - request.StartIndex));
+            return new VirtualizerResult<string>(
+                Enumerable.Range(request.StartIndex, count).Select(i => $"row {i}").ToList(), total);
+        }
+    }
+
+    [Fact]
+    public void A_provider_is_asked_for_a_first_slice_and_its_total_sizes_the_list()
+    {
+        var source = new Source(1000);
+
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.ItemsProvider, source.Fetch).Add(x => x.ChildContent, Row));
+
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+        var first = Assert.Single(source.Requests);
+        Assert.Equal(0, first.StartIndex);
+        Assert.True(first.Count >= 30);
+        Assert.Equal("1000", cut.Find("[data-bz-virtualizer]").GetAttribute("data-bz-virtual-count"));
+        Assert.Equal(["height:0px", "height:38800px"], Spacers(cut));
+    }
+
+    [Fact]
+    public void Until_the_first_slice_arrives_the_list_reads_as_loading_not_as_empty()
+    {
+        var source = new Source(1000) { Gate = new TaskCompletionSource() };
+        var cut = Render(@<BzVirtualizer TItem="string" ItemsProvider="source.Fetch">
+            <EmptyContent><p id="none">Nothing here</p></EmptyContent>
+            <ChildContent><div class="row" @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+
+        cut.WaitForAssertion(() => Assert.Single(source.Requests));
+        Assert.Empty(cut.FindAll("#none"));
+        Assert.Equal(8, cut.FindAll("[data-slot=skeleton]").Count);
+
+        source.Gate.SetResult();
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+    }
+
+    [Fact]
+    public void A_provider_with_nothing_to_give_shows_the_empty_content()
+    {
+        var source = new Source(0);
+
+        var cut = Render(@<BzVirtualizer TItem="string" ItemsProvider="source.Fetch">
+            <EmptyContent><p id="none">Nothing here</p></EmptyContent>
+            <ChildContent><div class="row" @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+
+        cut.WaitForAssertion(() => Assert.Equal("Nothing here", cut.Find("#none").TextContent));
+        Assert.Empty(cut.FindAll("[data-slot=skeleton]"));
+    }
+
+    [Fact]
+    public async Task A_window_outside_the_fetched_slice_shows_placeholders_and_asks_for_it_with_padding()
+    {
+        var source = new Source(1000);
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.ItemsProvider, source.Fetch).Add(x => x.ChildContent, Row));
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+        source.Gate = new TaskCompletionSource();
+
+        await ScrollTo(cut, 200, 220);
+
+        cut.WaitForAssertion(() => Assert.Equal(2, source.Requests.Count));
+        // Half a window more on each side, so steady scrolling stays inside what was fetched.
+        Assert.Equal(190, source.Requests[1].StartIndex);
+        Assert.Equal(40, source.Requests[1].Count);
+        // Rows that are not here yet keep their place: same marker, same height.
+        var waiting = cut.FindAll("[data-bz-virtual-index][aria-hidden=true]");
+        Assert.Equal(20, waiting.Count);
+        Assert.Equal("200", waiting[0].GetAttribute("data-bz-virtual-index"));
+        Assert.Equal("height:40px", waiting[0].GetAttribute("style"));
+        Assert.Empty(cut.FindAll(".row"));
+
+        source.Gate.SetResult();
+        cut.WaitForAssertion(() => Assert.Equal(20, cut.FindAll(".row").Count));
+        Assert.Equal("200: row 200", cut.Find(".row").TextContent);
+    }
+
+    [Fact]
+    public async Task A_window_inside_the_fetched_slice_asks_for_nothing()
+    {
+        var source = new Source(1000);
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.ItemsProvider, source.Fetch).Add(x => x.ChildContent, Row));
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+        var fetched = source.Requests[0].Count;
+
+        await ScrollTo(cut, 5, fetched - 1);
+
+        Assert.Single(source.Requests);
+        Assert.Equal($"5: row 5", cut.Find(".row").TextContent);
+    }
+
+    [Fact]
+    public async Task A_newer_window_cancels_the_request_it_replaces()
+    {
+        var source = new Source(1000);
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.ItemsProvider, source.Fetch).Add(x => x.ChildContent, Row));
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+        source.Gate = new TaskCompletionSource();
+
+        await ScrollTo(cut, 300, 320);
+        cut.WaitForAssertion(() => Assert.Equal(2, source.Requests.Count));
+        await ScrollTo(cut, 600, 620);
+        cut.WaitForAssertion(() => Assert.Equal(3, source.Requests.Count));
+
+        // A fast scroll never queues: the request for the window that was left is abandoned.
+        Assert.True(source.Requests[1].CancellationToken.IsCancellationRequested);
+        Assert.False(source.Requests[2].CancellationToken.IsCancellationRequested);
+
+        source.Gate.SetResult();
+        cut.WaitForAssertion(() => Assert.Equal("600: row 600", cut.Find(".row").TextContent));
+    }
+
+    [Fact]
+    public async Task A_refresh_asks_the_provider_for_the_current_window_again()
+    {
+        var source = new Source(1000);
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.ItemsProvider, source.Fetch).Add(x => x.ChildContent, Row));
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+        await ScrollTo(cut, 200, 220);
+        cut.WaitForAssertion(() => Assert.Equal(2, source.Requests.Count));
+
+        await cut.InvokeAsync(() => cut.Instance.RefreshDataAsync());
+
+        Assert.Equal(3, source.Requests.Count);
+        Assert.Equal(source.Requests[1].StartIndex, source.Requests[2].StartIndex);
+        Assert.Equal(source.Requests[1].Count, source.Requests[2].Count);
+    }
+
+    [Fact]
+    public async Task A_refresh_of_a_list_the_caller_owns_does_nothing()
+    {
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.Items, Rows(10)).Add(x => x.ChildContent, Row));
+
+        await cut.InvokeAsync(() => cut.Instance.RefreshDataAsync());
+
+        Assert.Equal(10, cut.FindAll(".row").Count);
+    }
+
+    [Fact]
+    public async Task A_placeholder_of_the_caller_gets_the_index_of_the_row_it_stands_in_for()
+    {
+        var source = new Source(1000);
+        var cut = Render(@<BzVirtualizer TItem="string" ItemsProvider="source.Fetch">
+            <Placeholder Context="index"><div class="pending" style="height:40px">loading @index</div></Placeholder>
+            <ChildContent><div class="row" @attributes="context.Attributes">@context.Item</div></ChildContent>
+        </BzVirtualizer>);
+        cut.WaitForAssertion(() => Assert.Equal(30, cut.FindAll(".row").Count));
+        source.Gate = new TaskCompletionSource();
+
+        await ScrollTo(cut, 500, 503);
+
+        cut.WaitForAssertion(() =>
+            Assert.Equal(["loading 500", "loading 501", "loading 502"], cut.FindAll(".pending").Select(e => e.TextContent)));
+        source.Gate.SetResult();
+    }
+
+    [Fact]
+    public void A_request_still_in_flight_is_cancelled_when_the_list_goes_away()
+    {
+        var source = new Source(1000) { Gate = new TaskCompletionSource() };
+        var cut = Render<BzVirtualizer<string>>(p => p.Add(x => x.ItemsProvider, source.Fetch).Add(x => x.ChildContent, Row));
+        cut.WaitForAssertion(() => Assert.Single(source.Requests));
+
+        cut.Instance.Dispose();
+
+        Assert.True(source.Requests[0].CancellationToken.IsCancellationRequested);
+    }
+}

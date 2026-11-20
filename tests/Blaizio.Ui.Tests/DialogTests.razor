@@ -1,0 +1,327 @@
+@using Bunit
+@using Xunit
+@using Microsoft.Extensions.DependencyInjection
+@inherits BunitContext
+@code {
+    // BzDialog composed in markup: what opens and closes it, what names it, and which of its
+    // parts the parameters reach.
+
+    public DialogTests()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddBlaizio();
+    }
+
+    private static readonly RenderFragment Body =
+        @<text>
+            <BzDialogHeader>
+                <BzDialogTitle>Edit profile</BzDialogTitle>
+                <BzDialogDescription>Change your name.</BzDialogDescription>
+            </BzDialogHeader>
+        </text>;
+
+    private static string? State(IRenderedComponent<IComponent> cut) =>
+        cut.Find("[data-slot=dialog-content]").GetAttribute("data-state");
+
+    private static Task EscapeAsync(IRenderedComponent<IComponent> cut) =>
+        cut.InvokeAsync(() => cut.FindComponent<BaseDialogContent>().Instance.OnDismissRequested());
+
+    [Fact]
+    public void The_trigger_opens_a_modal_dialog_named_by_its_title_and_description()
+    {
+        var cut = Render(@<BzDialog>
+            <BzDialogTrigger>Edit</BzDialogTrigger>
+            <BzDialogContent>@Body</BzDialogContent>
+        </BzDialog>);
+        Assert.Empty(cut.FindAll("[role=dialog]"));
+
+        cut.Find("[data-slot=dialog-trigger]").Click();
+
+        var content = cut.Find("[role=dialog]");
+        Assert.Equal("true", content.GetAttribute("aria-modal"));
+        Assert.Equal(cut.Find("[data-slot=dialog-title]").Id, content.GetAttribute("aria-labelledby"));
+        Assert.Equal(cut.Find("[data-slot=dialog-description]").Id, content.GetAttribute("aria-describedby"));
+        var trigger = cut.Find("[data-slot=dialog-trigger]");
+        Assert.Equal("true", trigger.GetAttribute("aria-expanded"));
+        Assert.Equal(content.Id, trigger.GetAttribute("aria-controls"));
+        Assert.NotEmpty(cut.FindAll("[data-slot=dialog-overlay]"));
+    }
+
+    [Fact]
+    public void A_dialog_without_a_title_or_description_references_neither()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent aria-label="Search">Body</BzDialogContent>
+        </BzDialog>);
+
+        var content = cut.Find("[role=dialog]");
+        Assert.False(content.HasAttribute("aria-labelledby"));
+        Assert.False(content.HasAttribute("aria-describedby"));
+        Assert.Equal("Search", content.GetAttribute("aria-label"));
+    }
+
+    [Fact]
+    public void A_press_on_the_backdrop_closes_the_dialog()
+    {
+        var changes = new List<bool>();
+        var cut = Render(@<BzDialog DefaultOpen="true" OpenChanged="@((bool open) => changes.Add(open))">
+            <BzDialogContent>@Body</BzDialogContent>
+        </BzDialog>);
+
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+
+        Assert.Equal([false], changes);
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public async Task Content_that_keeps_its_backdrop_inert_still_closes_on_Escape_and_from_the_corner()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent DismissOnOutsideClick="false">@Body</BzDialogContent>
+        </BzDialog>);
+
+        Assert.Throws<MissingEventHandlerException>(() => cut.Find("[data-slot=dialog-overlay]").PointerDown());
+        Assert.Equal("open", State(cut));
+        Assert.NotEmpty(cut.FindAll("button.bz-dialog-close"));
+
+        await EscapeAsync(cut);
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public async Task A_locked_dialog_ignores_backdrop_and_Escape_hides_its_corner_button_and_closes_explicitly()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true" DismissOnOutsideClick="false">
+            <BzDialogContent>
+                @Body
+                <BzDialogFooter><BzDialogClose>Done</BzDialogClose></BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>);
+
+        cut.Find("[data-slot=dialog-overlay]").PointerDown();
+        await EscapeAsync(cut);
+        Assert.Equal("open", State(cut));
+        Assert.Empty(cut.FindAll("button.bz-dialog-close"));
+
+        cut.Find("[data-slot=dialog-footer] [data-slot=dialog-close]").Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void The_corner_button_is_named_Close_and_closes_the_dialog()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true"><BzDialogContent>@Body</BzDialogContent></BzDialog>);
+
+        var corner = cut.Find("button.bz-dialog-close");
+        Assert.Equal("Close", corner.QuerySelector(".sr-only")!.TextContent);
+        Assert.Equal("ghost", corner.GetAttribute("data-variant"));
+
+        corner.Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void The_corner_button_takes_another_name_or_is_left_out()
+    {
+        var named = Render(@<BzDialog DefaultOpen="true"><BzDialogContent CloseLabel="Schliessen">@Body</BzDialogContent></BzDialog>);
+        Assert.Equal("Schliessen", named.Find("button.bz-dialog-close .sr-only").TextContent);
+
+        var bare = Render(@<BzDialog DefaultOpen="true"><BzDialogContent ShowCloseButton="false">@Body</BzDialogContent></BzDialog>);
+        Assert.Empty(bare.FindAll("button.bz-dialog-close"));
+    }
+
+    [Fact]
+    public void A_non_modal_dialog_has_no_backdrop_and_is_not_announced_as_modal()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true" Modal="false"><BzDialogContent>@Body</BzDialogContent></BzDialog>);
+
+        Assert.Empty(cut.FindAll("[data-slot=dialog-overlay]"));
+        Assert.False(cut.Find("[role=dialog]").HasAttribute("aria-modal"));
+    }
+
+    [Fact]
+    public void A_controlled_dialog_asks_to_close_and_follows_the_parent()
+    {
+        var requests = new List<bool>();
+        var cut = Render<BzDialog>(p => p
+            .Add(x => x.Open, true)
+            .Add(x => x.OpenChanged, (bool open) => requests.Add(open))
+            .AddChildContent<BzDialogContent>(c => c.AddChildContent(Body)));
+
+        cut.Find("button.bz-dialog-close").Click();
+        Assert.Equal([false], requests);
+        Assert.Equal("open", cut.Find("[data-slot=dialog-content]").GetAttribute("data-state"));
+
+        cut.Render(p => p.Add(x => x.Open, false));
+        Assert.Equal("closed", cut.Find("[data-slot=dialog-content]").GetAttribute("data-state"));
+    }
+
+    [Fact]
+    public void The_footer_can_append_a_close_button_of_its_own()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ShowCloseButton="false">
+                @Body
+                <BzDialogFooter ShowCloseButton="true" Class="justify-between">
+                    <button type="button" id="save">Save</button>
+                </BzDialogFooter>
+            </BzDialogContent>
+        </BzDialog>);
+
+        var footer = cut.Find("[data-slot=dialog-footer]");
+        Assert.Contains("justify-between", footer.ClassList);
+        var buttons = footer.QuerySelectorAll("button");
+        Assert.Equal(2, buttons.Length);
+        // The consumer's content comes first, the appended button after it.
+        Assert.Equal("save", buttons[0].Id);
+        Assert.Equal("Close", buttons[1].TextContent.Trim());
+        Assert.Equal("outline", buttons[1].GetAttribute("data-variant"));
+
+        buttons[1].Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void A_footer_without_the_option_has_no_close_button()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ShowCloseButton="false"><BzDialogTitle>T</BzDialogTitle><BzDialogFooter>x</BzDialogFooter></BzDialogContent>
+        </BzDialog>);
+
+        Assert.Empty(cut.FindAll("[data-slot=dialog-footer] button"));
+    }
+
+    [Fact]
+    public void The_close_part_styles_its_default_button_and_can_render_onto_another_element()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ShowCloseButton="false">
+                @Body
+                <BzDialogClose Variant="ButtonVariant.Default" Size="ButtonSize.Sm" Class="ms-auto" id="styled">Save</BzDialogClose>
+                <BzDialogClose>
+                    <RenderAs Context="p"><a id="custom" href="#" @attributes="p.Attributes">Back</a></RenderAs>
+                </BzDialogClose>
+            </BzDialogContent>
+        </BzDialog>);
+
+        var styled = cut.Find("#styled");
+        Assert.Equal("default", styled.GetAttribute("data-variant"));
+        Assert.Equal("sm", styled.GetAttribute("data-size"));
+        Assert.Contains("ms-auto", styled.ClassList);
+        Assert.Equal("dialog-close", styled.GetAttribute("data-slot"));
+
+        var custom = cut.Find("a#custom");
+        Assert.Equal("dialog-close", custom.GetAttribute("data-slot"));
+        custom.Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void The_close_part_is_outlined_unless_told_otherwise()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent ShowCloseButton="false"><BzDialogTitle>T</BzDialogTitle><BzDialogClose>Cancel</BzDialogClose></BzDialogContent>
+        </BzDialog>);
+
+        Assert.Equal("outline", cut.Find("button[data-slot=dialog-close]").GetAttribute("data-variant"));
+    }
+
+    [Fact]
+    public void Classes_reach_the_window_and_the_backdrop_separately()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent Class="sm:max-w-lg" OverlayClass="backdrop-blur-sm" data-testid="window">@Body</BzDialogContent>
+        </BzDialog>);
+
+        var content = cut.Find("[role=dialog]");
+        Assert.Contains("sm:max-w-lg", content.ClassList);
+        Assert.Contains("bz-dialog-content", content.ClassList);
+        Assert.Equal("window", content.GetAttribute("data-testid"));
+        var overlay = cut.Find("[data-slot=dialog-overlay]");
+        Assert.Contains("backdrop-blur-sm", overlay.ClassList);
+        Assert.DoesNotContain("backdrop-blur-sm", content.ClassList);
+        Assert.Equal("true", overlay.GetAttribute("aria-hidden"));
+    }
+
+    [Fact]
+    public void A_stacked_dialog_puts_its_window_one_step_above_its_backdrop()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true"><BzDialogContent ZIndex="80">@Body</BzDialogContent></BzDialog>);
+
+        Assert.Equal("z-index:80", cut.Find("[data-slot=dialog-overlay]").GetAttribute("style"));
+        Assert.Equal("z-index:81", cut.Find("[role=dialog]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_dialog_on_the_default_layer_sets_no_inline_stacking()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true"><BzDialogContent>@Body</BzDialogContent></BzDialog>);
+
+        Assert.False(cut.Find("[data-slot=dialog-overlay]").HasAttribute("style"));
+        Assert.False(cut.Find("[role=dialog]").HasAttribute("style"));
+    }
+
+    [Fact]
+    public void Inline_keeps_window_and_backdrop_out_of_the_portal()
+    {
+        var portaled = Render(@<BzDialog DefaultOpen="true"><BzDialogContent>@Body</BzDialogContent></BzDialog>);
+        Assert.True(portaled.Find("[role=dialog]").HasAttribute("data-bz-portal"));
+        Assert.True(portaled.Find("[data-slot=dialog-overlay]").HasAttribute("data-bz-portal"));
+
+        var inline = Render(@<BzDialog DefaultOpen="true"><BzDialogContent Inline="true">@Body</BzDialogContent></BzDialog>);
+        Assert.False(inline.Find("[role=dialog]").HasAttribute("data-bz-portal"));
+        Assert.False(inline.Find("[data-slot=dialog-overlay]").HasAttribute("data-bz-portal"));
+    }
+
+    [Fact]
+    public void The_trigger_styles_its_default_button_and_toggles_the_dialog()
+    {
+        var cut = Render(@<BzDialog>
+            <BzDialogTrigger Variant="ButtonVariant.Outline" Size="ButtonSize.Sm" Class="gap-1">Edit</BzDialogTrigger>
+            <BzDialogContent>@Body</BzDialogContent>
+        </BzDialog>);
+
+        var trigger = cut.Find("button[data-slot=dialog-trigger]");
+        Assert.Equal("outline", trigger.GetAttribute("data-variant"));
+        Assert.Equal("sm", trigger.GetAttribute("data-size"));
+        Assert.Contains("gap-1", trigger.ClassList);
+        Assert.Equal("dialog", trigger.GetAttribute("aria-haspopup"));
+        Assert.Equal("closed", trigger.GetAttribute("data-state"));
+
+        trigger.Click();
+        Assert.Equal("open", cut.Find("button[data-slot=dialog-trigger]").GetAttribute("data-state"));
+        cut.Find("button[data-slot=dialog-trigger]").Click();
+        Assert.Equal("closed", State(cut));
+    }
+
+    [Fact]
+    public void Header_title_and_description_merge_classes_and_keep_their_slots()
+    {
+        var cut = Render(@<BzDialog DefaultOpen="true">
+            <BzDialogContent>
+                <BzDialogHeader Class="text-center" lang="en">
+                    <BzDialogTitle Class="text-xl">Edit</BzDialogTitle>
+                    <BzDialogDescription Class="italic">Change your name.</BzDialogDescription>
+                </BzDialogHeader>
+            </BzDialogContent>
+        </BzDialog>);
+
+        var header = cut.Find("[data-slot=dialog-header]");
+        Assert.Contains("text-center", header.ClassList);
+        Assert.Equal("en", header.GetAttribute("lang"));
+        Assert.Contains("text-xl", cut.Find("[data-slot=dialog-title]").ClassList);
+        Assert.Equal("Edit", cut.Find("[data-slot=dialog-title]").TextContent);
+        Assert.Contains("italic", cut.Find("[data-slot=dialog-description]").ClassList);
+    }
+
+    [Fact(Skip = "bug: the corner close button of BzDialogContent (BzSheetContent and the BzDialogFooter close too) has no type=button, so inside a form it submits")]
+    public void The_corner_button_does_not_submit_a_form_around_the_dialog()
+    {
+        var cut = Render(@<form>
+            <BzDialog DefaultOpen="true"><BzDialogContent Inline="true">@Body</BzDialogContent></BzDialog>
+        </form>);
+
+        Assert.Equal("button", cut.Find("button.bz-dialog-close").GetAttribute("type"));
+    }
+}
