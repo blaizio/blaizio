@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Tree**: a drag released outside the tree no longer eats a later click. The tree holds back the
+  click that follows a drag; released over the page or over another tree, that click never
+  reached it, and the next one it saw (a row control pressed from the keyboard) was held back
+  in its place.
 - **Panel**: arrow keys on a panel's resize edge add up. Each press stepped from the size on
   screen, which is still animating after the press before it, so four presses one way and four
   back left a 320 px panel at 336 px. A press now steps from the size that was set.

@@ -80,6 +80,7 @@ class Tree {
   private scrollRAF = 0;
 
   private swallowClick = false;
+  private swallowTimer = 0;
 
   constructor(
     private readonly container: HTMLElement,
@@ -107,6 +108,18 @@ class Tree {
     e.stopPropagation();
   };
 
+  // The swallow is for the click of the press that dragged, and for no other. The browser sends
+  // that click right after the release, before any timer runs, so the swallow is dropped on the
+  // first timer after the release. A click that lands outside the tree (the drag was released
+  // over the page, or over another tree) never reaches the listener above: left armed, the
+  // swallow ate the next click the tree saw, a row control pressed from the keyboard.
+  private dropSwallowAfterRelease = (): void => {
+    window.removeEventListener('pointerup', this.dropSwallowAfterRelease, true);
+    window.removeEventListener('pointercancel', this.dropSwallowAfterRelease, true);
+    clearTimeout(this.swallowTimer);
+    this.swallowTimer = window.setTimeout(() => (this.swallowClick = false), 0);
+  };
+
   // Suppress the browser's default handling (scrolling, select-all) for the keys C# drives.
   private onKeyDown = (e: KeyboardEvent): void => {
     const target = e.target as HTMLElement | null;
@@ -120,6 +133,7 @@ class Tree {
 
   private onPointerDown = (e: PointerEvent): void => {
     this.swallowClick = false; // a stale swallow (drag cancelled, no click followed) must not eat this press's click
+    clearTimeout(this.swallowTimer);
     if (this.options.disabled || !this.options.dragEnabled || e.button !== 0) return;
     const target = e.target as HTMLElement | null;
     if (!target || target.closest(INTERACTIVE)) return;
@@ -214,6 +228,9 @@ class Tree {
     e.stopPropagation();
     this.pending = null;
     this.finish(true);
+    // The pointer is still down: its click comes with the release, whenever that is.
+    window.addEventListener('pointerup', this.dropSwallowAfterRelease, true);
+    window.addEventListener('pointercancel', this.dropSwallowAfterRelease, true);
   };
 
   // One drag frame: move the ghost, resolve the drop target under the pointer, paint the indicator.
@@ -407,6 +424,7 @@ class Tree {
     // A cancelled pointer (the browser took the touch, capture was lost) is not a drop.
     // No click follows a cancelled pointer, so there is none to swallow.
     this.finish(e.type === 'pointercancel', e.type !== 'pointercancel');
+    this.dropSwallowAfterRelease();
   };
 
   private finish(cancelled: boolean, clickFollows = true): void {
@@ -524,6 +542,9 @@ class Tree {
     window.removeEventListener('pointermove', this.onPointerMove);
     window.removeEventListener('pointerup', this.onPointerUp);
     window.removeEventListener('pointercancel', this.onPointerUp);
+    window.removeEventListener('pointerup', this.dropSwallowAfterRelease, true);
+    window.removeEventListener('pointercancel', this.dropSwallowAfterRelease, true);
+    clearTimeout(this.swallowTimer);
     cancelAnimationFrame(this.scrollRAF);
     clearTimeout(this.hoverTimer);
     this.ghost?.remove();
