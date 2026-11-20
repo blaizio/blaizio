@@ -9,6 +9,8 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Dialog, Sheet, Drawer**: the corner close button, and the Close button `BzDialogFooter` adds
+  with `ShowCloseButton`, are `type="button"`. Inside a form they submitted it.
 - **Color Picker**: `ModeChanged` is raised when the picker changes surface by itself: a `Value`
   that is a gradient or an image, a `Gradient` or `Image` handed in, a surface turned off. Only
   a press on the tabs raised it, so a bound `Mode` stayed on Solid over a gradient value.
