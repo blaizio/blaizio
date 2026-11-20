@@ -93,7 +93,7 @@ public class JsModulesTests : BunitContext
         Assert.Equal(2, runtime.Imports.Count);
     }
 
-    [Fact(Skip = "bug: JsModules keeps an import that fails before it returns (the eviction runs before the entry is stored), so every later caller on that runtime gets the same failure")]
+    [Fact]
     public async Task An_import_that_fails_at_once_is_tried_again_by_the_next_caller()
     {
         var module = new RecordingJsModule();

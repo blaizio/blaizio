@@ -193,7 +193,7 @@ public class ImageLifecycleTests : BunitContext
         Assert.Equal([ImageStatus.Idle], statuses);
     }
 
-    [Fact(Skip = "bug: an image whose Src is null from the start stays at Loading and never reports Idle (an empty string does)")]
+    [Fact]
     public void With_no_source_at_all_the_image_is_idle_too()
     {
         var statuses = new List<ImageStatus>();

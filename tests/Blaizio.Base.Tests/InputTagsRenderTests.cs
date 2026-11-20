@@ -247,7 +247,7 @@ public class InputTagsRenderTests : BunitContext
         Assert.Equal("gam", cut.Instance.Search);
     }
 
-    [Fact(Skip = "bug: in a bound field (@bind-Values) pasted text with two or more delimiters keeps only its last tag, since each one is appended to the list as it was before the paste")]
+    [Fact]
     public void Pasted_text_with_several_delimiters_becomes_one_tag_each_in_a_bound_field()
     {
         var cut = RenderField();
@@ -342,10 +342,10 @@ public class InputTagsRenderTests : BunitContext
         Assert.Equal(0, cut.Instance.ValueChanges);
     }
 
-    // The chips are text, not form controls: nothing tells assistive technology (or a contrast
-    // check, which exempts inactive parts) that the dimmed tags of a disabled field are inactive.
-    // The docs axe gate leaves the disabled example out until the root says so.
-    [Fact(Skip = "bug: a disabled tags field marks its root with data-disabled only, not aria-disabled")]
+    // The chips are text, not form controls: only the group can tell assistive technology (or a
+    // contrast check, which exempts inactive parts) that the dimmed tags of a disabled field are
+    // inactive. The docs axe gate measures the disabled example on that basis.
+    [Fact]
     public void A_disabled_field_says_so_to_assistive_technology()
     {
         var cut = RenderField(["alpha"], (nameof(BaseInputTags.Disabled), true));
