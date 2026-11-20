@@ -401,8 +401,9 @@
     {
         if (Disabled || mode == _mode || !EnabledModes.Contains(mode)) return;
 
+        // _appliedMode stays as it is: it holds the Mode parameter last applied, and a parent that
+        // does not bind Mode would have its unchanged value read as a change and put over the pick.
         _mode = mode;
-        _appliedMode = mode;
         _reportedMode = mode;
         var seeded = false;
         if (mode == ColorPickerMode.Gradient)

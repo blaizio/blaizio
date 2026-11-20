@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: a surface picked on the tabs stays when `Mode` is not bound. The pick was
+  recorded as the `Mode` last applied, so the parent's next render (a bound `Value` is enough to
+  cause one) had its unchanged `Mode` read as a change and put the picker back on Solid.
 - **Calendar, Color Area**: disposing a script instance made for an element that was already
   gone no longer throws.
 - **Toast**: a toast behind the front one keeps its height. Each later render measured it as
