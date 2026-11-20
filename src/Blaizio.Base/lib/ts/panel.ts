@@ -68,6 +68,19 @@ class PanelResize {
     return this.horizontal ? rect.width : rect.height;
   }
 
+  /**
+   * The size the panel is set to, which is where a key press steps from. The inner surface reaches
+   * --panel-size through a transition, so what measure() reads right after a press is still on its
+   * way: a second press that stepped from it lost part of the first. Once a size has been set in
+   * px (by apply(), or by the component rendering the size it was told) that number is the answer;
+   * a size still in another unit is read off the screen, where it is at rest.
+   */
+  private target(): number {
+    const set = this.root.style.getPropertyValue('--panel-size').trim();
+    const px = set.endsWith('px') ? Number.parseFloat(set) : Number.NaN;
+    return Number.isFinite(px) ? px : this.measure();
+  }
+
   // +1 when pointer movement along the +axis grows the panel. The handle sits on the content-facing
   // edge: a start-docked panel grows as the pointer moves right (+x, LTR), an end-docked one as it
   // moves left; RTL mirrors the inline pair. Top grows downward (+y), bottom upward.
@@ -146,12 +159,12 @@ class PanelResize {
       case 'ArrowLeft':
       case 'ArrowRight':
         if (!this.horizontal) return;
-        next = this.measure() + (e.key === 'ArrowRight' ? KEY_STEP : -KEY_STEP) * this.sign();
+        next = this.target() + (e.key === 'ArrowRight' ? KEY_STEP : -KEY_STEP) * this.sign();
         break;
       case 'ArrowUp':
       case 'ArrowDown':
         if (this.horizontal) return;
-        next = this.measure() + (e.key === 'ArrowDown' ? KEY_STEP : -KEY_STEP) * this.sign();
+        next = this.target() + (e.key === 'ArrowDown' ? KEY_STEP : -KEY_STEP) * this.sign();
         break;
       case 'Home': next = this.minPx; break;
       case 'End': next = this.maxPx; break;

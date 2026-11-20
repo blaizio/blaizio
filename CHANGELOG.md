@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Panel**: arrow keys on a panel's resize edge add up. Each press stepped from the size on
+  screen, which is still animating after the press before it, so four presses one way and four
+  back left a 320 px panel at 336 px. A press now steps from the size that was set.
 - **Dialog, Alert Dialog, Sheet, Drawer, Popover**: a surface closed right after it opened keeps
   focus where the close put it. The focus scope asks for the opening focus once more 80 ms
   after opening, and did so even when it had been closed in between, pulling focus back into
