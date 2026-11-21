@@ -23,6 +23,13 @@
     The docs site derives its icon browser data from these generated files at build time
     (BlaizioIconsJson in Blaizio.Docs.csproj), so the browser can never drift from the packages.
 
+    A regeneration never drops a name a package already shipped. Every member of the file being
+    replaced that the new download no longer has is looked up - in the set's own alias data
+    (Tabler's aliases.json, the "aliases" of each Lucide icon), then by a spelling that differs in
+    case only - and written back as an [Obsolete] member forwarding to the icon's current name, so
+    a consumer gets a warning naming the replacement instead of a compile error. A name with no
+    replacement upstream is listed in a warning at the end of the run: that one is a real removal.
+
 .PARAMETER Set
     Which sets to regenerate. Default: All.
 
@@ -61,9 +68,11 @@ $catalog = [ordered]@{
         Label = 'Tabler Icons'; Project = 'Blaizio.Icons.Tabler'; Class = 'Tabler'
         Url = 'https://github.com/tabler/tabler-icons/archive/refs/heads/main.zip'; Repo = 'tabler/tabler-icons'; Branch = 'main'
         Home = 'https://tabler.io/icons'; LicenseName = 'MIT'
+        # Renames live in one file at the repository root: { "outline": { "old": "new" }, "filled": { ... } }.
+        AliasFile = 'aliases.json'
         Families = @(
-            @{ Name = 'Outline'; Kind = 'Outline'; ViewBox = '0 0 24 24'; Stroke = 2; Dir = 'icons/outline'; Describe = 'stroked' }
-            @{ Name = 'Filled'; Kind = 'Filled'; ViewBox = '0 0 24 24'; Stroke = 2; Dir = 'icons/filled'; Describe = 'solid' }
+            @{ Name = 'Outline'; Kind = 'Outline'; ViewBox = '0 0 24 24'; Stroke = 2; Dir = 'icons/outline'; AliasKey = 'outline'; Describe = 'stroked' }
+            @{ Name = 'Filled'; Kind = 'Filled'; ViewBox = '0 0 24 24'; Stroke = 2; Dir = 'icons/filled'; AliasKey = 'filled'; Describe = 'solid' }
         )
     }
     Lucide = @{
@@ -71,7 +80,8 @@ $catalog = [ordered]@{
         Url = 'https://github.com/lucide-icons/lucide/archive/refs/heads/main.zip'; Repo = 'lucide-icons/lucide'; Branch = 'main'
         Home = 'https://lucide.dev'; LicenseName = 'ISC'
         Families = @(
-            @{ Name = 'Outline'; Kind = 'Outline'; ViewBox = '0 0 24 24'; Stroke = 2; Dir = 'icons'; Describe = 'stroked (the single Lucide style)' }
+            # Renames sit next to each icon: <name>.json carries "aliases": [{ "name": "old-name" }, ...].
+            @{ Name = 'Outline'; Kind = 'Outline'; ViewBox = '0 0 24 24'; Stroke = 2; Dir = 'icons'; AliasJson = $true; Describe = 'stroked (the single Lucide style)' }
         )
     }
     Phosphor = @{
@@ -114,8 +124,9 @@ $catalog = [ordered]@{
 
 # ---- Helpers ----------------------------------------------------------------------------------
 
-function ConvertTo-PascalCase {
-    param([string]$Name, [hashtable]$Seen, [string[]]$Reserved)
+# The member name of an upstream icon name, before two icons of one family are told apart.
+function ConvertTo-IconIdentifier {
+    param([string]$Name, [string[]]$Reserved)
 
     # Already-PascalCase input (Hugeicons: WalletAdd02, AArrowDown) is kept verbatim - ToTitleCase
     # would lower-case everything after the first letter of each run. Kebab names are title-cased
@@ -127,7 +138,13 @@ function ConvertTo-PascalCase {
     # A member cannot share its enclosing class's name (Remix.Line.Line) or shadow an object member
     # (Phosphor.Regular.Equals); those few take an Icon suffix.
     if ($Reserved -ccontains $id) { $id = "${id}Icon" }
+    return $id
+}
 
+function ConvertTo-PascalCase {
+    param([string]$Name, [hashtable]$Seen, [string[]]$Reserved)
+
+    $id = ConvertTo-IconIdentifier -Name $Name -Reserved $Reserved
     $base = $id; $n = 1
     while ($Seen.ContainsKey($id)) { $id = "$base$n"; $n++ }
     $Seen[$id] = $true
@@ -238,8 +255,93 @@ function Copy-License {
     ($header + $body) | Out-File -FilePath (Join-Path $ProjectDir 'THIRD-PARTY-LICENSE.txt') -Encoding utf8 -NoNewline
 }
 
+# Every member of the family file about to be replaced: an icon maps to '', an earlier name to
+# the member it forwards to. Ordinal keys throughout - Grid2X2 and Grid2x2 are different members,
+# and a PowerShell hashtable would fold them into one.
+function Get-PreviousMembers {
+    param([string]$Path)
+    $members = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+    if (-not (Test-Path $Path)) { return , $members }
+    foreach ($m in [regex]::Matches((Get-Content -Path $Path -Raw), 'public static Icon (?<name>\w+) => (?:I\(|(?<target>\w+);)')) {
+        $members[$m.Groups['name'].Value] = $m.Groups['target'].Value
+    }
+    return , $members
+}
+
+# What the set itself says about renames, as member names: earlier name -> current name.
+function Get-UpstreamAliases {
+    param([hashtable]$Entry, [hashtable]$Family, [string]$DownloadPath, [string]$FamilyDir, [string[]]$Reserved)
+    $map = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::Ordinal)
+
+    if ($Entry.AliasFile -and $Family.AliasKey) {
+        $file = Get-ChildItem -Path $DownloadPath -Filter $Entry.AliasFile -File -Recurse -Depth 2 |
+            Sort-Object { $_.FullName.Length } | Select-Object -First 1
+        if ($file) {
+            $all = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json -AsHashtable
+            $renames = $all[$Family.AliasKey]
+            if ($renames) {
+                foreach ($old in $renames.Keys) {
+                    $map[(ConvertTo-IconIdentifier -Name $old -Reserved $Reserved)] = ConvertTo-IconIdentifier -Name $renames[$old] -Reserved $Reserved
+                }
+            }
+        } else {
+            Write-Warning "$($Entry.Label): no $($Entry.AliasFile) in the download; renames are matched by spelling only."
+        }
+    }
+
+    if ($Family.AliasJson) {
+        foreach ($json in (Get-ChildItem -Path $FamilyDir -Filter '*.json' -File)) {
+            $meta = Get-Content -Path $json.FullName -Raw | ConvertFrom-Json -AsHashtable
+            if (-not $meta.aliases) { continue }
+            $current = ConvertTo-IconIdentifier -Name $json.BaseName -Reserved $Reserved
+            foreach ($alias in $meta.aliases) {
+                $old = if ($alias -is [string]) { $alias } else { $alias.name }
+                if ($old) { $map[(ConvertTo-IconIdentifier -Name $old -Reserved $Reserved)] = $current }
+            }
+        }
+    }
+
+    return , $map
+}
+
+# Splits the members the new download no longer has into Renamed (earlier name -> current member)
+# and Removed (no replacement anywhere). A rename is followed through several hops, so a name that
+# moved twice between two runs still lands on today's member.
+function Resolve-EarlierNames {
+    param(
+        [System.Collections.Generic.Dictionary[string, string]]$Previous,
+        [hashtable]$Defs,
+        [System.Collections.Generic.Dictionary[string, string]]$Upstream
+    )
+    $current = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::Ordinal)
+    $byFoldedName = [System.Collections.Generic.Dictionary[string, string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($name in $Defs.Keys) { [void]$current.Add($name); $byFoldedName[$name] = $name }
+
+    $renamed = [System.Collections.Generic.SortedDictionary[string, string]]::new([System.StringComparer]::Ordinal)
+    $removed = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in $Previous.Keys) {
+        if ($current.Contains($name)) { continue }
+
+        $target = $null; $hop = $name
+        for ($i = 0; $i -lt 8 -and -not $target; $i++) {
+            $next = if ($Upstream.ContainsKey($hop)) { $Upstream[$hop] }
+                    elseif ($Previous.ContainsKey($hop) -and $Previous[$hop]) { $Previous[$hop] }
+                    else { $null }
+            if (-not $next -or $next -ceq $hop) { break }
+            if ($current.Contains($next)) { $target = $next } else { $hop = $next }
+        }
+        $folded = $null
+        if (-not $target -and $byFoldedName.TryGetValue($name, [ref]$folded)) { $target = $folded }
+
+        if ($target) { $renamed[$name] = $target } else { $removed.Add($name) }
+    }
+    $removed.Sort([System.StringComparer]::Ordinal)
+    return @{ Renamed = $renamed; Removed = $removed }
+}
+
 function Write-Family {
-    param([hashtable]$Entry, [hashtable]$Family, [hashtable]$Defs, [string]$ProjectDir, [string]$Note)
+    param([hashtable]$Entry, [hashtable]$Family, [hashtable]$Defs, [string]$ProjectDir, [string]$Note,
+          [System.Collections.Generic.SortedDictionary[string, string]]$EarlierNames)
 
     $stroke = if ($Family.Stroke) { $Family.Stroke } else { 2 }
     $strokeLiteral = ([double]$stroke).ToString([System.Globalization.CultureInfo]::InvariantCulture) + 'f'
@@ -257,17 +359,26 @@ function Write-Family {
     foreach ($name in ($Defs.Keys | Sort-Object)) {
         [void]$sb.AppendLine("        public static Icon $name => I(`"`"`"$($Defs[$name])`"`"`");")
     }
+    if ($EarlierNames -and $EarlierNames.Count -gt 0) {
+        [void]$sb.AppendLine('')
+        [void]$sb.AppendLine('        // Earlier names: the set renamed these icons. Each one forwards to the current member.')
+        foreach ($pair in $EarlierNames.GetEnumerator()) {
+            [void]$sb.AppendLine("        [System.Obsolete(`"Renamed in $($Entry.Label): use $($pair.Value).`")] public static Icon $($pair.Key) => $($pair.Value);")
+        }
+    }
     [void]$sb.AppendLine('    }')
     [void]$sb.AppendLine('}')
 
     $outPath = Join-Path $ProjectDir "$($Entry.Class).$($Family.Name).cs"
     $sb.ToString() | Out-File -FilePath $outPath -Encoding utf8 -NoNewline
-    Write-Host "  $($Family.Name): $($Defs.Count) icons -> $(Resolve-Path -Relative $outPath)"
+    $kept = if ($EarlierNames -and $EarlierNames.Count -gt 0) { " (+$($EarlierNames.Count) earlier names kept)" } else { '' }
+    Write-Host "  $($Family.Name): $($Defs.Count) icons$kept -> $(Resolve-Path -Relative $outPath)"
 }
 
 # ---- Run --------------------------------------------------------------------------------------
 
 $selected = if ($Set -contains 'All') { @($catalog.Keys) } else { $Set }
+$removedNames = [System.Collections.Generic.List[string]]::new()
 if ($Source -and $selected.Count -ne 1) { throw '-Source applies to a single -Set.' }
 
 foreach ($name in $selected) {
@@ -301,7 +412,12 @@ foreach ($name in $selected) {
             if ($inner) { $defs[(ConvertTo-PascalCase -Name $base -Seen $seen -Reserved $reserved)] = $inner }
         }
 
-        Write-Family -Entry $entry -Family $family -Defs $defs -ProjectDir $projectDir -Note $download.Note
+        $previous = Get-PreviousMembers -Path (Join-Path $projectDir "$($entry.Class).$($family.Name).cs")
+        $upstream = Get-UpstreamAliases -Entry $entry -Family $family -DownloadPath $download.Path -FamilyDir $dir -Reserved $reserved
+        $earlier = Resolve-EarlierNames -Previous $previous -Defs $defs -Upstream $upstream
+        foreach ($gone in $earlier.Removed) { $removedNames.Add("$($entry.Class).$($family.Name).$gone") }
+
+        Write-Family -Entry $entry -Family $family -Defs $defs -ProjectDir $projectDir -Note $download.Note -EarlierNames $earlier.Renamed
     }
 
     Copy-License -Name $name -Entry $entry -DownloadPath $download.Path -ProjectDir $projectDir -Note $download.Note
@@ -309,4 +425,8 @@ foreach ($name in $selected) {
 }
 
 if ((Test-Path $tmpRoot) -and -not (Get-ChildItem $tmpRoot)) { Remove-Item $tmpRoot -Force }
+if ($removedNames.Count -gt 0) {
+    Write-Warning "$($removedNames.Count) member(s) are gone with no replacement upstream - a compile error for anyone using them, so name them in the CHANGELOG:"
+    $removedNames | ForEach-Object { Write-Warning "  $_" }
+}
 Write-Host 'Done.'

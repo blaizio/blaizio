@@ -524,6 +524,10 @@ lockstep under one version.
   project analysing its copied components used to get answered in place. Same results.
 
 ### Added
+- **Icons**: three sets follow their upstream. `Blaizio.Icons.Tabler` gains 362 icons (5,491
+  outline, 1,054 filled), `Blaizio.Icons.Lucide` 330 (2,098) and `Blaizio.Icons.HugeIcons` 81
+  (6,100, from `@hugeicons/core-free-icons` 4.4.0). Phosphor has nothing new upstream, and Remix
+  stays on its 4.8.0 release.
 - **Dialog, Alert Dialog, Sheet, Drawer**: `PreventDismiss` on the root locks the surface. Escape
   and the backdrop stop closing it and the corner close button is hidden; a close button of your
   own, or your code, still closes it. It is the name `DialogOptions` already uses for the same
@@ -823,6 +827,16 @@ lockstep under one version.
   parameter still locks, and with both set the surface is locked if either one asks for it.
 - **Focus scope**: `BaseFocusScope.OnMountAutoFocus` and `OnUnmountAutoFocus` are `[Obsolete]` and
   forward to `OnOpenAutoFocus` and `OnCloseAutoFocus`.
+- **Icons**: 52 icons were renamed by their sets. The earlier names are `[Obsolete]` members that
+  forward to the new ones, so existing code compiles with a warning that names the replacement.
+  Lucide renamed 45: every `...Alert` and `...Warning` icon is now `...ExclamationPoint`
+  (`Lucide.Outline.TriangleAlert` is `TriangleExclamationPoint`, `CircleAlert` is
+  `CircleExclamationPoint`), the `SquareArrowOut...` and `CircleArrowOut...` icons end in `Exit`,
+  and among the rest `Music` is `EighthNotes`, `Bold` is `LetterB`, `Heading` is `LetterH` and
+  `Copyright` is `CircleLetterC`. Hugeicons respelled six (`Grid2X2` is now `Grid2x2`, likewise `Grid2X2Check`,
+  `Grid2X2Plus`, `Grid2X2X`, `Grid3X2`, `Grid3X3`). Tabler renamed one (`AlignJustified` is now
+  `AlignLeftJustified`). A project on `--icons lucide` gets the new names in `BzGlyphs.cs` from
+  `blaizio update`.
 
 ### Fixed
 - **Base**: a table of contents with more sections than its box can show keeps the active section
