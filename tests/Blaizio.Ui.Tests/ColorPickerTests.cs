@@ -975,9 +975,10 @@ public class ColorPickerTests : BunitContext
         return cut;
     }
 
-    // The gradient's hole, one surface over: the fill read from a Value string is not handed to a
-    // bound Image, which the page's next render then reads as a fill handed in from outside.
-    [Fact(Skip = "bug: an image that arrives as a Value string is not handed to a bound Image, and a bound Image holding an earlier fill (an empty one is enough) replaces it on the page's next render, leaving the Image surface with no picture")]
+    // The gradient's hole, one surface over: the fill read from a Value string was not handed to a
+    // bound Image, which the page's next render then read as a fill handed in from outside. An
+    // empty fill in the binding was enough to leave the Image surface with no picture.
+    [Fact]
     public void An_image_value_reaches_a_bound_image_and_keeps_its_picture()
     {
         var cut = WithImage(ImageFillValue.Empty);
@@ -987,6 +988,73 @@ public class ColorPickerTests : BunitContext
         Assert.Equal("/photo.png", cut.Instance.Image!.Src);
         Assert.Equal("background:url(/photo.png) center/cover no-repeat;filter:none",
             cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    // The model was never handed over, so a page that bound both had the paint and no fill to grade.
+    [Fact]
+    public void An_image_value_from_the_start_reaches_a_bound_image()
+    {
+        var cut = Render<ColorPickerHost>(p => p
+            .Add(x => x.ShowImage, true)
+            .Add(x => x.Start, "url(/photo.png) center/contain no-repeat"));
+
+        Assert.Equal(ColorPickerMode.Image, cut.Instance.Mode);
+        Assert.NotNull(cut.Instance.Image);
+        Assert.Equal(("/photo.png", ImageFillFit.Fit), (cut.Instance.Image.Src, cut.Instance.Image.Fit));
+    }
+
+    // A bound Image still holding the earlier fill was read, on the page's next render, as a fill
+    // handed in from outside, and replaced the one the picker had just taken from Value. The grade
+    // is not in a paint string, so the new fill keeps the one in hand.
+    [Fact]
+    public void A_second_image_value_keeps_the_grade_and_is_not_undone_by_the_fill_bound_before_it()
+    {
+        var cut = WithImage(new ImageFillValue("/photo.png", Exposure: 0.4));
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "url(/other.png) center/contain no-repeat"));
+        // Any later render of the page.
+        cut.InvokeAsync(() => cut.Instance.Set(_ => { }));
+
+        var image = cut.Instance.Image!;
+        Assert.Equal(("/other.png", ImageFillFit.Fit, 0.4), (image.Src, image.Fit, image.Exposure));
+        Assert.Equal("background:url(/other.png) center/contain no-repeat;filter:brightness(1.4)",
+            cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    // The fill is handed over before the surface is reported: a page whose surface handler awaits
+    // renders while it waits, and its bound Image must already hold the new fill by then.
+    [Fact]
+    public void The_new_fill_is_handed_over_before_a_page_that_awaits_on_the_surface_renders_again()
+    {
+        var cut = Render<ColorPickerSlowModeHost>();
+        cut.WaitForAssertion(() => Assert.Equal(ColorPickerMode.Gradient, cut.Instance.Mode));
+
+        cut.InvokeAsync(() => cut.Instance.Set(host =>
+        {
+            host.Image = ImageFillValue.Empty;
+            host.Value = "url(/photo.png) center/cover no-repeat";
+        }));
+
+        cut.WaitForAssertion(() => Assert.Equal(ColorPickerMode.Image, cut.Instance.Mode));
+        Assert.Equal("/photo.png", cut.Instance.Image!.Src);
+        Assert.Equal("background:url(/photo.png) center/cover no-repeat;filter:none",
+            cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    // Nothing changed for the binding: it already holds the fill the paint string describes.
+    [Fact]
+    public void A_value_that_restates_the_bound_fill_raises_no_image_change()
+    {
+        var heard = new List<ImageFillValue>();
+        var bound = new ImageFillValue("/photo.png", Exposure: 0.4);
+
+        Render<BzColorPicker>(p => p
+            .Add(x => x.ShowImage, true)
+            .Add(x => x.Image, bound)
+            .Add(x => x.ImageChanged, (ImageFillValue image) => heard.Add(image))
+            .Add(x => x.Value, bound.ToCss()));
+
+        Assert.Empty(heard);
     }
 
     [Fact]
