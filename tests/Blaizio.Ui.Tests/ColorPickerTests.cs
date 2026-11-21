@@ -1200,9 +1200,9 @@ public class ColorPickerTests : BunitContext
 
     private static readonly GradientValue RedToBlue = new(GradientType.Linear, 90, [new("#ff0000", 0), new("#0000ff", 1)]);
 
-    private IRenderedComponent<ColorPickerOneWayHost> OneWay(Action<ColorPickerOneWayHost> hand, bool listen = false)
+    private IRenderedComponent<ColorPickerOneWayHost> OneWay(Action<ColorPickerOneWayHost> hand, bool listen = false, bool take = false)
     {
-        var cut = Render<ColorPickerOneWayHost>(p => p.Add(x => x.Listen, listen));
+        var cut = Render<ColorPickerOneWayHost>(p => p.Add(x => x.Listen, listen).Add(x => x.Take, take));
         cut.InvokeAsync(() => cut.Instance.Set(hand));
         return cut;
     }
@@ -1299,6 +1299,112 @@ public class ColorPickerTests : BunitContext
 
         // The page was told and did not take the new fill: its own still stands.
         Assert.Contains("url(/photo.png) center/cover no-repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    // ---- a listener that comes or goes --------------------------------------------------------
+
+    [Fact]
+    public async Task A_bound_page_that_stops_listening_keeps_the_ramp_and_later_edits()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue, listen: true, take: true);
+        await Slide(cut, HueSlider, 120);
+        Assert.Equal("#00ff00", cut.Instance.Gradient!.Stops[0].Color);
+
+        cut.Render(p => p.Add(x => x.Listen, false));
+        Assert.Equal("#00ff00", Shown(cut));
+
+        await Slide(cut, HueSlider, 240);
+        // Any later render of the page, which still holds the green ramp it heard of last.
+        await cut.InvokeAsync(() => cut.Instance.Set(_ => { }));
+
+        Assert.Equal("#00ff00", cut.Instance.Gradient.Stops[0].Color);
+        Assert.Equal("#0000ff", Shown(cut));
+        Assert.Equal("linear-gradient(90deg, #0000ff 0%, #0000ff 100%)", cut.Instance.Value);
+    }
+
+    [Fact]
+    public async Task A_page_that_kept_its_own_gradient_and_stops_listening_lets_edits_stay()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue, listen: true);
+        await Slide(cut, HueSlider, 120);
+        Assert.Equal("#ff0000", Shown(cut));
+
+        cut.Render(p => p.Add(x => x.Listen, false));
+        await Slide(cut, HueSlider, 120);
+
+        Assert.Equal("#00ff00", Shown(cut));
+        Assert.Equal("linear-gradient(90deg, #00ff00 0%, #0000ff 100%)", cut.Instance.Value);
+    }
+
+    // From the render a page starts to listen, its model is the one in control, the way Format and
+    // SavedColors are: the picker takes it, and what was edited while nobody listened is dropped.
+    [Fact]
+    public async Task A_page_that_starts_listening_has_its_own_gradient_taken_and_hears_the_next_edit()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue);
+        await Slide(cut, HueSlider, 120);
+        Assert.Equal("#00ff00", Shown(cut));
+
+        cut.Render(p => p.Add(x => x.Listen, true).Add(x => x.Take, true));
+
+        Assert.Equal("#ff0000", Shown(cut));
+        Assert.Same(RedToBlue, cut.Instance.Gradient);
+
+        await Slide(cut, HueSlider, 240);
+
+        Assert.Equal("#0000ff", cut.Instance.Gradient!.Stops[0].Color);
+        Assert.Equal("#0000ff", Shown(cut));
+    }
+
+    [Fact]
+    public void A_bound_page_that_stops_listening_keeps_the_fill_and_later_edits()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"), listen: true, take: true);
+        Choose(cut, "[data-slot=color-image]", "Fit");
+        Assert.Equal(ImageFillFit.Fit, cut.Instance.Image!.Fit);
+
+        cut.Render(p => p.Add(x => x.Listen, false));
+        Assert.Contains("center/contain", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+
+        Choose(cut, "[data-slot=color-image]", "Tile");
+        // Any later render of the page, which still holds the fill it heard of last.
+        cut.InvokeAsync(() => cut.Instance.Set(_ => { }));
+
+        Assert.Equal(ImageFillFit.Fit, cut.Instance.Image.Fit);
+        Assert.Contains("url(/photo.png) left top/50% repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+        Assert.Equal("url(/photo.png) left top/50% repeat", cut.Instance.Value);
+    }
+
+    [Fact]
+    public void A_page_that_kept_its_own_fill_and_stops_listening_lets_edits_stay()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"), listen: true);
+        Choose(cut, "[data-slot=color-image]", "Fit");
+        Assert.Contains("center/cover", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+
+        cut.Render(p => p.Add(x => x.Listen, false));
+        Choose(cut, "[data-slot=color-image]", "Fit");
+
+        Assert.Contains("center/contain", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+        Assert.Equal("url(/photo.png) center/contain no-repeat", cut.Instance.Value);
+    }
+
+    [Fact]
+    public void A_page_that_starts_listening_has_its_own_fill_taken_and_hears_the_next_edit()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"));
+        Choose(cut, "[data-slot=color-image]", "Fit");
+        Assert.Contains("center/contain", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+
+        cut.Render(p => p.Add(x => x.Listen, true).Add(x => x.Take, true));
+
+        Assert.Contains("url(/photo.png) center/cover no-repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+        Assert.Equal(ImageFillFit.Fill, cut.Instance.Image!.Fit);
+
+        Choose(cut, "[data-slot=color-image]", "Tile");
+
+        Assert.Equal(ImageFillFit.Tile, cut.Instance.Image.Fit);
+        Assert.Contains("url(/photo.png) left top/50% repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
     }
 
     // ---- disabled -----------------------------------------------------------------------------
