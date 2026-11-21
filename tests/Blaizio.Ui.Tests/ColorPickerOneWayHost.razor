@@ -1,0 +1,26 @@
+@* Test host: a page that hands the picker a gradient and an image fill with the value bound. It
+   does not listen for either model unless Listen is set, and then it keeps its own all the same. *@
+<BzColorPicker @bind-Value="Value" Gradient="Gradient" GradientChanged="GradientHeard"
+               Image="Image" ImageChanged="ImageHeard" ShowGradient="true" ShowImage="true" />
+
+@code {
+    [Parameter] public bool Listen { get; set; }
+
+    public string? Value = "#ff0000";
+    public GradientValue? Gradient;
+    public ImageFillValue? Image;
+
+    // A callback with no delegate is what a parameter nobody set looks like to the picker.
+    private EventCallback<GradientValue> GradientHeard =>
+        Listen ? EventCallback.Factory.Create<GradientValue>(this, _ => { }) : default;
+
+    private EventCallback<ImageFillValue> ImageHeard =>
+        Listen ? EventCallback.Factory.Create<ImageFillValue>(this, _ => { }) : default;
+
+    /// <summary>What a page does when it sets a value itself.</summary>
+    public void Set(Action<ColorPickerOneWayHost> change)
+    {
+        change(this);
+        StateHasChanged();
+    }
+}

@@ -1196,6 +1196,111 @@ public class ColorPickerTests : BunitContext
         Assert.Single(module.Invocations["exportImage"]);
     }
 
+    // ---- a model handed in with no listener ---------------------------------------------------
+
+    private static readonly GradientValue RedToBlue = new(GradientType.Linear, 90, [new("#ff0000", 0), new("#0000ff", 1)]);
+
+    private IRenderedComponent<ColorPickerOneWayHost> OneWay(Action<ColorPickerOneWayHost> hand, bool listen = false)
+    {
+        var cut = Render<ColorPickerOneWayHost>(p => p.Add(x => x.Listen, listen));
+        cut.InvokeAsync(() => cut.Instance.Set(hand));
+        return cut;
+    }
+
+    [Fact]
+    public async Task A_stop_edited_under_a_gradient_handed_in_with_no_listener_stays_edited()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue);
+        Assert.Equal(2, cut.FindAll("[data-slot=color-gradient-thumb]").Count);
+
+        await Slide(cut, HueSlider, 120);
+
+        Assert.Equal("linear-gradient(90deg, #00ff00 0%, #0000ff 100%)", cut.Instance.Value);
+        Assert.Equal("#00ff00", Shown(cut));
+        Assert.Contains("#00ff00 0%", cut.Find("[data-slot=color-gradient-track]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_gradient_value_set_later_is_not_undone_by_a_gradient_handed_in_with_no_listener()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue);
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "linear-gradient(45deg, #00ff00 0%, #ffff00 100%)"));
+        // Any later render of the page.
+        cut.InvokeAsync(() => cut.Instance.Set(_ => { }));
+
+        Assert.Equal("#00ff00", Shown(cut));
+        Assert.Contains("#00ff00 0%, #ffff00 100%", cut.Find("[data-slot=color-gradient-track]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public async Task Another_gradient_handed_in_with_no_listener_still_replaces_the_edited_one()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue);
+        await Slide(cut, HueSlider, 120);
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Gradient = ThreeStops));
+
+        Assert.Equal(3, cut.FindAll("[data-slot=color-gradient-thumb]").Count);
+    }
+
+    [Fact]
+    public async Task A_page_that_listens_and_keeps_its_own_gradient_puts_the_picker_back()
+    {
+        var cut = OneWay(host => host.Gradient = RedToBlue, listen: true);
+
+        await Slide(cut, HueSlider, 120);
+
+        // The page was told and did not take the new ramp: its own still stands.
+        Assert.Equal("#ff0000", Shown(cut));
+        Assert.Contains("#ff0000 0%", cut.Find("[data-slot=color-gradient-track]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_fit_chosen_under_a_fill_handed_in_with_no_listener_stays_chosen()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"));
+
+        Choose(cut, "[data-slot=color-image]", "Fit");
+
+        Assert.Equal("url(/photo.png) center/contain no-repeat", cut.Instance.Value);
+        Assert.Contains("url(/photo.png) center/contain no-repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void An_image_value_set_later_is_not_undone_by_a_fill_handed_in_with_no_listener()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"));
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Value = "url(/other.png) center/contain no-repeat"));
+        // Any later render of the page.
+        cut.InvokeAsync(() => cut.Instance.Set(_ => { }));
+
+        Assert.Contains("url(/other.png) center/contain no-repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Another_fill_handed_in_with_no_listener_still_replaces_the_edited_one()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"));
+        Choose(cut, "[data-slot=color-image]", "Fit");
+
+        cut.InvokeAsync(() => cut.Instance.Set(host => host.Image = new ImageFillValue("/other.png")));
+
+        Assert.Contains("url(/other.png) center/cover no-repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void A_page_that_listens_and_keeps_its_own_fill_puts_the_picker_back()
+    {
+        var cut = OneWay(host => host.Image = new ImageFillValue("/photo.png"), listen: true);
+
+        Choose(cut, "[data-slot=color-image]", "Fit");
+
+        // The page was told and did not take the new fill: its own still stands.
+        Assert.Contains("url(/photo.png) center/cover no-repeat", cut.Find("[data-slot=color-image-preview]").GetAttribute("style"));
+    }
+
     // ---- disabled -----------------------------------------------------------------------------
 
     [Fact]
