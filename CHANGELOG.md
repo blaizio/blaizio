@@ -9,6 +9,10 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: a `Gradient` or `Image` passed with no change listener no longer undoes the
+  picker's edits. The page's next render read its unchanged parameter as a model handed in from
+  outside, so a stop color, a fit or a paint set through `Value` went back in the picker while
+  `Value` kept the new paint. With no listener the parameter is now taken only when it changes.
 - **Color Picker**: an image set through `Value` reaches a bound `Image`. The fill was never
   handed over, so a binding that held an earlier fill (an empty one is enough) put it back in the
   picker on the page's next render, and the Image surface lost its picture.

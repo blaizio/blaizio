@@ -226,6 +226,10 @@
     private ImageFillValue? _appliedImage;
     // A fill read from a Value string that a bound Image has not been handed yet.
     private bool _imageOwed;
+    // The Gradient and Image parameters as the last render had them. A page that does not listen
+    // cannot take the picker's own model back, so for it only a parameter that moved is handed in.
+    private GradientValue? _gradientParameter;
+    private ImageFillValue? _imageParameter;
 
     internal IReadOnlyList<string> Saved => _saved.Value;
 
@@ -275,8 +279,12 @@
         }
 
         // A gradient handed in as a model rather than a string - only when it changed from outside.
+        // A page that listens holds the ramp last agreed on with it, so any other one is new. A page
+        // that does not listen still holds the ramp it handed in while the picker has moved on:
+        // there only a parameter other than the last render's is new, or the page's next render
+        // would put the old ramp back over every edit.
         var gradientHandedIn = false;
-        if (Gradient is not null && !ReferenceEquals(Gradient, _appliedGradient))
+        if (Gradient is not null && !ReferenceEquals(Gradient, GradientChanged.HasDelegate ? _appliedGradient : _gradientParameter))
         {
             _gradient = Gradient;
             _appliedGradient = Gradient;
@@ -285,14 +293,16 @@
             LoadStopColor();
             gradientHandedIn = true;
         }
+        _gradientParameter = Gradient;
 
         // Same for an image fill handed in as a model.
-        if (Image is not null && !ReferenceEquals(Image, _appliedImage))
+        if (Image is not null && !ReferenceEquals(Image, ImageChanged.HasDelegate ? _appliedImage : _imageParameter))
         {
             _image = Image;
             _appliedImage = Image;
             if (Image.HasImage) _mode = ColorPickerMode.Image;
         }
+        _imageParameter = Image;
 
         // Re-parse only when the string changed from OUTSIDE: our own writes round-trip through
         // _applied, and re-parsing them would collapse hue on greys (hex "#000" has no hue).
