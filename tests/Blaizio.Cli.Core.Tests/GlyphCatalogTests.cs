@@ -64,10 +64,13 @@ public class GlyphCatalogTests
             {
                 var file = Path.Combine(dir, family + ".cs");
                 Assert.True(File.Exists(file), $"glyph '{glyph.Name}': no generated family file {family}.cs for '{set}'");
-                declared = [.. Regex.Matches(File.ReadAllText(file), @"public static Icon (\w+)").Select(m => m.Groups[1].Value)];
+                // Only members that draw an icon (`=> I(`). An earlier name the generator kept as an
+                // [Obsolete] forward (`=> NewName;`) does not count: the table must follow a rename,
+                // or every component file would compile with a warning in a consumer on that set.
+                declared = [.. Regex.Matches(File.ReadAllText(file), @"public static Icon (\w+) => I\(").Select(m => m.Groups[1].Value)];
                 byFamily[family] = declared;
             }
-            Assert.True(declared.Contains(icon), $"glyph '{glyph.Name}': '{member}' is not a member of the generated '{set}' set");
+            Assert.True(declared.Contains(icon), $"glyph '{glyph.Name}': '{member}' is not a current member of the generated '{set}' set (renamed upstream?)");
         }
     }
 
