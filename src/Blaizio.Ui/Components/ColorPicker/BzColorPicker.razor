@@ -224,6 +224,8 @@
     private int _stop;
     private ImageFillValue _image = ImageFillValue.Empty;
     private ImageFillValue? _appliedImage;
+    // A fill read from a Value string that a bound Image has not been handed yet.
+    private bool _imageOwed;
 
     internal IReadOnlyList<string> Saved => _saved.Value;
 
@@ -301,6 +303,7 @@
                 // Adjustments do not survive a paint string - keep the ones already in hand.
                 _image = _image with { Src = picture.Src, Fit = picture.Fit };
                 _appliedImage = _image;
+                _imageOwed = true;
                 _mode = ColorPickerMode.Image;
                 _applied = _state.Value;
             }
@@ -337,14 +340,15 @@
     }
 
     // A gradient that came in as a Value STRING still owes @bind-Gradient its model, on the first
-    // render and on any later one. Publishing it after the render (not from OnParametersSet) keeps
-    // the parameter write out of the parameter-setting pass. The same goes for a surface the picker
-    // moved to by itself: the shape of Value, a model handed in or a surface turned off changes the
-    // mode while parameters are being set, and @bind-Mode hears of it here.
+    // render and on any later one, and an image fill owes @bind-Image its model the same way.
+    // Publishing it after the render (not from OnParametersSet) keeps the parameter write out of
+    // the parameter-setting pass. The same goes for a surface the picker moved to by itself: the
+    // shape of Value, a model handed in or a surface turned off changes the mode while parameters
+    // are being set, and @bind-Mode hears of it here.
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // The ramp goes first. The page renders again after either report, and a bound Gradient
-        // that still held the earlier ramp would be read then as one handed in from outside.
+        // The models go first. The page renders again after any report, and a bound Gradient or
+        // Image that still held the earlier model would be read then as one handed in from outside.
         if (_gradientOwed)
         {
             _gradientOwed = false;
@@ -352,6 +356,17 @@
             {
                 _appliedGradient = _gradient;
                 await GradientChanged.InvokeAsync(_gradient);
+            }
+        }
+
+        if (_imageOwed)
+        {
+            _imageOwed = false;
+            // A binding that already holds an equal fill has nothing to hear.
+            if (ImageChanged.HasDelegate && _image != Image)
+            {
+                _appliedImage = _image;
+                await ImageChanged.InvokeAsync(_image);
             }
         }
 

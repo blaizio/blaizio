@@ -9,6 +9,9 @@ lockstep under one version.
 ## Unreleased
 
 ### Fixed
+- **Color Picker**: an image set through `Value` reaches a bound `Image`. The fill was never
+  handed over, so a binding that held an earlier fill (an empty one is enough) put it back in the
+  picker on the page's next render, and the Image surface lost its picture.
 - **Color Picker**: a gradient set through `Value` after the first render reaches a bound
   `Gradient`. It was handed over after the first render only, so the binding kept the earlier
   ramp, and the page's next render put that ramp back in the picker over the new one.
