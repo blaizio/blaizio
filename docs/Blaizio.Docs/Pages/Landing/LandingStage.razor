@@ -41,11 +41,11 @@
         </button>
     </div>
 
-    <div class="relative h-[26rem] [--wipe-h:26rem] sm:h-[36rem] sm:[--wipe-h:36rem]" style="--wipe: @(Start)%; --wipe-rest: @(100 - Start)%">
+    <div class="relative h-[26rem] [--wipe-h:26rem] [--wipe:0.875rem] sm:h-[36rem] sm:[--wipe-h:36rem] md:[--wipe:13rem] xl:[--wipe:34%]">
         <div class="absolute inset-0 overflow-hidden rounded-b-[calc(1.5rem-1px)]">
             <div class="absolute inset-0" style="@BaseClip" inert aria-hidden="true">
                 <LandingDashboardBase />
-                <span class="pointer-events-none absolute bottom-3 start-3 z-[5] rounded bg-white px-1.5 py-0.5 font-landing-mono text-[11px] tracking-wide text-neutral-700">BEFORE<span class="max-sm:hidden"> · Blaizio.Base, behavior only</span></span>
+                <span class="pointer-events-none absolute bottom-3 start-3 z-[5] rounded bg-white px-1.5 py-0.5 font-landing-mono text-[11px] tracking-wide text-neutral-700 dark:bg-neutral-900 dark:text-neutral-300">BEFORE<span class="max-xl:hidden"> · Blaizio.Base, behavior only</span></span>
             </div>
             <div class="absolute inset-0" style="@Clip">
                 <LandingDashboard />
@@ -95,9 +95,16 @@
     // area, exactly on value% of the frame's width, under the knob, even at 0 and 100 where the
     // knob straddles the border.
     //
-    // Dragging never goes through Blazor: docs.ts wipeStart writes the input's value into
-    // --wipe / --wipe-rest on this box on every input event, and the clips and the handle read
-    // those, so the wipe follows the pointer at frame rate. It also sets data-wipe-edge at 0 and
+    // Where the line starts is the stage box's own --wipe, per width, picked so the line cuts
+    // through no text (the two layers set the same words in different faces, so a cut word reads
+    // as two overlapping ones): a strip inside the content padding on a phone, the sidebar's edge
+    // from md, and 34% from xl, where that lands past the table's title and short of its branch
+    // column. Start is only the range input's value until the script runs.
+    //
+    // Dragging never goes through Blazor: docs.ts wipeStart first puts the input's value on the
+    // line the stylesheet drew (and again on a resize, until the first drag), then writes the
+    // input's value into --wipe on this box on every input event; the clips and the handle read
+    // it, so the wipe follows the pointer at frame rate. It also sets data-wipe-edge at 0 and
     // 100, where the line fades out (app.css) and only the knob marks the edge, and keeps
     // aria-valuetext current. Under RTL the input's value runs from the right, so everything
     // measures from there.
@@ -105,7 +112,7 @@
     private ElementReference _wipe;
     private IJSObjectReference? _wipeHandle;
     private string Clip => State.Rtl ? "clip-path: inset(0 var(--wipe) 0 0)" : "clip-path: inset(0 0 0 var(--wipe))";
-    private string BaseClip => State.Rtl ? "clip-path: inset(0 0 0 var(--wipe-rest))" : "clip-path: inset(0 var(--wipe-rest) 0 0)";
+    private string BaseClip => State.Rtl ? "clip-path: inset(0 0 0 calc(100% - var(--wipe)))" : "clip-path: inset(0 calc(100% - var(--wipe)) 0 0)";
     private string Handle => State.Rtl ? "right: var(--wipe)" : "left: var(--wipe)";
 
     private static string Label(string value, bool style) => style

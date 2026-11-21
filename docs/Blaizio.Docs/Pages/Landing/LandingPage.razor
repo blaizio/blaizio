@@ -17,12 +17,17 @@
       5. The closing headline.
     The page sets its own type (font-landing-*: Bricolage Grotesque, Geist, Geist Mono, loaded on
     first render) while every color comes from the tokens, so a style or theme pick restyles it in
-    place. Below the hero, each [data-reveal] block that starts off screen fades and rises in the
+    place. The hero is two rows on a desktop: each headline line with something beside it (the
+    install command, then the buttons). Narrower than that the first row cannot hold both, and a
+    wrapped install command would land between the two headline lines; so below lg both rows
+    dissolve (display: contents) into one column that `order` arranges: headline, headline,
+    install, buttons. Below the hero, each [data-reveal] block that starts off screen fades and rises in the
     first time it scrolls into view (docs.ts revealStart); reduced motion shows everything.
 *@
 <div class="overflow-x-clip font-landing" @ref="_root">
     <section class="mx-auto max-w-[82.5rem] px-5 pt-8 sm:px-7">
-        <div class="flex flex-wrap items-end justify-between gap-x-11 gap-y-5">
+        <div class="max-lg:flex max-lg:flex-col">
+        <div class="flex flex-wrap items-end justify-between gap-x-11 gap-y-5 max-lg:contents">
             <div class="flex min-w-0 flex-col gap-4">
                 <div class="flex flex-wrap gap-2">
                     <span class="rounded-full border px-3 py-1 font-landing-mono text-[11.5px] text-muted-foreground">v@(BuildVersions.Blaizio) · Blazor · .NET 10 · Tailwind v4</span>
@@ -32,14 +37,14 @@
                     <bdi>Own the source.</bdi><span class="sr-only"> Style it your way.</span>
                 </h1>
             </div>
-            <div class="flex min-w-0 flex-col items-start gap-2 pb-2">
+            <div class="flex min-w-0 flex-col items-start gap-2 pb-2 max-lg:order-2 max-lg:mt-5 max-lg:pb-0">
                 <span class="font-landing-mono text-[11px] uppercase tracking-[0.08em] text-muted-foreground">Install the CLI</span>
                 <LandingCommand Command="dotnet tool install -g Blaizio.Cli" />
             </div>
         </div>
-        <div class="mt-0.5 flex flex-wrap items-end justify-between gap-x-9 gap-y-5">
-            <p aria-hidden="true" class="font-landing-display text-[clamp(2.5rem,5.4vw,4.75rem)] font-bold leading-[0.92] tracking-[-0.035em] [word-spacing:0.06em] text-primary-ink sm:whitespace-nowrap"><bdi>Style it your way.</bdi></p>
-            <div class="flex flex-wrap gap-2.5 pb-2">
+        <div class="mt-0.5 flex flex-wrap items-end justify-between gap-x-9 gap-y-5 max-lg:contents">
+            <p aria-hidden="true" class="font-landing-display text-[clamp(2.5rem,5.4vw,4.75rem)] font-bold leading-[0.92] tracking-[-0.035em] [word-spacing:0.06em] text-primary-ink sm:whitespace-nowrap max-lg:order-1 max-lg:mt-0.5"><bdi>Style it your way.</bdi></p>
+            <div class="flex flex-wrap gap-2.5 pb-2 max-lg:order-3 max-lg:mt-5 max-lg:pb-0">
                 <BzButton Size="ButtonSize.Lg" Class="h-12 rounded-xl px-6 text-base no-underline">
                     <RenderAs Context="p">
                         <a href="docs/installation" @attributes="p.Attributes">Get started <BzIcon Icon="@Tabler.Outline.ArrowRight" Class="size-4 rtl:-scale-x-100" /></a>
@@ -52,10 +57,15 @@
                 </BzButton>
             </div>
         </div>
+        </div>
 
         <div class="mt-8">
             <LandingStage />
         </div>
+        <p class="mt-5 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 text-[13px] text-muted-foreground sm:mt-6">
+            <span><bdi>Every control in that dashboard is a component you can add.</bdi></span>
+            <a href="docs/components" class="font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:decoration-foreground"><bdi>Browse all @DocsNav.Components.Length components</bdi> <BzIcon Icon="@Tabler.Outline.ArrowRight" Class="inline size-3.5 align-[-2px] rtl:-scale-x-100" /></a>
+        </p>
     </section>
 
     <section class="mx-auto max-w-[82.5rem] px-5 pt-14 sm:px-7 sm:pt-32" data-reveal>

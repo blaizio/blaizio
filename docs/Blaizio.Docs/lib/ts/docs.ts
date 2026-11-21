@@ -540,23 +540,48 @@ export function focusVisible(el: HTMLElement | null, selector?: string): void {
     target?.focus({ focusVisible: true } as FocusOptions);
 }
 
-// The landing hero's wipe: mirror a range input's value into --wipe / --wipe-rest on its parent
-// (the clips and the divider read them), mark data-wipe-edge at 0 and 100, and keep
+// The landing hero's wipe: mirror a range input's value into --wipe on its parent
+// (the clips and the divider read it), mark data-wipe-edge at 0 and 100, and keep
 // aria-valuetext current. Runs on every input event without a round trip to .NET, so dragging
 // stays at frame rate. Returns a disposable for the page's teardown.
 export function wipeStart(input: HTMLInputElement): { dispose(): void } {
     const host = input.parentElement;
     if (!host) return { dispose() { } };
-    const apply = () => {
-        const v = Math.min(100, Math.max(0, input.valueAsNumber || 0));
-        host.style.setProperty('--wipe', `${v}%`);
-        host.style.setProperty('--wipe-rest', `${100 - v}%`);
+    const line = host.querySelector<HTMLElement>('[data-wipe-handle]');
+    const describe = (v: number) => {
         host.toggleAttribute('data-wipe-edge', v <= 0 || v >= 100);
         input.setAttribute('aria-valuetext', `${v}% unstyled`);
     };
+    // Until the first drag the stylesheet owns the line (--wipe on the host, a different start
+    // per width, see LandingStage). The slider's thumb is the only part that takes the pointer,
+    // so its value has to sit on that line, and again whenever a resize moves it.
+    let dragged = false;
+    const follow = () => {
+        const box = host.getBoundingClientRect();
+        if (dragged || !line || box.width <= 0) return;
+        const at = line.getBoundingClientRect();
+        const mid = at.left + at.width / 2;
+        const fromStart = getComputedStyle(input).direction === 'rtl' ? box.right - mid : mid - box.left;
+        const v = Math.min(100, Math.max(0, Math.round(fromStart / box.width * 100)));
+        input.value = String(v);
+        describe(v);
+    };
+    const apply = () => {
+        dragged = true;
+        const v = Math.min(100, Math.max(0, input.valueAsNumber || 0));
+        host.style.setProperty('--wipe', `${v}%`);
+        describe(v);
+    };
+    const resized = 'ResizeObserver' in window ? new ResizeObserver(follow) : null;
+    resized?.observe(host);
     input.addEventListener('input', apply);
-    apply();
-    return { dispose() { input.removeEventListener('input', apply); } };
+    follow();
+    return {
+        dispose() {
+            input.removeEventListener('input', apply);
+            resized?.disconnect();
+        },
+    };
 }
 
 /** Whether a media query matches right now (the landing picks its phone layout with it). */
