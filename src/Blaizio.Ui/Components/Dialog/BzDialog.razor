@@ -38,10 +38,10 @@
     /// </summary>
     [Obsolete("Use PreventDismiss (true locks). DismissOnOutsideClick on the content part is the backdrop only.")]
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-    [Parameter] public bool DismissOnOutsideClick { get => !_lockedByEarlierName; set => _lockedByEarlierName = !value; }
+    [Parameter] public bool DismissOnOutsideClick { get => _dismissOnOutsideClick; set => _dismissOnOutsideClick = value; }
 
-    private bool _lockedByEarlierName;
-    private bool Locked => PreventDismiss || _lockedByEarlierName;
+    private bool _dismissOnOutsideClick = true;
+    private bool Locked => PreventDismiss || !_dismissOnOutsideClick;
 
     /// <summary>The trigger and content.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
