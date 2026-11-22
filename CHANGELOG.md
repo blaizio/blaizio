@@ -8,6 +8,447 @@ lockstep under one version.
 
 ## Unreleased
 
+## 0.3.6 - 2026-11-22
+
+The data table edits in place and its columns resize, pin and move. Trace and Code Block arrive,
+with the highlighter in its own package. The controls that keep their value in C# post in a plain
+form. One rule now decides whether a value is controlled, the same in every component. This
+release also carries everything written up as 0.3.5, which was never published.
+
+Before you update:
+- Update the tool first: `dotnet tool update -g Blaizio.Cli`, then `blaizio update` in the
+  project. 30 components need Blaizio.Base 0.3.6, and an older tool stops there (**Registry**
+  under Changed, also for a project on central package management).
+- A value passed one-way (`Value="x"` with no `ValueChanged`) is now shown and held; it was
+  ignored. For a starting value the user can change, pass `DefaultValue`.
+- Tree: a callback alone on the expanded, selected or checked list (no value, no default) is now
+  controlled. To only listen, add the default: `DefaultCheckedValues="@([])"`.
+- The packages need ASP.NET Core 10.0.14. If restore fails with `NU1605`, move your
+  `Microsoft.AspNetCore.Components.*` references to 10.0.14.
+- A `name` attribute on Switch, Checkbox, Radio Group, Select, Slider and the other controls that
+  take `Name` is now that parameter and posts the value (**Form posts** under Added).
+- Renamed parameters and icons still compile, with a warning that names the replacement
+  (Deprecated).
+
+### Changed
+- **Controlled or uncontrolled: one rule for every component.** A value is controlled when it is
+  set, or when its change callback is bound and no default was given. Components followed one of
+  two older rules ("a callback is bound" or "the value is not null") and each got a case wrong.
+  What changes:
+  - A value passed one-way (`Value="x"` with no `ValueChanged`) is shown and held. It was ignored,
+    so the component showed nothing and kept its own state. This covers Tabs, Select, Combobox,
+    Accordion, Toggle Group, Radio Group, Menubar, the menu radio groups, Calendar, Color Area,
+    Slider, Input OTP, Input Tags, Input Number, Input Color, Input Date, Input Time, the search
+    text of Command, Combobox and Input Tags, and the Data Table's sort, search, page, column
+    widths and column order. For a starting value the user can change, pass `DefaultValue`.
+  - A default next to a callback (`DefaultValue="a" ValueChanged="Log"`) only listens: the
+    component starts from the default and moves on its own. It was controlled with no value, so
+    the selection never moved. Same components, plus Navigation Menu and the Tree's single
+    selection.
+  - Tree: `@bind-ExpandedValues`, `@bind-SelectedValues` and `@bind-CheckedValues` on a list that
+    is still null are controlled from the start, and passing null again empties the tree. The
+    binding started uncontrolled. The other side of it: a callback alone on those three
+    (`CheckedValuesChanged="Save"`, no value and no default) is now controlled, as it already was
+    on every component above, so nothing moves until the value comes back. To only listen, add
+    the default: `DefaultCheckedValues="@([])"`.
+  - Unchanged: `Open`, `Checked`, `Pressed`, `Expanded`, `SelectedIndex` and the Color Picker's
+    color. Only a value controls them, and a callback alone still only listens.
+  - A binding next to a default (`@bind-Value` with `DefaultValue`) starts from the default while
+    the bound field is empty. An Accordion or Toggle Group bound that way can still close its
+    last item. Limits: a parent cannot clear such a value by setting the field to null, and on a
+    number type that cannot be null a one-way `Value="0"` reads as not set.
+
+  The rule is `ControllableState.IsControlled` in Blaizio.Base, with `ControllableState.IsSet`
+  for values that cannot be null; both are public for your own components. Combobox, Color
+  Picker, Input Color, Input Date and Input Time call it and now need Blaizio.Base 0.3.6.
+- **Overlay surfaces** (Blaizio.Base): the window and backdrop of a dialog, and the content of
+  Popover, Hover Card, Tooltip, Select, Combobox and the three menus share one lifecycle
+  (`PresenceSurfaceBase`, and `FloatingSurfaceBase` for the anchored ones) in place of eight
+  copies of it, and hold every script instance through `JsInstance`. Parameters, events and
+  rendered attributes are the same. `BaseTooltipContent` inherits an `OnDismissRequested` that
+  does nothing: a tooltip has no dismissable layer to call it.
+- **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
+  components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
+  style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset
+  <theme>` command for the pair you pick.
+- **"Skin" is now "style"** everywhere it is user-facing: docs, READMEs, component comments, CLI
+  prompts, help text and messages ("Component style?", "Unknown style", "Style X not applied",
+  "(style ember)"). One vocabulary throughout: a **style** is the shape and structure baked into
+  the component source (ash, aura, ember, ...), a **theme** is the colors and fonts in one CSS
+  variables file (a palette is part of a theme), and light/dark is the **mode**. Machine surfaces
+  already said style (`--style`, `"style"` in `blaizio.json`, `style-*.css`, the `.style-*` class,
+  the registry's `styles` list and `{base}/{style}/` URLs), so nothing changes there.
+- **Dependencies**: the packages and `blaizio new` move to ASP.NET Core 10.0.14 (was 10.0.12), a
+  security patch. If restore fails with `NU1605`, move your `Microsoft.AspNetCore.Components.*`
+  references to 10.0.14.
+- **CLI**: `init`, `new` and `update` pin TailwindMerge.NET 1.5.0, up from 1.4.0. Your own
+  `text-[color-mix(...)]` in a `Class` now reads as a color, and a `Class` wins in more cases: `px-*`
+  replaces a component's `ps-*` and `pe-*`, `mx-*` its `ms-*` and `me-*`, `inset-x-*` its `start-*`
+  and `end-*`, and `min-h-lh` replaces another `min-h-*`. Check a `Class` that relied on both
+  surviving. The components' own class merges come out the same on both versions.
+- **Registry**: 30 components now require Blaizio.Base 0.3.6 or newer: `alert-dialog`,
+  `calendar`, `carousel`, `checkbox`, `code-block`, `color-picker`, `combobox`, `dialog`,
+  `drawer`, `input-color`, `input-date`, `input-number`, `input-otp`, `input-tags`, `input-time`,
+  `item`, `marker`, `panel`, `radio-group`, `select`, `sheet`, `sidebar`, `slider`, `sortable`,
+  `switch`, `table`, `toggle-group`, `toolbar`, `trace` and `tree`. `blaizio add` and
+  `blaizio update` stop with a message when the project file pins an older Blaizio.Base, instead
+  of installing source that does not compile. Update the tool before the project
+  (`dotnet tool update -g Blaizio.Cli`, then `blaizio update`): an older tool pins the Base it
+  shipped with and stops at this check. The check reads the version in the project file only. A
+  project that keeps its versions elsewhere (central package management) or floats Blaizio.Base
+  is not checked, so move Blaizio.Base to 0.3.6 there yourself before you add or update.
+- **Performance**: the enum-to-class-name lookup components use while rendering is cached. It used
+  to reflect over the enum on every render of every component.
+- **Base**: every options object a component hands to its script is a named type derived from
+  the internal `JsOptions<T>`, which keeps its properties in a trimmed app. They were anonymous
+  objects, which a trimmer empties without a warning. The script receives the same properties.
+- **Dialog service**: `ShowAsync<TComponent>` renders the component itself. It went through
+  `DynamicComponent`, whose type parameter a trimmer cannot follow. `TComponent` (and
+  `ShowSheetAsync<TComponent>`) now carries `[DynamicallyAccessedMembers(All)]`, which only matters
+  to code that passes its own type parameter on while trim analysis is on.
+- **Collapsible, Accordion, Tree**: the script callbacks `OnCloseFinished` and `OnBeforeMatch` are
+  declared on `CollapsiblePanelBase`, the type the script's reference is made with. The copies on
+  `BaseCollapsibleContent`, `BaseAccordionContent` and `BaseTreePanel` are gone (the members are
+  inherited, so calls still compile); a panel that reacts to find-in-page overrides
+  `OnBeforeMatchCoreAsync`. Declared on the derived types, a trimmer removed them.
+- **`EnumExtensions.GetDescription`** looks the member up with `GetField`, with the trim warning a
+  project analysing its copied components used to get answered in place. Same results.
+- **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
+  stack moves to bunit 2.13.3, AngleSharp 1.9.0, Test.Sdk 18.11.0, ImageSharp 4.1.3, Playwright
+  1.64.1 and axe-core 4.14.0.
+- **Docs**: every copy control on the site (code blocks, demo code, command chips, chart sheets,
+  the icon browser, the Themes code chip, typeset.css and community theme CSS) reports a refused
+  clipboard write instead of a false "Copied", and announces the outcome to screen readers.
+  `index.html` gains a static title, a noscript summary and JSON-LD, known routes answer 200 on
+  GitHub Pages with a `sitemap.xml` and `robots.txt` beside them, the header shows the star count
+  on phones, and the link-preview card is redrawn.
+- **Docs**: phones. The menu sheet's site links sit on the same guide rail, with the same sliding
+  indicator, as the docs groups below them, and leave out Docs and Components, which Getting
+  Started already lists (one page lit two rows). The menu button has an accessible name and
+  reports whether the menu is open. Local builds show the GitHub star count too (the public API,
+  asked at most twice a day; CI and the E2E suite skip it).
+
+### Added
+- **Icons**: three sets follow their upstream. `Blaizio.Icons.Tabler` gains 362 icons (5,491
+  outline, 1,054 filled), `Blaizio.Icons.Lucide` 330 (2,098) and `Blaizio.Icons.HugeIcons` 81
+  (6,100, from `@hugeicons/core-free-icons` 4.4.0). Phosphor has nothing new upstream, and Remix
+  stays on its 4.8.0 release.
+- **Dialog, Alert Dialog, Sheet, Drawer**: `PreventDismiss` on the root locks the surface. Escape
+  and the backdrop stop closing it and the corner close button is hidden; a close button of your
+  own, or your code, still closes it. It is the name `DialogOptions` already uses for the same
+  lock. `DismissOnOutsideClick` on the content and overlay parts is unchanged and still means the
+  backdrop only. Alert Dialog and Sheet pass the new parameter and now need Blaizio.Base 0.3.6.
+- **Focus scope**: `BaseFocusScope.OnOpenAutoFocus` and `OnCloseAutoFocus`, the names Dialog and
+  Popover content already use for the same two moments.
+- **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
+  the nav on pages added in the last couple of months, and previous and next arrows next to each
+  page's title.
+- **Data Table editing** (`blaizio update table`): mark a `BzPropertyColumn` `Editable` and the
+  table becomes a keyboard grid, one tab stop that Tab reaches as soon as the table renders.
+  `EditMode` picks how it edits. `Cell` (the default) works like a spreadsheet, one cell at a time:
+  the arrows, Tab and Enter move the cursor (Enter goes down, back to the column where a run of
+  Tabs began, and Shift+Enter up); Escape cancels. Space flips a bool, Delete clears a cell, and a
+  block copied from a spreadsheet pastes across cells. `Row` opens an editor in every editable
+  cell of the row and commits the row as one change. `Dialog` edits the row as a form in a dialog,
+  hidden columns included, whose fields scroll between a fixed title and buttons. `Drawer` puts
+  the same form in a sheet at the inline-end edge (right in a left-to-right page, left in a
+  right-to-left one, full width on a phone), with Previous and Next buttons in its header that save
+  the row (a refused value keeps it open) and open the one before or after it in the table's
+  current order. `EditDialogContent` and `EditDrawerContent` swap in a surface of your own; both
+  get a `DataTableEditForm<TItem>` context with `context.Field(key)` for any built-in field,
+  `GetValue` / `SetValue` for your own controls, `PreviousAsync` / `NextAsync`, and `Actions` for
+  the built-in footer buttons. Closing a changed form (Escape, a press outside, the close button or
+  Cancel) asks first in its footer, Discard or Keep editing, with no second dialog
+  (`ConfirmingDiscard`, `DiscardAsync`, `KeepEditing` for your own footer); a form with no changes
+  closes at once. While a form is open its row carries `data-editing`, which each style tints, and
+  when it closes the focus returns to the row it showed last. The form's labels are `EditFormTitle`,
+  `EditFormDescription`, `EditFormSaveLabel`, `EditFormCancelLabel`, `EditFormDiscardQuestion`,
+  `EditFormDiscardLabel`, `EditFormKeepEditingLabel`, `EditFormPreviousLabel` and
+  `EditFormNextLabel`. The pointer and the keyboard start an edit differently. A click selects a
+  cell, and a click on a bool cell's checkbox or switch flips it at once. A double-click (or, with
+  touch or a pen, a tap on the selected cell) edits in place with the control ready: the caret at
+  the clicked character, a pick list's list or a date's calendar open, the time part under the
+  pointer. `EditOnClick` makes a single click or tap do that, and a click on another cell then
+  commits and opens that one. The cursor's ring shows while the keyboard drives the table, after
+  Tab brings the focus in or a key is pressed; a click alone draws none, and in Cell mode the cell
+  under the pointer takes the row's hover tint. A pick list's or date's cell shows a chevron or
+  calendar mark on hover and on the cursor's cell, and a press on it opens the list or calendar.
+  `BzEditActionsColumn` gives each row an Edit button, and Save and Cancel while the row edits in
+  place (in Dialog and Drawer modes Edit opens the form): icon buttons named by `EditLabel`,
+  `SaveLabel` and `CancelLabel`, each with a tooltip, in a column that pins, sizes and aligns like
+  any other, is as wide as Save and Cancel from the start (the columns keep their widths while a
+  row edits) and stays hidden in Cell mode. Its `ChildContent` replaces the buttons and gets a
+  `DataTableEditActions<TItem>` context (`Item`, `Mode`, `IsEditing`, `Busy`, `BeginAsync`,
+  `SaveAsync`, `CancelAsync`). Those buttons belong to the row's edit: a press on Cancel no longer
+  commits the row before it cancels, Tab from the row's last field reaches Save and Cancel, and
+  Enter or Space presses them. `EditActions` on a `BzTemplateColumn` or a `DataTableColumn` gives
+  your own buttons the same treatment, and `BeginEditAsync(item, key)` in Row mode puts the focus
+  in that column's field. On the keyboard, typing replaces a
+  cell (a number starts on a digit, a sign or the decimal separator, a date or time on a digit, a
+  pick list opens and types the key into its type-ahead) and an arrow then commits and moves; F2
+  edits in place (a pick list opens its list); Alt+ArrowDown opens a list or calendar, and so does
+  Space on a pick list; Backspace empties a text, number, date or time cell and starts typing.
+  With a list or calendar open, one Escape closes it and cancels the edit, a pick commits and
+  closes the editor, and Tab picks the highlighted option and moves on. Row mode follows the same
+  rules for the cell you were on, and the forms open on that column's field. An `EditorContent`
+  hears how its edit started through `context.StartedBy` (Pointer, Key, Typing or Code),
+  `context.TypedText` and `context.OpenPopup`. Cells, rows and forms edit with the library's own
+  controls, picked from the property's type: a text box, a number field, a pick list for an enum
+  (or any type given `Options`), a checkbox, a date field or a time field. `Editor` picks another
+  where it fits (a `Switch` for a bool, say), and `EditorContent` swaps in any control. An editor
+  lays over its cell, so the columns keep their widths while it is open. A column's own cell
+  template keeps its editor: `ChildContent` gets the row, and the new `CellContent` on
+  `BzPropertyColumn` and `BzTemplateColumn` gets the cell, a `DataTableCell<TItem, TValue>` (or
+  `DataTableCell<TItem>`) with the row, the value and its formatted text, whether an edit is open on
+  the row, the cell's refusal message and a save still running (`IsEditing`, `Error`, `Pending`).
+  An editable table's cells carry `group/table-cell`, and `data-active` while they hold the
+  keyboard cursor, so a template follows the cursor in CSS. `EdgeToEdge` on any column drops the
+  cells' padding and stretches the content to the cell's full height, so a background tints the
+  whole cell. Values parse in the
+  current culture and pass the property's DataAnnotations and the column's `Validate` before they
+  are written through the property's setter. `OnEdit` hears every change once per action, and
+  `Reject` puts the old values back. Moving the cursor never calls .NET, so it stays instant on
+  Blazor Server, and it works with `Virtualize`. `BeginEditAsync`, `CommitEditAsync`,
+  `CancelEditAsync` and `IsEditing` drive it from code. In an editable table a click on a row no
+  longer toggles its selection; use the checkbox or Shift+Space. The table item installs Sheet and
+  Tooltip for the drawer. Needs Blaizio.Base 0.3.6 (`CellBinding`, `TabSeparatedText` and the grid
+  script).
+- **Input Date**: `CalendarOpen`, `DefaultCalendarOpen` and `CalendarOpenChanged` open the calendar
+  popup from code and report when it opens or closes (`@bind-CalendarOpen`). A picked day raises
+  `ValueChanged` before the popup reports closing.
+- **Data Table column sizing, pinning and moving** (`blaizio update table`). On any column (a
+  `BzPropertyColumn`, a `BzTemplateColumn` or a `DataTableColumn`): `Width`, `MinWidth` and
+  `MaxWidth` in pixels, and `Fill` to take the room the other columns leave in the row (without
+  one, the content-sized columns stretch to fill it, as before). `Pinned` keeps a column in place
+  while the rows scroll sideways, `DataTablePin.Start` or `End`, which flip in a right-to-left
+  page; the selection column joins the start group, and pinning works with `StickyHeader`,
+  `MaxHeight`, `Virtualize` and editing. `ResizableColumns` lets users drag the end edge of a
+  header, double-click it to fit the content, or press Alt+Shift+Left / Right on a focused header
+  (Alt+Shift+Enter fits). `ReorderableColumns` lets users drag a header to a new place, or press
+  Ctrl+Shift+Left / Right (Cmd on a Mac), within its pinned group; a column's `Resizable` or
+  `Reorderable` opts it out, and one that cannot move keeps the others from crossing it. Bind
+  `ColumnWidths` (the widths users chose, by column key) and `ColumnOrder` (every key, in order) to
+  save them; `DefaultColumnWidths` and `DefaultColumnOrder` seed an uncontrolled table. The script
+  lays out the widths and runs every drag and key without calling .NET, and reports a finished
+  resize or move once. A laid-out column clips what does not fit with an ellipsis, a narrowed
+  sortable header truncates its title and keeps the sort icon, and an editor never changes a
+  column's width. A resizable header lights its resize line while it is hovered or has the
+  keyboard focus (the handle itself stays the strongest), and a header that can move shows the
+  grab cursor (grabbing while dragged). While a header is dragged, a label follows the pointer and
+  a line marks the gap the column will drop into; held over its own place, no line shows, the same
+  for every column. `LiveReorder` moves the column itself instead: it follows the pointer, the
+  columns it passes slide out of its way (instantly when the user asks for reduced motion), rows
+  the virtualizer adds mid-drag slide too, and on release it slides into place. Either way the
+  order is reported once, on release, and Escape puts everything back. Needs Blaizio.Base 0.3.6
+  (the column script).
+- **Data Table in any language** (`blaizio update table`): everything `BzDataTable` says on its
+  own now has a parameter, so a right-to-left or non-English app words all of it. The selection
+  line takes `SelectionSummaryContent`, a template of your own given `context.Selected` and
+  `context.Total`, in place of "N of M row(s) selected." (which also read scrambled in a
+  right-to-left page); `SelectAllAriaLabel` and `SelectRowAriaLabel` name the selection
+  checkboxes, and `ContainerAriaLabel` the scroll box that `MaxHeight` or `Virtualize` makes a
+  keyboard stop. The pager takes `PaginationAriaLabel`, `PaginationPreviousLabel`,
+  `PaginationPreviousAriaLabel`, `PaginationNextLabel`, `PaginationNextAriaLabel`,
+  `PaginationEllipsisAriaLabel` and `PaginationPageAriaLabel`, a function of the page number. For
+  editing, `EditFormCloseLabel` names the form's close button in the dialog and the drawer,
+  `EditRejectedMessage` words a save refused without a message of its own, `EditDiscardedMessage`
+  what follows a refused value when the focus leaves the table, and `EditParseErrorMessage` words a
+  value the table refuses before saving it ("The Hours field must be a number.", "... is
+  required.", "... must be one of: ...") from a `CellParseError` that gives the problem (`Kind`),
+  the column's title (`Field`), a pick list's options (`Options`) and the English `Message`.
+  `EditorLabels` words what the built-in date and time editors say to screen readers, and the time
+  editor's AM and PM text, from a `DataTableEditorLabels` (`Day`, `Month`, `Year`, `CalendarButton`,
+  `Calendar`, `PreviousMonth`, `NextMonth`, `Hour`, `Minute`, `Meridiem`, `Am`, `Pm`).
+  `ColumnAnnouncement` words what screen readers hear after a key resizes or moves a column, from
+  a `DataTableColumnAnnouncement` (`Kind`, `Column`, `Width`, `Position`, `Count`, `Message`);
+  while it is set, the column script asks .NET for each announcement's words, one call at a time.
+  On the columns, `HeaderLabel` on `BzEditActionsColumn` names its header for screen readers
+  ("Actions"), and `NoneLabel` on `BzPropertyColumn` labels a nullable enum's blank option
+  ("None"). Left unset, every one of them keeps the English the table said before. Needs
+  Blaizio.Base 0.3.6 (`CellParseError` and the column script).
+- **Date, time and overlay controls in any language** (`blaizio update input-date input-time
+  calendar sheet drawer panel dialog carousel sortable tree`): what these controls say on their own
+  now has a parameter, English by default. `BzInputDate` takes `DayAriaLabel`, `MonthAriaLabel`,
+  `YearAriaLabel`, `CalendarButtonAriaLabel` ("Open calendar"), `CalendarAriaLabel` and, for its
+  calendar popup, `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BzCalendar` takes the same two
+  month-button names and `WeekNumberLabel`. `BzInputTime` takes `HourAriaLabel`, `MinuteAriaLabel`,
+  `SecondAriaLabel`, `MeridiemAriaLabel` for the AM/PM toggle ("AM or PM"), and `AmLabel` and
+  `PmLabel` for the toggle's text. `CloseLabel` names the corner close button of `BzDialogContent`,
+  `BzSheetContent` and `BzDrawerContent` ("Close"), and of a dialog or sheet shown from
+  `IDialogService` (`BzDialogOptions.CloseLabel`, which the `BzDialogOptions` you give
+  `BlaizioOptions.DialogDefaults` can carry for the whole app); `Label` names `BzPanelClose`
+  ("Close panel"). On `BzCarousel`, `RoleDescription` and `SlideRoleDescription` replace what screen
+  readers call the region and each slide ("carousel", "slide"), and `SlideAriaLabel` words each
+  slide's "N of M" from a `CarouselSlidePosition` (`Position`, `Count`); `DotAriaLabel` on
+  `BzCarouselDots` words "Go to slide N". `BzSortable` and `BzSortableList` take
+  `ItemRoleDescription` ("sortable item") and `Announcement`, which words what screen readers hear
+  as the keyboard picks an item up, moves it, puts it down or puts it back, from a
+  `SortableAnnouncement` (`Kind`, `Position`, `Count` and the English `Message`). `BzTree` takes
+  `RenameAriaLabel` for the rename box and `Announcement`, worded from a `TreeAnnouncement` (`Kind`,
+  `Node` and `Message`): a node picked up, moved by keyboard or a pointer drop, put down, let go,
+  renamed, or whose children failed to load. Needs Blaizio.Base 0.3.6.
+- **`Blaizio.Base`**: `CellBinding.TryParse` takes a `messages` builder that words a refused text
+  in the reader's language from a `CellParseError`, the English `Message` without one. A
+  DataAnnotations rule that returns no message of its own is worded by the rule itself.
+  The headless parts take the same words as the styled controls: `BaseCalendar` takes
+  `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BaseCarousel` takes `RoleDescription`,
+  `SlideRoleDescription` and `SlideAriaLabel`; `BaseSortable` takes `ItemRoleDescription` and
+  `Announcement`; `BaseTree` takes `RenameAriaLabel` and `Announcement`.
+- **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
+  optional description and a status (done, running with a shimmering title, error, pending). A
+  line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's
+  `RenderAs`. `BzTraceStatusIcon` draws the line's status by itself, and `AutoOpen` keeps a row
+  open while its step runs until the reader opens or closes it. The chevron mirrors in RTL.
+  Needs Blaizio.Base 0.3.6.
+- **Code Block** (`blaizio add code-block`): code, terminal output, logs and diffs, with a header,
+  floating actions, line numbers, a start line, wrapping, highlighted and diff lines (`Diff` reads
+  `+` / `-` prefixes from a plain string), a footer, a small size and a destructive variant.
+  `BzCodeBlockCopyButton` copies the block's own code by default (never the line numbers, diff
+  markers or removed lines) and shows when the clipboard refused the write;
+  `BzCodeBlockWrapButton` toggles wrapping. Both buttons name themselves in a tooltip with an arrow
+  (`Tooltip`, on by default; the wrap button's says what a click does next, `UnwrapLabel` while the
+  block wraps), and take an `Icon` (plus `CopiedIcon` and `FailedIcon`) or a `ChildContent` that
+  receives the state, so a text button can read "Copied"; the item installs Tooltip with them.
+  `Language` highlights the code in the theme's own
+  colors: C#, Razor, JSON, bash, console sessions, PowerShell, TypeScript, JavaScript, HTML, XML,
+  CSS, SQL, YAML, diff, HTTP request files, Dockerfile, INI, TOML and Markdown, with their common
+  aliases, one language inside another where they nest (C# and HTML in Razor, CSS and JavaScript in
+  HTML, scripts in YAML, any of them in a Markdown fence), and with `Diff` for a highlighted diff,
+  plus any language the app adds in `AddBlaizio` (from Blaizio.Syntax.Languages, or a
+  `SyntaxGrammar` of its own). Every token kind mixes a theme status color with the text color,
+  which keeps it readable in every theme, light and dark. Highlighting runs in C# as the block
+  renders (no script, the same in static rendering, on the server and in WebAssembly), and streamed
+  code re-tokenizes and re-renders only its new and changed lines. `Language="ansi"` renders
+  terminal colors in the theme's own colors. Needs Blaizio.Base 0.3.6; the item installs
+  Blaizio.Syntax, the highlighter.
+- **`Blaizio.Syntax`**, a new package: the highlighter, kept out of Blaizio.Base so an app without
+  a Code Block never downloads it. `SyntaxText` splits code into runs of one `SyntaxKind` per line
+  for 19 built-in languages (hand-written C# scanners, no script, never throws on content), and
+  `SyntaxDocument` keeps each line's tokens and end state so code that grows or changes tokenizes
+  only its new and changed lines. Add languages in `AddBlaizio(options => options.Syntax.Add(...))`,
+  per app: `Alias` gives one another name, and a language with a built-in's name replaces it,
+  including inside the languages that host others (a Markdown fence, an HTML script or style
+  element, a console command). Write one with `SyntaxGrammar`, a table of comments, strings (with
+  escapes, prefixes, interpolation holes and lines they span), heredocs, word lists, declarations,
+  keys, sigils, numbers, function and type names by their shape, and regular expressions for the
+  rest; or derive from `SyntaxLanguage`, now public with `SyntaxWriter`: immutable line states that
+  compare by value, a scanner that always advances, ranges in order, and a scanner that throws costs
+  only its own line. Trimmable.
+- **`Blaizio.Syntax.Languages`**, a new package: Python, Java, Go, Rust, C, C++, Kotlin, Swift,
+  PHP, Ruby, Dart, Lua, Scala, F#, VB.NET, Haskell, Elixir, Clojure, GraphQL, Protocol Buffers,
+  HCL (Terraform), Bicep, Makefile, nginx, CMake, batch files, R, Perl, Julia, Objective-C and
+  LaTeX, each a `SyntaxGrammar` exposed as its own property (`SyntaxLanguages.Python`), so a
+  trimmed WebAssembly publish keeps only the languages the app adds. `options.Syntax.AddAll()`
+  adds every one.
+- **`Blaizio.Base`**: `BaseCopyButton`, a headless copy button that writes to the clipboard during
+  the click itself (a C# handler can run after the click's activation expires, which Firefox and
+  Safari refuse on Blazor Server) and exposes the outcome as `data-copy-state` plus a status
+  announcement; `AnsiText`, which splits ANSI terminal output into styled runs per line;
+  `KeepRendered` on `BaseCollapsibleContent` (and the styled `BzCollapsibleContent`), which keeps
+  closed content in the render tree, hidden with `hidden="until-found"`, so the components inside
+  keep their state and find-in-page opens the collapsible on a match.
+- **Glyphs**: `BzGlyphs.CircleDashed`, `Copy`, `TextWrap` and `Pencil` (the data table's Edit
+  button), mapped in all five icon sets.
+- **Typeset**: a code block inside prose takes the same space above as a paragraph.
+- **CLI packages**: `add` installs a Blaizio package an item needs (Blaizio.Syntax for
+  `code-block`, an icon set) at the project's Blaizio.Base version rather than the newest, which
+  would ask for a newer Base than the project has. `update` moves Blaizio.Syntax and
+  Blaizio.Syntax.Languages with the base packages when the project references them, as it does the
+  icon sets.
+- **CLI `--json`**: `apply` reports `style` and `styleNotApplied`, `init`/`new` report them under
+  `css`, and `add` reports `styleNotApplied`.
+- **Registry templates**: the `{{Style}}` token substitutes the project's style.
+- **`Blaizio.Cli.Core`**: `StyleInliner`, `TemplateTokens.Style`, and
+  `ICssAssetProvider.GetSharedStyleCss()` / `GetStyleCss(string)` / `AvailableStyles`. The
+  interface's style and skin members forward to each other by default, so an implementer
+  overrides one set and existing implementations keep compiling.
+- **`JsInstance`** (Blaizio.Base): owns one script-side instance created from a module factory.
+  It releases an instance that lands after the component was disposed, and ignores calls made
+  before the instance exists or after it is gone. For components that wire their own script.
+- **Chart**: `AriaLabel` on `BzChart`, `BzPieChart`, `BzRadarChart` and `BzRadialBarChart` exposes
+  the drawing to assistive tech as one labelled image. Without it the drawing stays hidden.
+- **Static rendering**: `BzComponentBase` has `IsInteractive` and `IsStaticRender`, one guarded
+  reading of the renderer's interactivity in place of the copies Avatar and Image each carried, and
+  `RequiresInteractivity`. A component that does nothing without events (a trigger, a switch, a
+  slider: 34 Base components) writes one warning per component type to the server log, category
+  `Blaizio.StaticRender`, when it is rendered on a static page with no render mode. Only in the
+  Development environment; set that category's log level to `None` to silence it.
+- **Trimming**: `Blaizio.Base` is marked trimmable, so a published WebAssembly app carries only
+  the components it uses. Measured on the assembly: 858 KB to 89 KB (222 KB to 29 KB with
+  Brotli) for an app with a switch, a dialog and tabs. The docs site uses every component and
+  goes from 861 KB to 801 KB. The package builds with no trim or AOT analyzer warning; it is not
+  declared AOT-compatible, since no AOT publish is part of the checks. A project that trims its
+  own assembly too (`TrimMode` `full`, off by default in Blazor) should keep the copied
+  components whole, for example with `<TrimmerRootAssembly Include="YourApp" />`: Data Table and
+  Drawer still hand script objects whose properties only the script reads. A row type edited
+  through an `Editable` column needs its property setters kept in that case as well.
+- **Field**: `For` on `BzField` names the model property as an expression
+  (`For="@(() => model.Email)"`, or `() => model.Address.City` for a nested object). Inside an
+  `EditForm` the field reads its messages for that property and tells the form's `EditContext`
+  when the property's value changes, so validation follows the edit. With `Name` the messages
+  refresh on submit only, as before. No control needs a parameter for it: the field reads the
+  property itself each time the form renders, so any control that writes the value is followed,
+  and an input that notifies the `EditContext` by itself is not announced twice. `For` wins over
+  `Name`. A value written from code counts as a change; loading another model does not.
+- **Direction**: a direction set in `AddBlaizio(o => o.Direction = ...)` is cascaded from the root
+  of every component tree, so each separately rendered interactive component on a page receives
+  it. A `BzDirectionProvider` in a statically rendered layout cannot give them that: a cascading
+  parameter stops at a render-mode boundary. A provider still wins for its own subtree. With the
+  option set, surfaces that move to the document body (popovers, menus, dialogs, tooltips) carry
+  the direction in their own `dir` attribute and charts follow it; they used to follow a provider
+  only. Nothing is cascaded when the option is left unset, and `dir` is never put on the
+  document: the page's direction stays the app's to set.
+- **Base**: `BaseHiddenInput` renders a control's value as hidden inputs under a form field name
+  (one per value; nothing without a name, for a disabled control, or for no value), and the Base
+  controls that own a value take `Name` and render it: Switch, Checkbox, Radio Group, Slider,
+  Toggle Group, Input Tags, Input Number, Select, Combobox. `BaseInputOtp` puts `Name` on its own
+  input.
+- **Form posts**: `Name` on the controls that keep their value in C#, so they take part in a
+  plain `<form method="post">` on a statically rendered page, where they used to post nothing:
+  `BzSwitch` and `BzCheckbox` (`true` while on, nothing while off, like a native checkbox),
+  `BzRadioGroup`, `BzSelect`, `BzCombobox` and `BzToggleGroup` (the value, or one input per value),
+  `BzSlider` (one per thumb), `BzInputTags` (one per tag), `BzInputNumber`, `BzInputDate`,
+  `BzInputTime`, `BzInputOtp` and `BzInputColor`. Numbers, dates and times are written as the
+  matching native input writes them (`1234.5`, `2026-11-19`, `14:30`), whatever the culture or
+  display format. Input OTP, Input Color and the `Auto` face of Input Time are native inputs
+  already and simply take the name; the others render a hidden input. Without `Name` the markup
+  is what it was. A `name` attribute written on one of these controls is now this parameter: it
+  used to land on the control's own element, where it posted nothing.
+- **Label parameters**: `BzThemeToggle.Label`, `BzSidebarTrigger.Label` and `BzSidebarRail.Label`
+  replace their hardcoded English text (the rail uses it for both `aria-label` and the hover
+  `title`), so translated apps no longer show or announce "Toggle theme" / "Toggle Sidebar".
+  Defaults are unchanged.
+
+### Deprecated
+- **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with
+  the same values, and will be removed in a later release.
+- **Registry templates**: `{{Skin}}` still substitutes (same value as `{{Style}}`).
+- **`Blaizio.Cli.Core`**: `SkinInliner` (forwards to a wrapped `StyleInliner`),
+  `TemplateTokens.Skin`, and `ICssAssetProvider.GetSharedSkinCss()` / `GetSkinCss(string)` /
+  `AvailableSkins` are `[Obsolete]` and forward to the style-named members. The positional
+  `TemplateTokens` parameter is now named `Style`, so a call passing it by name (`Skin: ...`)
+  needs the new name.
+- **Combobox**: `BaseComboboxItemIndicator.KeepMounted` is `[Obsolete]` and forwards to the new
+  `KeepRendered`.
+- **Dialog, Alert Dialog, Sheet, Drawer**: `DismissOnOutsideClick` on the roots (`BaseDialog`,
+  `BzDialog`, `BzAlertDialog`, `BzSheet`, `BzDrawer`) is `[Obsolete]`. Use `PreventDismiss`, which
+  says the opposite: `DismissOnOutsideClick="false"` becomes `PreventDismiss="true"`. The old
+  parameter still locks, and with both set the surface is locked if either one asks for it.
+- **Focus scope**: `BaseFocusScope.OnMountAutoFocus` and `OnUnmountAutoFocus` are `[Obsolete]` and
+  forward to `OnOpenAutoFocus` and `OnCloseAutoFocus`. So are the methods the script calls,
+  `HandleMountAutoFocus` and `HandleUnmountAutoFocus`, which forward to `HandleOpenAutoFocus` and
+  `HandleCloseAutoFocus`.
+- **Icons**: 52 icons were renamed by their sets. The earlier names are `[Obsolete]` members that
+  forward to the new ones, so existing code compiles with a warning that names the replacement.
+  Lucide renamed 45: every `...Alert` and `...Warning` icon is now `...ExclamationPoint`
+  (`Lucide.Outline.TriangleAlert` is `TriangleExclamationPoint`, `CircleAlert` is
+  `CircleExclamationPoint`), the `SquareArrowOut...` and `CircleArrowOut...` icons end in `Exit`,
+  and among the rest `Music` is `EighthNotes`, `Bold` is `LetterB`, `Heading` is `LetterH` and
+  `Copyright` is `CircleLetterC`. Hugeicons respelled six (`Grid2X2` is now `Grid2x2`, likewise `Grid2X2Check`,
+  `Grid2X2Plus`, `Grid2X2X`, `Grid3X2`, `Grid3X3`). Tabler renamed one (`AlignJustified` is now
+  `AlignLeftJustified`). A project on `--icons lucide` gets the new names in `BzGlyphs.cs` from
+  `blaizio update`.
+
 ### Fixed
 - **Color Picker**: a `Gradient` or `Image` passed with no change listener no longer undoes the
   picker's edits. The page's next render read its unchanged parameter as a model handed in from
@@ -446,399 +887,6 @@ lockstep under one version.
 - **Resizable**: a panel rendered conditionally gives its space back when it is removed and gets
   a real size when it returns. It used to leave a ghost entry and come back zero-sized. A panel
   added after the first render joins at the end of the order.
-
-### Changed
-- **Controlled or uncontrolled: one rule for every component.** A value is controlled when it is
-  set, or when its change callback is bound and no default was given. Components followed one of
-  two older rules ("a callback is bound" or "the value is not null") and each got a case wrong.
-  What changes:
-  - A value passed one-way (`Value="x"` with no `ValueChanged`) is shown and held. It was ignored,
-    so the component showed nothing and kept its own state. This covers Tabs, Select, Combobox,
-    Accordion, Toggle Group, Radio Group, Menubar, the menu radio groups, Calendar, Color Area,
-    Slider, Input OTP, Input Tags, Input Number, Input Color, Input Date, Input Time, the search
-    text of Command, Combobox and Input Tags, and the Data Table's sort, search, page, column
-    widths and column order. For a starting value the user can change, pass `DefaultValue`.
-  - A default next to a callback (`DefaultValue="a" ValueChanged="Log"`) only listens: the
-    component starts from the default and moves on its own. It was controlled with no value, so
-    the selection never moved. Same components, plus Navigation Menu and the Tree's single
-    selection.
-  - Tree: `@bind-ExpandedValues`, `@bind-SelectedValues` and `@bind-CheckedValues` on a list that
-    is still null are controlled from the start, and passing null again empties the tree. The
-    binding started uncontrolled. The other side of it: a callback alone on those three
-    (`CheckedValuesChanged="Save"`, no value and no default) is now controlled, as it already was
-    on every component above, so nothing moves until the value comes back. To only listen, add
-    the default: `DefaultCheckedValues="@([])"`.
-  - Unchanged: `Open`, `Checked`, `Pressed`, `Expanded`, `SelectedIndex` and the Color Picker's
-    color. Only a value controls them, and a callback alone still only listens.
-  - A binding next to a default (`@bind-Value` with `DefaultValue`) starts from the default while
-    the bound field is empty. An Accordion or Toggle Group bound that way can still close its
-    last item. Limits: a parent cannot clear such a value by setting the field to null, and on a
-    number type that cannot be null a one-way `Value="0"` reads as not set.
-
-  The rule is `ControllableState.IsControlled` in Blaizio.Base, with `ControllableState.IsSet`
-  for values that cannot be null; both are public for your own components. Combobox, Color
-  Picker, Input Color, Input Date and Input Time call it and now need Blaizio.Base 0.3.6.
-- **Overlay surfaces** (Blaizio.Base): the window and backdrop of a dialog, and the content of
-  Popover, Hover Card, Tooltip, Select, Combobox and the three menus share one lifecycle
-  (`PresenceSurfaceBase`, and `FloatingSurfaceBase` for the anchored ones) in place of eight
-  copies of it, and hold every script instance through `JsInstance`. Parameters, events and
-  rendered attributes are the same. `BaseTooltipContent` inherits an `OnDismissRequested` that
-  does nothing: a tooltip has no dismissable layer to call it.
-- **Docs**: the home page is one live demo. Drag its divider to compare a dashboard of styled
-  components with the same dashboard in unstyled Blaizio.Base, and open "Change look" to try every
-  style with every theme on the whole page. It gives the `blaizio add ... --style <style> --preset
-  <theme>` command for the pair you pick.
-- **"Skin" is now "style"** everywhere it is user-facing: docs, READMEs, component comments, CLI
-  prompts, help text and messages ("Component style?", "Unknown style", "Style X not applied",
-  "(style ember)"). One vocabulary throughout: a **style** is the shape and structure baked into
-  the component source (ash, aura, ember, ...), a **theme** is the colors and fonts in one CSS
-  variables file (a palette is part of a theme), and light/dark is the **mode**. Machine surfaces
-  already said style (`--style`, `"style"` in `blaizio.json`, `style-*.css`, the `.style-*` class,
-  the registry's `styles` list and `{base}/{style}/` URLs), so nothing changes there.
-- **Dependencies**: the packages and `blaizio new` move to ASP.NET Core 10.0.14 (was 10.0.12), a
-  security patch. If restore fails with `NU1605`, move your `Microsoft.AspNetCore.Components.*`
-  references to 10.0.14.
-- **CLI**: `init`, `new` and `update` pin TailwindMerge.NET 1.5.0, up from 1.4.0. Your own
-  `text-[color-mix(...)]` in a `Class` now reads as a color, and a `Class` wins in more cases: `px-*`
-  replaces a component's `ps-*` and `pe-*`, `mx-*` its `ms-*` and `me-*`, `inset-x-*` its `start-*`
-  and `end-*`, and `min-h-lh` replaces another `min-h-*`. Check a `Class` that relied on both
-  surviving. The components' own class merges come out the same on both versions.
-- **Registry**: `panel`, `drawer`, `select`, `sidebar`, `toolbar` and `dialog` now require
-  Blaizio.Base 0.3.6 or newer. `blaizio add` and `blaizio update` stop with a message on an
-  older Base instead of installing source that does not compile.
-- **Performance**: the enum-to-class-name lookup components use while rendering is cached. It used
-  to reflect over the enum on every render of every component.
-- **Base**: every options object a component hands to its script is a named type derived from
-  the internal `JsOptions<T>`, which keeps its properties in a trimmed app. They were anonymous
-  objects, which a trimmer empties without a warning. The script receives the same properties.
-- **Dialog service**: `ShowAsync<TComponent>` renders the component itself. It went through
-  `DynamicComponent`, whose type parameter a trimmer cannot follow. `TComponent` (and
-  `ShowSheetAsync<TComponent>`) now carries `[DynamicallyAccessedMembers(All)]`, which only matters
-  to code that passes its own type parameter on while trim analysis is on.
-- **Collapsible, Accordion, Tree**: the script callbacks `OnCloseFinished` and `OnBeforeMatch` are
-  declared on `CollapsiblePanelBase`, the type the script's reference is made with. The copies on
-  `BaseCollapsibleContent`, `BaseAccordionContent` and `BaseTreePanel` are gone (the members are
-  inherited, so calls still compile); a panel that reacts to find-in-page overrides
-  `OnBeforeMatchCoreAsync`. Declared on the derived types, a trimmer removed them.
-- **`EnumExtensions.GetDescription`** looks the member up with `GetField`, with the trim warning a
-  project analysing its copied components used to get answered in place. Same results.
-
-### Added
-- **Icons**: three sets follow their upstream. `Blaizio.Icons.Tabler` gains 362 icons (5,491
-  outline, 1,054 filled), `Blaizio.Icons.Lucide` 330 (2,098) and `Blaizio.Icons.HugeIcons` 81
-  (6,100, from `@hugeicons/core-free-icons` 4.4.0). Phosphor has nothing new upstream, and Remix
-  stays on its 4.8.0 release.
-- **Dialog, Alert Dialog, Sheet, Drawer**: `PreventDismiss` on the root locks the surface. Escape
-  and the backdrop stop closing it and the corner close button is hidden; a close button of your
-  own, or your code, still closes it. It is the name `DialogOptions` already uses for the same
-  lock. `DismissOnOutsideClick` on the content and overlay parts is unchanged and still means the
-  backdrop only. Alert Dialog and Sheet pass the new parameter and now need Blaizio.Base 0.3.6.
-- **Focus scope**: `BaseFocusScope.OnOpenAutoFocus` and `OnCloseAutoFocus`, the names Dialog and
-  Popover content already use for the same two moments.
-- **Docs**: a Changelog page (`/docs/changelog`) with a short summary of each release, a dot in
-  the nav on pages added in the last couple of months, and previous and next arrows next to each
-  page's title.
-- **Data Table editing** (`blaizio update table`): mark a `BzPropertyColumn` `Editable` and the
-  table becomes a keyboard grid, one tab stop that Tab reaches as soon as the table renders.
-  `EditMode` picks how it edits. `Cell` (the default) works like a spreadsheet, one cell at a time:
-  the arrows, Tab and Enter move the cursor (Enter goes down, back to the column where a run of
-  Tabs began, and Shift+Enter up); Escape cancels. Space flips a bool, Delete clears a cell, and a
-  block copied from a spreadsheet pastes across cells. `Row` opens an editor in every editable
-  cell of the row and commits the row as one change. `Dialog` edits the row as a form in a dialog,
-  hidden columns included, whose fields scroll between a fixed title and buttons. `Drawer` puts
-  the same form in a sheet at the inline-end edge (right in a left-to-right page, left in a
-  right-to-left one, full width on a phone), with Previous and Next buttons in its header that save
-  the row (a refused value keeps it open) and open the one before or after it in the table's
-  current order. `EditDialogContent` and `EditDrawerContent` swap in a surface of your own; both
-  get a `DataTableEditForm<TItem>` context with `context.Field(key)` for any built-in field,
-  `GetValue` / `SetValue` for your own controls, `PreviousAsync` / `NextAsync`, and `Actions` for
-  the built-in footer buttons. Closing a changed form (Escape, a press outside, the close button or
-  Cancel) asks first in its footer, Discard or Keep editing, with no second dialog
-  (`ConfirmingDiscard`, `DiscardAsync`, `KeepEditing` for your own footer); a form with no changes
-  closes at once. While a form is open its row carries `data-editing`, which each style tints, and
-  when it closes the focus returns to the row it showed last. The form's labels are `EditFormTitle`,
-  `EditFormDescription`, `EditFormSaveLabel`, `EditFormCancelLabel`, `EditFormDiscardQuestion`,
-  `EditFormDiscardLabel`, `EditFormKeepEditingLabel`, `EditFormPreviousLabel` and
-  `EditFormNextLabel`. The pointer and the keyboard start an edit differently. A click selects a
-  cell, and a click on a bool cell's checkbox or switch flips it at once. A double-click (or, with
-  touch or a pen, a tap on the selected cell) edits in place with the control ready: the caret at
-  the clicked character, a pick list's list or a date's calendar open, the time part under the
-  pointer. `EditOnClick` makes a single click or tap do that, and a click on another cell then
-  commits and opens that one. The cursor's ring shows while the keyboard drives the table, after
-  Tab brings the focus in or a key is pressed; a click alone draws none, and in Cell mode the cell
-  under the pointer takes the row's hover tint. A pick list's or date's cell shows a chevron or
-  calendar mark on hover and on the cursor's cell, and a press on it opens the list or calendar.
-  `BzEditActionsColumn` gives each row an Edit button, and Save and Cancel while the row edits in
-  place (in Dialog and Drawer modes Edit opens the form): icon buttons named by `EditLabel`,
-  `SaveLabel` and `CancelLabel`, each with a tooltip, in a column that pins, sizes and aligns like
-  any other, is as wide as Save and Cancel from the start (the columns keep their widths while a
-  row edits) and stays hidden in Cell mode. Its `ChildContent` replaces the buttons and gets a
-  `DataTableEditActions<TItem>` context (`Item`, `Mode`, `IsEditing`, `Busy`, `BeginAsync`,
-  `SaveAsync`, `CancelAsync`). Those buttons belong to the row's edit: a press on Cancel no longer
-  commits the row before it cancels, Tab from the row's last field reaches Save and Cancel, and
-  Enter or Space presses them. `EditActions` on a `BzTemplateColumn` or a `DataTableColumn` gives
-  your own buttons the same treatment, and `BeginEditAsync(item, key)` in Row mode puts the focus
-  in that column's field. On the keyboard, typing replaces a
-  cell (a number starts on a digit, a sign or the decimal separator, a date or time on a digit, a
-  pick list opens and types the key into its type-ahead) and an arrow then commits and moves; F2
-  edits in place (a pick list opens its list); Alt+ArrowDown opens a list or calendar, and so does
-  Space on a pick list; Backspace empties a text, number, date or time cell and starts typing.
-  With a list or calendar open, one Escape closes it and cancels the edit, a pick commits and
-  closes the editor, and Tab picks the highlighted option and moves on. Row mode follows the same
-  rules for the cell you were on, and the forms open on that column's field. An `EditorContent`
-  hears how its edit started through `context.StartedBy` (Pointer, Key, Typing or Code),
-  `context.TypedText` and `context.OpenPopup`. Cells, rows and forms edit with the library's own
-  controls, picked from the property's type: a text box, a number field, a pick list for an enum
-  (or any type given `Options`), a checkbox, a date field or a time field. `Editor` picks another
-  where it fits (a `Switch` for a bool, say), and `EditorContent` swaps in any control. An editor
-  lays over its cell, so the columns keep their widths while it is open. A column's own cell
-  template keeps its editor: `ChildContent` gets the row, and the new `CellContent` on
-  `BzPropertyColumn` and `BzTemplateColumn` gets the cell, a `DataTableCell<TItem, TValue>` (or
-  `DataTableCell<TItem>`) with the row, the value and its formatted text, whether an edit is open on
-  the row, the cell's refusal message and a save still running (`IsEditing`, `Error`, `Pending`).
-  An editable table's cells carry `group/table-cell`, and `data-active` while they hold the
-  keyboard cursor, so a template follows the cursor in CSS. `EdgeToEdge` on any column drops the
-  cells' padding and stretches the content to the cell's full height, so a background tints the
-  whole cell. Values parse in the
-  current culture and pass the property's DataAnnotations and the column's `Validate` before they
-  are written through the property's setter. `OnEdit` hears every change once per action, and
-  `Reject` puts the old values back. Moving the cursor never calls .NET, so it stays instant on
-  Blazor Server, and it works with `Virtualize`. `BeginEditAsync`, `CommitEditAsync`,
-  `CancelEditAsync` and `IsEditing` drive it from code. In an editable table a click on a row no
-  longer toggles its selection; use the checkbox or Shift+Space. The table item installs Sheet and
-  Tooltip for the drawer. Needs Blaizio.Base 0.3.6 (`CellBinding`, `TabSeparatedText` and the grid
-  script).
-- **Input Date**: `CalendarOpen`, `DefaultCalendarOpen` and `CalendarOpenChanged` open the calendar
-  popup from code and report when it opens or closes (`@bind-CalendarOpen`). A picked day raises
-  `ValueChanged` before the popup reports closing.
-- **Data Table column sizing, pinning and moving** (`blaizio update table`). On any column (a
-  `BzPropertyColumn`, a `BzTemplateColumn` or a `DataTableColumn`): `Width`, `MinWidth` and
-  `MaxWidth` in pixels, and `Fill` to take the room the other columns leave in the row (without
-  one, the content-sized columns stretch to fill it, as before). `Pinned` keeps a column in place
-  while the rows scroll sideways, `DataTablePin.Start` or `End`, which flip in a right-to-left
-  page; the selection column joins the start group, and pinning works with `StickyHeader`,
-  `MaxHeight`, `Virtualize` and editing. `ResizableColumns` lets users drag the end edge of a
-  header, double-click it to fit the content, or press Alt+Shift+Left / Right on a focused header
-  (Alt+Shift+Enter fits). `ReorderableColumns` lets users drag a header to a new place, or press
-  Ctrl+Shift+Left / Right (Cmd on a Mac), within its pinned group; a column's `Resizable` or
-  `Reorderable` opts it out, and one that cannot move keeps the others from crossing it. Bind
-  `ColumnWidths` (the widths users chose, by column key) and `ColumnOrder` (every key, in order) to
-  save them; `DefaultColumnWidths` and `DefaultColumnOrder` seed an uncontrolled table. The script
-  lays out the widths and runs every drag and key without calling .NET, and reports a finished
-  resize or move once. A laid-out column clips what does not fit with an ellipsis, a narrowed
-  sortable header truncates its title and keeps the sort icon, and an editor never changes a
-  column's width. A resizable header lights its resize line while it is hovered or has the
-  keyboard focus (the handle itself stays the strongest), and a header that can move shows the
-  grab cursor (grabbing while dragged). While a header is dragged, a label follows the pointer and
-  a line marks the gap the column will drop into; held over its own place, no line shows, the same
-  for every column. `LiveReorder` moves the column itself instead: it follows the pointer, the
-  columns it passes slide out of its way (instantly when the user asks for reduced motion), rows
-  the virtualizer adds mid-drag slide too, and on release it slides into place. Either way the
-  order is reported once, on release, and Escape puts everything back. Needs Blaizio.Base 0.3.6
-  (the column script).
-- **Data Table in any language** (`blaizio update table`): everything `BzDataTable` says on its
-  own now has a parameter, so a right-to-left or non-English app words all of it. The selection
-  line takes `SelectionSummaryContent`, a template of your own given `context.Selected` and
-  `context.Total`, in place of "N of M row(s) selected." (which also read scrambled in a
-  right-to-left page); `SelectAllAriaLabel` and `SelectRowAriaLabel` name the selection
-  checkboxes, and `ContainerAriaLabel` the scroll box that `MaxHeight` or `Virtualize` makes a
-  keyboard stop. The pager takes `PaginationAriaLabel`, `PaginationPreviousLabel`,
-  `PaginationPreviousAriaLabel`, `PaginationNextLabel`, `PaginationNextAriaLabel`,
-  `PaginationEllipsisAriaLabel` and `PaginationPageAriaLabel`, a function of the page number. For
-  editing, `EditFormCloseLabel` names the form's close button in the dialog and the drawer,
-  `EditRejectedMessage` words a save refused without a message of its own, `EditDiscardedMessage`
-  what follows a refused value when the focus leaves the table, and `EditParseErrorMessage` words a
-  value the table refuses before saving it ("The Hours field must be a number.", "... is
-  required.", "... must be one of: ...") from a `CellParseError` that gives the problem (`Kind`),
-  the column's title (`Field`), a pick list's options (`Options`) and the English `Message`.
-  `EditorLabels` words what the built-in date and time editors say to screen readers, and the time
-  editor's AM and PM text, from a `DataTableEditorLabels` (`Day`, `Month`, `Year`, `CalendarButton`,
-  `Calendar`, `PreviousMonth`, `NextMonth`, `Hour`, `Minute`, `Meridiem`, `Am`, `Pm`).
-  `ColumnAnnouncement` words what screen readers hear after a key resizes or moves a column, from
-  a `DataTableColumnAnnouncement` (`Kind`, `Column`, `Width`, `Position`, `Count`, `Message`);
-  while it is set, the column script asks .NET for each announcement's words, one call at a time.
-  On the columns, `HeaderLabel` on `BzEditActionsColumn` names its header for screen readers
-  ("Actions"), and `NoneLabel` on `BzPropertyColumn` labels a nullable enum's blank option
-  ("None"). Left unset, every one of them keeps the English the table said before. Needs
-  Blaizio.Base 0.3.6 (`CellParseError` and the column script).
-- **Date, time and overlay controls in any language** (`blaizio update input-date input-time
-  calendar sheet drawer panel dialog carousel sortable tree`): what these controls say on their own
-  now has a parameter, English by default. `BzInputDate` takes `DayAriaLabel`, `MonthAriaLabel`,
-  `YearAriaLabel`, `CalendarButtonAriaLabel` ("Open calendar"), `CalendarAriaLabel` and, for its
-  calendar popup, `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BzCalendar` takes the same two
-  month-button names and `WeekNumberLabel`. `BzInputTime` takes `HourAriaLabel`, `MinuteAriaLabel`,
-  `SecondAriaLabel`, `MeridiemAriaLabel` for the AM/PM toggle ("AM or PM"), and `AmLabel` and
-  `PmLabel` for the toggle's text. `CloseLabel` names the corner close button of `BzDialogContent`,
-  `BzSheetContent` and `BzDrawerContent` ("Close"), and of a dialog or sheet shown from
-  `IDialogService` (`BzDialogOptions.CloseLabel`, which the `BzDialogOptions` you give
-  `BlaizioOptions.DialogDefaults` can carry for the whole app); `Label` names `BzPanelClose`
-  ("Close panel"). On `BzCarousel`, `RoleDescription` and `SlideRoleDescription` replace what screen
-  readers call the region and each slide ("carousel", "slide"), and `SlideAriaLabel` words each
-  slide's "N of M" from a `CarouselSlidePosition` (`Position`, `Count`); `DotAriaLabel` on
-  `BzCarouselDots` words "Go to slide N". `BzSortable` and `BzSortableList` take
-  `ItemRoleDescription` ("sortable item") and `Announcement`, which words what screen readers hear
-  as the keyboard picks an item up, moves it, puts it down or puts it back, from a
-  `SortableAnnouncement` (`Kind`, `Position`, `Count` and the English `Message`). `BzTree` takes
-  `RenameAriaLabel` for the rename box and `Announcement`, worded from a `TreeAnnouncement` (`Kind`,
-  `Node` and `Message`): a node picked up, moved by keyboard or a pointer drop, put down, let go,
-  renamed, or whose children failed to load. Needs Blaizio.Base 0.3.6.
-- **`Blaizio.Base`**: `CellBinding.TryParse` takes a `messages` builder that words a refused text
-  in the reader's language from a `CellParseError`, the English `Message` without one. A
-  DataAnnotations rule that returns no message of its own is worded by the rule itself.
-  The headless parts take the same words as the styled controls: `BaseCalendar` takes
-  `PreviousMonthAriaLabel` and `NextMonthAriaLabel`; `BaseCarousel` takes `RoleDescription`,
-  `SlideRoleDescription` and `SlideAriaLabel`; `BaseSortable` takes `ItemRoleDescription` and
-  `Announcement`; `BaseTree` takes `RenameAriaLabel` and `Announcement`.
-- **Trace** (`blaizio add trace`): the steps an agent takes, one line each - an icon, a title, an
-  optional description and a status (done, running with a shimmering title, error, pending). A
-  line expands (`BzTraceCollapsible`), links out, or opens a dialog or sheet through the trigger's
-  `RenderAs`. `BzTraceStatusIcon` draws the line's status by itself, and `AutoOpen` keeps a row
-  open while its step runs until the reader opens or closes it. The chevron mirrors in RTL.
-  Needs Blaizio.Base 0.3.6.
-- **Code Block** (`blaizio add code-block`): code, terminal output, logs and diffs, with a header,
-  floating actions, line numbers, a start line, wrapping, highlighted and diff lines (`Diff` reads
-  `+` / `-` prefixes from a plain string), a footer, a small size and a destructive variant.
-  `BzCodeBlockCopyButton` copies the block's own code by default (never the line numbers, diff
-  markers or removed lines) and shows when the clipboard refused the write;
-  `BzCodeBlockWrapButton` toggles wrapping. Both buttons name themselves in a tooltip with an arrow
-  (`Tooltip`, on by default; the wrap button's says what a click does next, `UnwrapLabel` while the
-  block wraps), and take an `Icon` (plus `CopiedIcon` and `FailedIcon`) or a `ChildContent` that
-  receives the state, so a text button can read "Copied"; the item installs Tooltip with them.
-  `Language` highlights the code in the theme's own
-  colors: C#, Razor, JSON, bash, console sessions, PowerShell, TypeScript, JavaScript, HTML, XML,
-  CSS, SQL, YAML, diff, HTTP request files, Dockerfile, INI, TOML and Markdown, with their common
-  aliases, one language inside another where they nest (C# and HTML in Razor, CSS and JavaScript in
-  HTML, scripts in YAML, any of them in a Markdown fence), and with `Diff` for a highlighted diff,
-  plus any language the app adds in `AddBlaizio` (from Blaizio.Syntax.Languages, or a
-  `SyntaxGrammar` of its own). Every token kind mixes a theme status color with the text color,
-  which keeps it readable in every theme, light and dark. Highlighting runs in C# as the block
-  renders (no script, the same in static rendering, on the server and in WebAssembly), and streamed
-  code re-tokenizes and re-renders only its new and changed lines. `Language="ansi"` renders
-  terminal colors in the theme's own colors. Needs Blaizio.Base 0.3.6; the item installs
-  Blaizio.Syntax, the highlighter.
-- **`Blaizio.Syntax`**, a new package: the highlighter, kept out of Blaizio.Base so an app without
-  a Code Block never downloads it. `SyntaxText` splits code into runs of one `SyntaxKind` per line
-  for 19 built-in languages (hand-written C# scanners, no script, never throws on content), and
-  `SyntaxDocument` keeps each line's tokens and end state so code that grows or changes tokenizes
-  only its new and changed lines. Add languages in `AddBlaizio(options => options.Syntax.Add(...))`,
-  per app: `Alias` gives one another name, and a language with a built-in's name replaces it,
-  including inside the languages that host others (a Markdown fence, an HTML script or style
-  element, a console command). Write one with `SyntaxGrammar`, a table of comments, strings (with
-  escapes, prefixes, interpolation holes and lines they span), heredocs, word lists, declarations,
-  keys, sigils, numbers, function and type names by their shape, and regular expressions for the
-  rest; or derive from `SyntaxLanguage`, now public with `SyntaxWriter`: immutable line states that
-  compare by value, a scanner that always advances, ranges in order, and a scanner that throws costs
-  only its own line. Trimmable.
-- **`Blaizio.Syntax.Languages`**, a new package: Python, Java, Go, Rust, C, C++, Kotlin, Swift,
-  PHP, Ruby, Dart, Lua, Scala, F#, VB.NET, Haskell, Elixir, Clojure, GraphQL, Protocol Buffers,
-  HCL (Terraform), Bicep, Makefile, nginx, CMake, batch files, R, Perl, Julia, Objective-C and
-  LaTeX, each a `SyntaxGrammar` exposed as its own property (`SyntaxLanguages.Python`), so a
-  trimmed WebAssembly publish keeps only the languages the app adds. `options.Syntax.AddAll()`
-  adds every one.
-- **`Blaizio.Base`**: `BaseCopyButton`, a headless copy button that writes to the clipboard during
-  the click itself (a C# handler can run after the click's activation expires, which Firefox and
-  Safari refuse on Blazor Server) and exposes the outcome as `data-copy-state` plus a status
-  announcement; `AnsiText`, which splits ANSI terminal output into styled runs per line;
-  `KeepRendered` on `BaseCollapsibleContent` (and the styled `BzCollapsibleContent`), which keeps
-  closed content in the render tree, hidden with `hidden="until-found"`, so the components inside
-  keep their state and find-in-page opens the collapsible on a match.
-- **Glyphs**: `BzGlyphs.CircleDashed`, `Copy`, `TextWrap` and `Pencil` (the data table's Edit
-  button), mapped in all five icon sets.
-- **Typeset**: a code block inside prose takes the same space above as a paragraph.
-- **CLI packages**: `add` installs a Blaizio package an item needs (Blaizio.Syntax for
-  `code-block`, an icon set) at the project's Blaizio.Base version rather than the newest, which
-  would ask for a newer Base than the project has. `update` moves Blaizio.Syntax and
-  Blaizio.Syntax.Languages with the base packages when the project references them, as it does the
-  icon sets.
-- **CLI `--json`**: `apply` reports `style` and `styleNotApplied`, `init`/`new` report them under
-  `css`, and `add` reports `styleNotApplied`.
-- **Registry templates**: the `{{Style}}` token substitutes the project's style.
-- **`Blaizio.Cli.Core`**: `StyleInliner`, `TemplateTokens.Style`, and
-  `ICssAssetProvider.GetSharedStyleCss()` / `GetStyleCss(string)` / `AvailableStyles`. The
-  interface's style and skin members forward to each other by default, so an implementer
-  overrides one set and existing implementations keep compiling.
-- **`JsInstance`** (Blaizio.Base): owns one script-side instance created from a module factory.
-  It releases an instance that lands after the component was disposed, and ignores calls made
-  before the instance exists or after it is gone. For components that wire their own script.
-- **Chart**: `AriaLabel` on `BzChart`, `BzPieChart`, `BzRadarChart` and `BzRadialBarChart` exposes
-  the drawing to assistive tech as one labelled image. Without it the drawing stays hidden.
-- **Static rendering**: `BzComponentBase` has `IsInteractive` and `IsStaticRender`, one guarded
-  reading of the renderer's interactivity in place of the copies Avatar and Image each carried, and
-  `RequiresInteractivity`. A component that does nothing without events (a trigger, a switch, a
-  slider: 34 Base components) writes one warning per component type to the server log, category
-  `Blaizio.StaticRender`, when it is rendered on a static page with no render mode. Only in the
-  Development environment; set that category's log level to `None` to silence it.
-- **Trimming**: `Blaizio.Base` is marked trimmable, so a published WebAssembly app carries only
-  the components it uses. Measured on the assembly: 858 KB to 89 KB (222 KB to 29 KB with
-  Brotli) for an app with a switch, a dialog and tabs. The docs site uses every component and
-  goes from 861 KB to 801 KB. The package builds with no trim or AOT analyzer warning; it is not
-  declared AOT-compatible, since no AOT publish is part of the checks. A project that trims its
-  own assembly too (`TrimMode` `full`, off by default in Blazor) should keep the copied
-  components whole, for example with `<TrimmerRootAssembly Include="YourApp" />`: Data Table and
-  Drawer still hand script objects whose properties only the script reads. A row type edited
-  through an `Editable` column needs its property setters kept in that case as well.
-- **Field**: `For` on `BzField` names the model property as an expression
-  (`For="@(() => model.Email)"`, or `() => model.Address.City` for a nested object). Inside an
-  `EditForm` the field reads its messages for that property and tells the form's `EditContext`
-  when the property's value changes, so validation follows the edit. With `Name` the messages
-  refresh on submit only, as before. No control needs a parameter for it: the field reads the
-  property itself each time the form renders, so any control that writes the value is followed,
-  and an input that notifies the `EditContext` by itself is not announced twice. `For` wins over
-  `Name`. A value written from code counts as a change; loading another model does not.
-- **Direction**: a direction set in `AddBlaizio(o => o.Direction = ...)` is cascaded from the root
-  of every component tree, so each separately rendered interactive component on a page receives
-  it. A `BzDirectionProvider` in a statically rendered layout cannot give them that: a cascading
-  parameter stops at a render-mode boundary. A provider still wins for its own subtree. With the
-  option set, surfaces that move to the document body (popovers, menus, dialogs, tooltips) carry
-  the direction in their own `dir` attribute and charts follow it; they used to follow a provider
-  only. Nothing is cascaded when the option is left unset, and `dir` is never put on the
-  document: the page's direction stays the app's to set.
-- **Base**: `BaseHiddenInput` renders a control's value as hidden inputs under a form field name
-  (one per value; nothing without a name, for a disabled control, or for no value), and the Base
-  controls that own a value take `Name` and render it: Switch, Checkbox, Radio Group, Slider,
-  Toggle Group, Input Tags, Input Number, Select, Combobox. `BaseInputOtp` puts `Name` on its own
-  input.
-- **Form posts**: `Name` on the controls that keep their value in C#, so they take part in a
-  plain `<form method="post">` on a statically rendered page, where they used to post nothing:
-  `BzSwitch` and `BzCheckbox` (`true` while on, nothing while off, like a native checkbox),
-  `BzRadioGroup`, `BzSelect`, `BzCombobox` and `BzToggleGroup` (the value, or one input per value),
-  `BzSlider` (one per thumb), `BzInputTags` (one per tag), `BzInputNumber`, `BzInputDate`,
-  `BzInputTime`, `BzInputOtp` and `BzInputColor`. Numbers, dates and times are written as the
-  matching native input writes them (`1234.5`, `2026-11-19`, `14:30`), whatever the culture or
-  display format. Input OTP, Input Color and the `Auto` face of Input Time are native inputs
-  already and simply take the name; the others render a hidden input. Without `Name` the markup
-  is what it was. A `name` attribute written on one of these controls is now this parameter: it
-  used to land on the control's own element, where it posted nothing.
-
-### Deprecated
-- **CLI `--json`**: the `skin` and `skinNotApplied` keys still appear next to their new names with
-  the same values, and will be removed in a later release.
-- **Registry templates**: `{{Skin}}` still substitutes (same value as `{{Style}}`).
-- **`Blaizio.Cli.Core`**: `SkinInliner` (forwards to a wrapped `StyleInliner`),
-  `TemplateTokens.Skin`, and `ICssAssetProvider.GetSharedSkinCss()` / `GetSkinCss(string)` /
-  `AvailableSkins` are `[Obsolete]` and forward to the style-named members. The positional
-  `TemplateTokens` parameter is now named `Style`, so a call passing it by name (`Skin: ...`)
-  needs the new name.
-- **Combobox**: `BaseComboboxItemIndicator.KeepMounted` is `[Obsolete]` and forwards to the new
-  `KeepRendered`.
-- **Dialog, Alert Dialog, Sheet, Drawer**: `DismissOnOutsideClick` on the roots (`BaseDialog`,
-  `BzDialog`, `BzAlertDialog`, `BzSheet`, `BzDrawer`) is `[Obsolete]`. Use `PreventDismiss`, which
-  says the opposite: `DismissOnOutsideClick="false"` becomes `PreventDismiss="true"`. The old
-  parameter still locks, and with both set the surface is locked if either one asks for it.
-- **Focus scope**: `BaseFocusScope.OnMountAutoFocus` and `OnUnmountAutoFocus` are `[Obsolete]` and
-  forward to `OnOpenAutoFocus` and `OnCloseAutoFocus`.
-- **Icons**: 52 icons were renamed by their sets. The earlier names are `[Obsolete]` members that
-  forward to the new ones, so existing code compiles with a warning that names the replacement.
-  Lucide renamed 45: every `...Alert` and `...Warning` icon is now `...ExclamationPoint`
-  (`Lucide.Outline.TriangleAlert` is `TriangleExclamationPoint`, `CircleAlert` is
-  `CircleExclamationPoint`), the `SquareArrowOut...` and `CircleArrowOut...` icons end in `Exit`,
-  and among the rest `Music` is `EighthNotes`, `Bold` is `LetterB`, `Heading` is `LetterH` and
-  `Copyright` is `CircleLetterC`. Hugeicons respelled six (`Grid2X2` is now `Grid2x2`, likewise `Grid2X2Check`,
-  `Grid2X2Plus`, `Grid2X2X`, `Grid3X2`, `Grid3X3`). Tabler renamed one (`AlignJustified` is now
-  `AlignLeftJustified`). A project on `--icons lucide` gets the new names in `BzGlyphs.cs` from
-  `blaizio update`.
-
-### Fixed
 - **Base**: a table of contents with more sections than its box can show keeps the active section
   in view. The spy marked the link but never scrolled the box it sits in (a sticky aside with
   `overflow-y-auto`, or the floating panel's own max height), so far down a long page the
@@ -913,49 +961,6 @@ lockstep under one version.
   color, and an added `BzCodeBlockLine` shows its green marker instead of the muted one. The sheets
   now write `text-[color:color-mix(...)]`, which compiles to the same CSS and reads as a color on
   1.4.0 and 1.5.0 alike, so a project keeps the fix before it moves to 1.5.0.
-
-## 0.3.5 - 2026-10-21
-
-Sortable items leave the keys typed into their inputs and other controls alone, the theme toggle and
-the sidebar trigger and rail take translatable labels, and fixes land for dark-mode contrast, RTL,
-the navigation menu, the mobile sidebar and the CLI's scoped apply.
-
-### Added
-- **Label parameters**: `BzThemeToggle.Label`, `BzSidebarTrigger.Label` and `BzSidebarRail.Label`
-  replace their hardcoded English text (the rail uses it for both `aria-label` and the hover
-  `title`), so translated apps no longer show or announce "Toggle theme" / "Toggle Sidebar".
-  Defaults are unchanged.
-
-### Changed
-- **Dependencies**: `Spectre.Console` 0.57.3-alpha.0.19 (was alpha.0.18) in the CLI; the test
-  stack moves to bunit 2.11.3, AngleSharp 1.8.2, Test.Sdk 18.10.1 and ImageSharp 4.1.2.
-- **Docs**: the landing page says only what the CLI does. The steps name the real NuGet packages,
-  the real first-add prompts (namespace, output folder, skin, palette, RTL) and `blaizio update`
-  for upstream fixes; step 3 is `apply comet --only theme`, and a skin switch is described as the
-  full apply it is. The theme picker splits "New project" (`new --preset <code>`) from "Existing
-  project" (`apply <code>`, which re-installs the components and asks first), and Reset restores
-  the whole default look. The hero terminal replays a real first add once (prompts, paths, 51
-  files), rests on its final frame, shows that frame at once under reduced motion and wraps on
-  phones; the two-layers demo opens a real `BzDialog`; the component marquee is gone; Calendar and
-  Input OTP fit their tiles. Every copy control on the site (code blocks, demo code, command chips,
-  chart sheets, the icon browser, the Themes code chip, typeset.css and community theme CSS) now
-  reports a refused clipboard write instead of a false "Copied", and announces the outcome to
-  screen readers. `index.html` gains a
-  static title, a noscript summary and JSON-LD, known routes answer 200 on GitHub Pages with a
-  `sitemap.xml` and `robots.txt` beside them, the header shows the star count on phones, Examples
-  leaves the nav and search until it has content, and the link-preview card is redrawn.
-- **Docs**: phones. The menu sheet's site links sit on the same guide rail, with the same sliding
-  indicator, as the docs groups below them, and leave out Docs and Components, which Getting
-  Started already lists (one page lit two rows). The menu button has an accessible name and
-  reports whether the menu is open. Local builds show the GitHub star count too (the public API,
-  asked at most twice a day; CI and the E2E suite skip it). On the landing page the three steps
-  stack their number over the command, so commands no longer break mid-word, and a flag stays on
-  the line with its value; the hero badge, the footer links and the palette names fit a 320px
-  screen; the hero terminal sets 12px type (it stood taller than the screen); the headline's
-  shimmer sweeps once; touch screens get a touch hint instead of the keyboard ones; 11px labels
-  move up to 12px.
-
-### Fixed
 - **Base**: keys typed into a control inside a sortable item stay that control's. The item's key
   handler also caught keys bubbling up from its content, so in an input or combobox inside a
   `BaseSortableItem` Space grabbed the item (leaving it highlighted as grabbed) instead of typing a
