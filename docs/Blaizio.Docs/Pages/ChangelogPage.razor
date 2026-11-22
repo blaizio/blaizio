@@ -17,18 +17,31 @@
     </section>
 
     <section>
-        <h2 data-toc class="scroll-mt-20">0.3.5 - Labels and sortable fixes</h2>
-        <p class="@DateClass">October 2026</p>
-        <p>Sortable lists leave your inputs alone, a few hardcoded labels can be translated, and dark mode gets better contrast in a couple of places.</p>
+        <h2 data-toc class="scroll-mt-20">0.3.6 - Editable tables, Trace and Code Block</h2>
+        <p class="@DateClass">November 2026</p>
+        <p>The data table edits in place, two components for agent output arrive, and the controls that keep their value in C# now post in a plain form. One rule decides whether a value is controlled, so read the notes under the list before you update.</p>
         <ul>
+            <li>Mark a data table column <code>Editable</code> and its cells edit in place, in a dialog or in a drawer. Columns resize, pin and move, and every word the table shows can be translated.</li>
+            <li><code>blaizio add trace code-block</code> brings Trace (the steps an agent takes, one line each) and Code Block (code, terminal output, logs and diffs). The highlighter is the new <code>Blaizio.Syntax</code> package, with more languages in <code>Blaizio.Syntax.Languages</code>.</li>
+            <li><code>Name</code> on Switch, Checkbox, Radio Group, Select, Slider and the other controls that keep their value in C# posts that value with a plain form.</li>
+            <li><code>PreventDismiss</code> on a Dialog, Alert Dialog, Sheet or Drawer locks it: Escape and the backdrop stop closing it and the corner close button is hidden.</li>
+            <li>Tabler, Lucide and Hugeicons catch up with their sets: 773 new icons. An icon its set renamed keeps the old name, with a warning that gives the new one.</li>
+            <li><code>Blaizio.Base</code> is trimmable, so a published WebAssembly app carries only the components it uses.</li>
             <li>An input, select or button inside a sortable item keeps its keys. Space types a space and the arrows move the caret; only keys pressed on the item itself or its handle move the item.</li>
             <li><code>BzThemeToggle</code>, <code>BzSidebarTrigger</code> and <code>BzSidebarRail</code> take a <code>Label</code>, so a translated app no longer announces "Toggle theme" in English.</li>
-            <li>The calendar's selected day and the slider tooltip now pass AA contrast in dark mode, and a pressed toggle no longer looks like a hovered one.</li>
-            <li>The mobile sidebar is as wide as <code>WidthMobile</code> says again, and hovering a plain link in a navigation menu closes the open panel.</li>
+            <li>The calendar's selected day and the slider tooltip pass AA contrast in dark mode, the mobile sidebar is as wide as <code>WidthMobile</code> says again, and hovering a plain link in a navigation menu closes the open panel.</li>
             <li><code>blaizio add --style</code> no longer half-switches a project that already has components. It keeps your style and prints the <code>blaizio apply</code> command that switches everything at once.</li>
             <li>"Skin" is now called "style" everywhere. <code>blaizio.json</code> and the <code>--style</code> flag already used that name, so nothing changes in your project.</li>
         </ul>
-        <p><strong>Before you update:</strong> only if you build on <code>Blaizio.Cli.Core</code>. The <code>Skin</code> parameter of <code>TemplateTokens</code> is now <code>Style</code>, and the other skin-named members still work but are marked obsolete.</p>
+        <p><strong>Before you update:</strong> update the CLI first. 30 components need <code>Blaizio.Base</code> 0.3.6, and an older CLI stops with a message instead of installing them. A project on central package management is not checked: move <code>Blaizio.Base</code> to 0.3.6 there yourself.</p>
+        <ul>
+            <li>A value passed one-way (<code>Value="x"</code> with no <code>ValueChanged</code>) is now shown and held. It used to be ignored. For a starting value the user can change, pass <code>DefaultValue</code>.</li>
+            <li>On a Tree, a callback alone on the expanded, selected or checked list is now controlled, so nothing moves until the value comes back. To only listen, add the default: <code>DefaultCheckedValues="@@([])"</code>.</li>
+            <li>The packages need ASP.NET Core 10.0.14. If restore fails with <code>NU1605</code>, move your <code>Microsoft.AspNetCore.Components.*</code> references to 10.0.14.</li>
+            <li>A <code>name</code> attribute on the controls that take <code>Name</code> is now that parameter, and posts the value.</li>
+            <li><code>DismissOnOutsideClick</code> on a Dialog, Alert Dialog, Sheet or Drawer root still works with a warning. Use <code>PreventDismiss</code>, which says the opposite.</li>
+            <li>If you build on <code>Blaizio.Cli.Core</code>: the <code>Skin</code> parameter of <code>TemplateTokens</code> is now <code>Style</code>, and the other skin-named members still work but are marked obsolete.</li>
+        </ul>
     </section>
 
     <section>
