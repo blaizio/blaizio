@@ -77,15 +77,24 @@ so re-running a release is safe.
    `src/Blaizio.Cli/Blaizio.Cli.csproj`, `src/Blaizio.Cli.Core/Blaizio.Cli.Core.csproj` and
    `src/Blaizio.Cli.Contracts/Blaizio.Cli.Contracts.csproj`. A packed version is immutable: never
    republish different bytes under one version.
-2. Move the `Unreleased` entries in `CHANGELOG.md` under a heading for the new version.
-3. Commit, then tag and push: `git tag v0.1.1 && git push origin main --tags`.
+2. Move the `Unreleased` entries in `CHANGELOG.md` under a heading for the new version, and add
+   the short notes for it to the docs Changelog page
+   (`docs/Blaizio.Docs/Pages/ChangelogPage.razor`).
+3. Commit, then tag and push the tag alone: `git tag v0.1.1`, then `git push origin v0.1.1`.
+   Leave `main` where it is.
+4. Wait until nuget.org lists the new version of every package. The run takes a minute or two,
+   and the package index a few minutes more.
+5. Push `main`: `git push origin main`.
+
+The order of steps 3 to 5 matters. The docs site deploys from `.github/workflows/pages.yml` on
+every push to `main`, and the site is also the component registry the CLI reads. A registry
+that is live before its packages has `blaizio add` and `blaizio update` handing out components
+that need a Blaizio.Base nobody can restore yet. Pushing the tag publishes the packages without
+deploying the site, because the Pages workflow does not run on a tag.
 
 The same tag also creates the GitHub Release (`.github/workflows/release.yml`), with that
 version's `CHANGELOG.md` section as the notes, so the heading in step 2 must be exactly
 `## <version> - <date>`. For a tag that already exists, run that workflow by hand with the tag.
-
-The docs site deploys from `.github/workflows/pages.yml` on every push to `main`, independently
-of package releases.
 
 One-time setup: a trusted publishing policy on nuget.org (owner `blaizio`, repository `blaizio`,
 workflow file `publish.yml`, environment `release`) and a `release` environment on the repository
