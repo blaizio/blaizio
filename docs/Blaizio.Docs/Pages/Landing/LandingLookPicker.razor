@@ -54,7 +54,7 @@
                 @foreach (var (style, label) in DocsThemes.Styles)
                 {
                     var on = style == KeptStyle;
-                    <span role="columnheader" data-col="@Array.FindIndex(DocsThemes.Styles, x => x.Value == style)" class="@($"flex w-[26px] shrink-0 flex-col items-center gap-1 text-[8.5px] font-semibold sm:w-[30px] sm:text-[9.5px] {(on ? "text-foreground" : "text-muted-foreground")}")">
+                    <span role="columnheader" data-col="@Array.FindIndex(DocsThemes.Styles, x => x.Value == style)" class="@($"flex w-9 shrink-0 flex-col items-center gap-1 text-xs font-semibold {(on ? "text-foreground" : "text-muted-foreground")}")">
                         <span class="h-3.5 w-[18px] border-current" style="@Shape(style, 0.45)" aria-hidden="true"></span>@label
                     </span>
                 }
@@ -76,7 +76,7 @@
                         <span role="gridcell" class="flex" aria-selected="@(kept ? "true" : "false")">
                             <button type="button" id="@CellId(row, col)" data-col="@col" tabindex="@(row == _row && col == _col ? 0 : -1)"
                                     aria-label="@($"{label} style, {p.Label} theme")"
-                                    class="@($"flex h-6 w-[26px] shrink-0 cursor-pointer sm:w-[30px] rounded-md p-[3px] outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover hover:ring-2 hover:ring-inset hover:ring-foreground {(kept ? "ring-2 ring-inset ring-primary" : "")}")"
+                                    class="@($"flex h-6 w-9 shrink-0 cursor-pointer rounded-md p-[3px] outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-popover hover:ring-2 hover:ring-inset hover:ring-foreground {(kept ? "ring-2 ring-inset ring-primary" : "")}")"
                                     style="@($"background:{p.SwatchDark}")"
                                     @onmouseenter="() => Preview.InvokeAsync((s, preset))" @onfocus="() => OnCellFocus(row, col)"
                                     @onclick="() => Pick.InvokeAsync((s, preset))">
@@ -99,9 +99,9 @@
     </div>
 
     <div class="flex flex-col gap-1.5 border-t px-4 pb-3.5 pt-3">
-        <span class="text-[11.5px] text-muted-foreground"><bdi>Components, style and theme in one command:</bdi></span>
+        <span class="text-xs text-muted-foreground"><bdi>Components, style and theme in one command:</bdi></span>
         <LandingLookCommand @ref="_command" Style="@ActiveStyle" Preset="@ActivePreset" />
-        <span class="text-[11px] leading-snug text-muted-foreground"><bdi>On a project that already has components, this re-installs them in the new style.</bdi></span>
+        <span class="text-xs leading-snug text-muted-foreground"><bdi>On a project that already has components, this re-installs them in the new style.</bdi></span>
     </div>
 </div>
 
