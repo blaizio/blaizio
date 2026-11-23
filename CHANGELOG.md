@@ -16,6 +16,12 @@ lockstep under one version.
   focus. The scope now waits for a control that can take focus, within the half second it
   already allowed the surface.
 
+### Changed
+- **Docs**: the two Hijri calendar examples set the Umm al-Qura calendar on their `ar-SA` culture
+  in code. The calendar a bare `ar-SA` starts in is the platform's culture data: Umm al-Qura on
+  Windows and in the browser, Gregorian on a Linux server with recent data, where the copied
+  example showed Gregorian months.
+
 ## 0.3.6 - 2026-11-22
 
 The data table edits in place and its columns resize, pin and move. Trace and Code Block arrive,
