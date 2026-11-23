@@ -384,6 +384,44 @@ public sealed partial class ScriptModuleTests
     }
 
     [E2EFact]
+    public async Task Focus_scope_waits_for_controls_that_show_a_moment_after_their_surface()
+    {
+        await using var context = await fx.NewContextAsync();
+        var page = await OpenAsync(context);
+
+        var r = await RunAsync<string[]>(page, FocusScopeMarkup +
+            """
+            const scopeEl = document.getElementById('fs-scope');
+            scopeEl.style.transition = 'none';
+            scopeEl.style.visibility = 'hidden';
+            // Let the controls follow the surface into hiding before they are given a delay: set
+            // in one go, the delay would hold them visible on the way in instead.
+            await sleep(60);
+            // The controls take the surface's visibility after it does: a transition shows the
+            // value it starts from until its delay is over. Reduced motion does this to every
+            // control for a frame or two (blaizio.css gives every property a 0.01ms transition),
+            // which is too short to land on from a test, so the delay here stands in for it.
+            for (const el of scopeEl.querySelectorAll('*')) {
+                el.style.setProperty('transition-property', 'visibility', 'important');
+                el.style.setProperty('transition-delay', '150ms', 'important');
+            }
+            const scope = createFocusScope(scopeEl, recorder(),
+                { loop: false, trapped: false, hasOpenAutoFocus: false, hasCloseAutoFocus: false });
+            await sleep(60);
+            scopeEl.style.visibility = 'visible';
+            await sleep(60);
+            const controlsStillHidden = document.activeElement.id;
+            await sleep(250);
+            const controlsShown = document.activeElement.id;
+            await scope.dispose();
+            return [controlsStillHidden, controlsShown, document.activeElement.id];
+            """);
+
+        // Not the surface (fs-scope) while its controls cannot take focus yet: the opener keeps it.
+        Assert.Equal(["fs-opener", "fs-first", "fs-opener"], r);
+    }
+
+    [E2EFact]
     public async Task Focus_scope_closed_right_after_it_opened_leaves_focus_where_it_put_it()
     {
         await using var context = await fx.NewContextAsync();
