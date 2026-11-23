@@ -460,6 +460,8 @@ public sealed partial class ScriptModuleTests
             document.body.append(host);
             const ref = recorder();
             window.__dismissals = ref.calls;
+            // The page's own sidebar scroll is a scroll outside the surface like any other.
+            await scrollsSettled();
             // A surface pinned to a point (a context menu): a scroll anywhere else strands it.
             window.__layer = createDismissableLayer(host.querySelector('#dl-surface'), ref,
                 { anchorSelector: '#dl-anchor', dismissOnEscape: true, dismissOnScroll: true });
