@@ -8,6 +8,14 @@ lockstep under one version.
 
 ## Unreleased
 
+### Fixed
+- **Focus scope** (Blaizio.Base): under reduced motion, a surface that shows only once it is
+  placed (a Popover, say) could take its opening focus itself instead of giving it to its first
+  control. `blaizio.css` gives every property a 0.01ms transition there, so the controls took
+  the surface's visibility one frame after it did, and a control that is still hidden refuses
+  focus. The scope now waits for a control that can take focus, within the half second it
+  already allowed the surface.
+
 ## 0.3.6 - 2026-11-22
 
 The data table edits in place and its columns resize, pin and move. Trace and Code Block arrive,
