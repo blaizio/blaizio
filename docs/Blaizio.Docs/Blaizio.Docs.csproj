@@ -437,7 +437,7 @@
     <WriteLinesToFile File="$(IntermediateOutputPath)blaizio-docs-css.stamp" Lines="built" Overwrite="true" />
   </Target>
 
-  <!-- Bundle the docs scripts (lib/ts/docs.ts -> wwwroot/js/docs.js, and prepaint.ts), the same shape as
+  <!-- Bundle the docs scripts (lib/ts/docs.ts -> wwwroot/js/docs.js, plus prepaint.ts and start.ts), the same shape as
        Blaizio.Base's lib/ts pipeline. The ../_content import stays external: it is a runtime
        path into Blazor's static web assets, resolved by the browser, not the bundler. -->
   <Target Name="CollectDocsJsInputs">
@@ -452,8 +452,9 @@
           Condition="Exists('$(MSBuildProjectDirectory)\lib\node_modules')"
           Inputs="@(DocsJsInputs)"
           Outputs="$(IntermediateOutputPath)blaizio-docs-js.stamp">
-    <!-- lib/build.mjs bundles both scripts through esbuild's JS API: docs.ts as an ESM module and
-         prepaint.ts (a classic IIFE loaded by a plain script tag before Blazor boots). Not
+    <!-- lib/build.mjs bundles the scripts through esbuild's JS API: docs.ts as an ESM module,
+         prepaint.ts (a classic IIFE loaded by a plain script tag before Blazor boots) and
+         start.ts (the ESM module that starts Blazor by hand). Not
          `node node_modules/esbuild/bin/esbuild`: on Linux that file IS the native binary. -->
     <Exec Command="node lib/build.mjs" WorkingDirectory="$(MSBuildProjectDirectory)" />
     <!-- Same staleness guard as app.css: a dedicated obj/ stamp, never the served asset's timestamp. -->

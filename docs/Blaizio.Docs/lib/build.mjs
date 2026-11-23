@@ -1,8 +1,9 @@
-// Bundles the docs site's two scripts through esbuild's JS API (same shape as Blaizio.Base's
+// Bundles the docs site's three scripts through esbuild's JS API (same shape as Blaizio.Base's
 // lib/build.mjs), invoked by the project's BuildDocsJs target and by the package.json scripts:
 //   ts/docs.ts     -> wwwroot/js/docs.js     ESM module, loaded by Blazor via the DocsJs service;
 //                     ../_content/* imports stay external (runtime paths into static web assets).
 //   ts/prepaint.ts -> wwwroot/js/prepaint.js classic IIFE, a plain script tag before Blazor boots.
+//   ts/start.ts    -> wwwroot/js/start.js    ESM module, the module script tag that starts Blazor.
 // Going through the API instead of `node node_modules/esbuild/bin/esbuild` matters on Linux and
 // macOS: esbuild's install step replaces that bin file with the native executable there, so
 // handing it to node fails with "SyntaxError: Invalid or unexpected token". Windows keeps the JS
@@ -39,6 +40,17 @@ const prepaintOptions = {
   logLevel: 'info',
 };
 
+/** @type {import('esbuild').BuildOptions} */
+const startOptions = {
+  entryPoints: [join(tsDir, 'start.ts')],
+  outfile: join(outdir, 'start.js'),
+  bundle: true,
+  format: 'esm',
+  sourcemap: watch, // maps only while watching: production must not ship the TypeScript
+  minify: !watch,
+  logLevel: 'info',
+};
+
 if (watch) {
   const ctx = await esbuild.context(docsOptions);
   await ctx.watch();
@@ -46,5 +58,6 @@ if (watch) {
 } else {
   await esbuild.build(docsOptions);
   await esbuild.build(prepaintOptions);
-  console.log('Blaizio.Docs: bundled docs.js + prepaint.js -> wwwroot/js');
+  await esbuild.build(startOptions);
+  console.log('Blaizio.Docs: bundled docs.js + prepaint.js + start.js -> wwwroot/js');
 }

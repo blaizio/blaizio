@@ -113,7 +113,13 @@
         <a href="." class="reload underline">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
-    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+    <!-- Blazor is started by js/start.js (source: lib/ts/start.ts), not by this script on its own:
+         the start call passes a boot resource loader that fetches a boot file again past the HTTP
+         cache when the first request fails. Without it one cached error response for a boot file
+         (a visit while a deploy was rolling out) left that browser on the splash for good. A module
+         script runs once the document is parsed, the moment an autostart would have run. -->
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js" autostart="false"></script>
+    <script type="module" src="js/start#[.{fingerprint}].js"></script>
 </body>
 
 </html>
