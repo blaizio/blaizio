@@ -60,14 +60,32 @@ BLAIZIO_E2E=1 BLAIZIO_E2E_SCRIPT_COVERAGE=1 dotnet test tests/Blaizio.Docs.E2E -
 
 Every axe run writes the full violation list (all impacts, moderate and minor included) to
 `AxeResults/*.json`, one file per route/theme, pass or fail. Only serious/critical violations
-fail the gate; the rest are recorded evidence. CI uploads the directory as the `axe-results`
-build artifact.
+fail the gate; the rest are recorded evidence. CI uploads the directory as a build artifact named
+`axe-results-<shard>`, one per shard that ran an axe test (today that is `axe-results-axe`).
 
 ## CI
 
-The functional and axe tests run as a required job on every push and pull request
-(`docs-e2e` in `.github/workflows/ci.yml`). The visual matrix is excluded there because its
-baselines are machine-local; run it on your own machine.
+The functional and axe tests run on every push and pull request, split by test class across
+parallel jobs (`docs-e2e-shard` in `.github/workflows/ci.yml`). Tests still run one at a time inside
+a job; several depend on timing, so the split is across runners, not threads. The job
+`Docs E2E (functional + axe)` (`docs-e2e`) passes only when every shard passed, and is the one to
+list as a required status check. The visual matrix is excluded because its baselines are
+machine-local; run it on your own machine.
+
+`ci-shards.ps1` in this folder is the only place that says which class runs in which shard. Its last
+shard, `everything-else`, takes every class the others do not name, so a new test class runs in CI
+with no edit. Name a class in a shard only to rebalance the run times; the script fails the run when
+a listed class no longer exists or sits in two shards.
+
+```bash
+pwsh tests/Blaizio.Docs.E2E/ci-shards.ps1
+```
+
+lists each shard with its filter. To run one shard the way CI does:
+
+```bash
+BLAIZIO_E2E=1 dotnet test tests/Blaizio.Docs.E2E --filter "$(pwsh tests/Blaizio.Docs.E2E/ci-shards.ps1 -Shard axe)"
+```
 
 ## Visual regression
 
