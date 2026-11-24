@@ -104,16 +104,21 @@ export class FocusScope {
     }, 80);
   };
 
-  /** Resolves once the container is no longer visibility:hidden (bounded, ~500ms). */
+  /**
+   * Resolves once the container is no longer visibility:hidden and a control in it can take
+   * focus (bounded, ~500ms in all).
+   *
+   * The second half is about one frame. Under reduced motion blaizio.css gives every property of
+   * every element a 0.01ms transition; a control inherits its surface's visibility, an inherited
+   * value is a property like any other, and a transition's first frame still shows the value it
+   * starts from. So for that frame the surface is visible and its controls are not, focus() on
+   * them does nothing, and the surface itself took the focus meant for its first field.
+   */
   private whenVisible(): Promise<void> {
     return new Promise((resolve) => {
       const started = performance.now();
       const check = (): void => {
-        if (
-          !this.container.isConnected ||
-          getComputedStyle(this.container).visibility !== 'hidden' ||
-          performance.now() - started > 500
-        ) {
+        if (!this.container.isConnected || this.canPlaceFocus() || performance.now() - started > 500) {
           resolve();
         } else {
           setTimeout(check, 16); // not rAF: background tabs starve rAF entirely
@@ -121,6 +126,30 @@ export class FocusScope {
       };
       check();
     });
+  }
+
+  // Ready when a control can take focus, or when waiting would change nothing: no control at all,
+  // or none that is drawn (display:none never shows up a frame later). Then the container takes
+  // the focus. Controls that are drawn and stay visibility:hidden wait out the bound first.
+  private canPlaceFocus(): boolean {
+    if (getComputedStyle(this.container).visibility === 'hidden') return false;
+    let hiddenForNow = false;
+    for (const el of this.getTabbableCandidates()) {
+      if (!this.isDrawn(el)) continue;
+      if (getComputedStyle(el).visibility !== 'hidden') return true;
+      hiddenForNow = true;
+    }
+    return !hiddenForNow;
+  }
+
+  /** No display:none on the node or between it and the container. */
+  private isDrawn(node: HTMLElement): boolean {
+    let current: HTMLElement | null = node;
+    while (current && current !== this.container) {
+      if (getComputedStyle(current).display === 'none') return false;
+      current = current.parentElement;
+    }
+    return true;
   }
 
   /**

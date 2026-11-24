@@ -12,7 +12,12 @@ namespace Blaizio.Docs.E2E;
 public sealed partial class ScriptModuleTests(DocsServerFixture fx)
 {
     // Helpers every page script below shares: the module import, a recording stand-in for the
-    // .NET reference, and a wait.
+    // .NET reference, a wait, and a wait for the page's own scrolling to be over.
+    //
+    // scrollsSettled: the docs page scrolls its sidebar to the current entry as it renders, and
+    // the scroll event for that arrives a frame later, which on a slow machine is after the h1
+    // the page is opened by. A test that listens for scrolls starts after it. The check runs in an
+    // animation frame because a frame's scroll events are dispatched before its callbacks.
     private const string Prelude =
         """
         const load = name => import(new URL(`_content/blaizio.base/dist/${name}.js`, document.baseURI).href);
@@ -21,6 +26,19 @@ public sealed partial class ScriptModuleTests(DocsServerFixture fx)
             return { calls, invokeMethodAsync: (name, ...args) => { calls.push([name, ...args]); return Promise.resolve(); } };
         };
         const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+        const scrollsSettled = () => new Promise(resolve => {
+            const started = performance.now();
+            let last = started;
+            const note = () => { last = performance.now(); };
+            document.addEventListener('scroll', note, true);
+            const check = () => requestAnimationFrame(() => {
+                const now = performance.now();
+                if (now - last < 300 && now - started < 5000) { setTimeout(check, 50); return; }
+                document.removeEventListener('scroll', note, true);
+                resolve();
+            });
+            check();
+        });
         """;
 
     private static Task<T> RunAsync<T>(IPage page, string body) =>

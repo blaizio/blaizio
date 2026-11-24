@@ -8,7 +8,16 @@
 </BzDirectionProvider>
 
 @code {
-    private static readonly CultureInfo _arabic = new("ar-SA");
+    // Umm al-Qura, named outright. A bare "ar-SA" starts in the calendar the platform's culture
+    // data gives it, and on a Linux server with recent data that is the Gregorian one.
+    private static readonly CultureInfo _arabic = Hijri();
+
+    private static CultureInfo Hijri()
+    {
+        var culture = new CultureInfo("ar-SA");
+        culture.DateTimeFormat.Calendar = new UmAlQuraCalendar();
+        return culture;
+    }
     private DateOnly? _date = DateOnly.FromDateTime(DateTime.Today);
     private string? _dateText;
 }

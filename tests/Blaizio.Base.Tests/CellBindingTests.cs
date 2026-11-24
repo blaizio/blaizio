@@ -128,7 +128,10 @@ public class CellBindingTests
         Assert.Equal("0.1", new CellBinding<Row, double>(r => r.Ratio).Format(0.1, Us));
         Assert.Equal("11/4/2026", new CellBinding<Row, DateOnly>(r => r.Day).Format(new DateOnly(2026, 11, 4), Us));
         Assert.Equal("11/4/2026", new CellBinding<Row, DateTime>(r => r.When).Format(new DateTime(2026, 11, 4), Us));
-        Assert.Equal("11/4/2026 3:05:00 PM", new CellBinding<Row, DateTime>(r => r.When).Format(new DateTime(2026, 11, 4, 15, 5, 0), Us));
+        // The space before PM is the culture data's own: a narrow no-break space (U+202F) where
+        // that data is recent, a plain one elsewhere. Either reads back (see the parse tests).
+        Assert.Equal("11/4/2026 3:05:00 PM",
+            new CellBinding<Row, DateTime>(r => r.When).Format(new DateTime(2026, 11, 4, 15, 5, 0), Us).Replace(' ', ' '));
         Assert.Equal("", new CellBinding<Row, int?>(r => r.Score).Format(null, Us));
         Assert.Equal("Paused", new CellBinding<Row, Status>(r => r.State).Format(Status.Paused, Us));
     }

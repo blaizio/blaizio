@@ -241,13 +241,27 @@ public class CalendarRenderTests : BunitContext
 
     // A calendar rendered in a specific culture, anchored on 26 June 2026 (= 4 Tir 1405 / 11 Muharram 1448).
     private IRenderedComponent<BaseCalendar> RenderCulture(string culture, Action<ComponentParameterCollectionBuilder<BaseCalendar>>? extra = null) =>
+        RenderCulture(new CultureInfo(culture), extra);
+
+    private IRenderedComponent<BaseCalendar> RenderCulture(CultureInfo culture, Action<ComponentParameterCollectionBuilder<BaseCalendar>>? extra = null) =>
         Render<BaseCalendar>(p =>
         {
             p.Add(x => x.Today, Today);
-            p.Add(x => x.Culture, new CultureInfo(culture));
+            p.Add(x => x.Culture, culture);
             p.Add(x => x.DefaultMonth, Today);
             extra?.Invoke(p);
         });
+
+    // ar-SA in the Umm al-Qura calendar, named outright. The calendar a bare "ar-SA" starts in is
+    // the platform's culture data, not ours: Umm al-Qura on Windows and in the browser, Gregorian
+    // on a Linux with recent ICU data. The calendar follows whichever one the culture carries,
+    // and these tests are about what it does with Umm al-Qura.
+    private static CultureInfo UmmAlQura()
+    {
+        var culture = new CultureInfo("ar-SA");
+        culture.DateTimeFormat.Calendar = new UmAlQuraCalendar();
+        return culture;
+    }
 
     [Fact]
     public void German_culture_localizes_the_caption_and_starts_the_week_on_monday()
@@ -279,7 +293,7 @@ public class CalendarRenderTests : BunitContext
     [Fact]
     public void Hijri_culture_lays_out_the_umm_al_qura_calendar_in_native_script()
     {
-        var cut = RenderCulture("ar-SA");
+        var cut = RenderCulture(UmmAlQura());
 
         // 15 June 2026 = Dhu al-Hijjah 1447 - a native Arabic month name, year in Arabic-Indic digits.
         var caption = cut.Find("[data-slot=calendar-caption-label]").TextContent.Trim();
@@ -502,7 +516,7 @@ public class CalendarRenderTests : BunitContext
     public void Bounds_outside_the_culture_calendar_do_not_throw()
     {
         // Umm al-Qura covers 30 April 1900 to 16 November 2077; Min and Max here are both outside it.
-        var cut = RenderCulture("ar-SA", p => p
+        var cut = RenderCulture(UmmAlQura(), p => p
             .Add(x => x.Min, new DateOnly(1800, 1, 1))
             .Add(x => x.Max, new DateOnly(2200, 1, 1)));
 
@@ -519,7 +533,7 @@ public class CalendarRenderTests : BunitContext
         Assert.Equal(DateOnly.MaxValue, gregorian.AddMonths(new DateOnly(9999, 12, 1), 1));
         Assert.Equal(DateOnly.MinValue, gregorian.AddYears(new DateOnly(1, 6, 1), -1));
 
-        var hijri = new CalendarSystem(new CultureInfo("ar-SA"));
+        var hijri = new CalendarSystem(UmmAlQura());
         Assert.Equal(new DateOnly(1900, 4, 30), hijri.MinDate);
         Assert.False(hijri.Supports(new DateOnly(1800, 1, 1)));
         Assert.Equal(hijri.GetYear(hijri.MinDate), hijri.GetYear(new DateOnly(1800, 1, 1)));
