@@ -15,6 +15,13 @@ lockstep under one version.
   the surface's visibility one frame after it did, and a control that is still hidden refuses
   focus. The scope now waits for a control that can take focus, within the half second it
   already allowed the surface.
+- **Docs**: the site recovers when the browser's HTTP cache holds an error response for one of
+  the app's boot files. A visit while a deploy was rolling out could store the host's 404 page
+  under the name of a file that had not arrived yet; the runtime reads boot files with
+  `force-cache`, so that stored answer came back on every later visit and the site stayed on its
+  loading screen until the site data was cleared. `index.html` now starts Blazor itself
+  (`js/start.js`) with a boot resource loader that asks once more past the cache for a boot file
+  that fails, which also replaces the stored answer.
 
 ### Changed
 - **Docs**: the two Hijri calendar examples set the Umm al-Qura calendar on their `ar-SA` culture
