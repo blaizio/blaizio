@@ -79,9 +79,41 @@ jobs:
   # The browser suite as a required gate: routing, keyboard, interaction and axe tests run on
   # every push/PR. The visual matrix stays out - its baselines are machine-local by design
   # (font rasterization differs across machines; see tests/Blaizio.Docs.E2E/README.md).
-  docs-e2e:
-    name: Docs E2E (functional + axe)
+  #
+  # Three jobs: docs-e2e-plan reads the shard list, docs-e2e-shard runs one job per shard in
+  # parallel, and docs-e2e is the single result a branch protection rule can require.
+
+  # tests/Blaizio.Docs.E2E/ci-shards.ps1 is the one place that says which test class runs in
+  # which shard. Its last shard takes every class the others do not name, so a new test class
+  # runs in CI without an edit here or there.
+  docs-e2e-plan:
+    name: Docs E2E plan
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.shards.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: tests/Blaizio.Docs.E2E
+
+      - name: Read the shard list
+        id: shards
+        shell: pwsh
+        run: |
+          $matrix = ./tests/Blaizio.Docs.E2E/ci-shards.ps1 -Matrix
+          ./tests/Blaizio.Docs.E2E/ci-shards.ps1
+          "matrix=$matrix" >> $env:GITHUB_OUTPUT
+
+  # Tests stay one at a time inside a shard: several are timing-sensitive, and a runner busy
+  # with a second browser brings those races back. The speed comes from the extra runners.
+  docs-e2e-shard:
+    name: Docs E2E shard (${{ matrix.shard }})
+    needs: docs-e2e-plan
+    runs-on: ubuntu-latest
+    strategy:
+      # A red shard does not cancel the others: one run reports every failure.
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.docs-e2e-plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v7
 
@@ -125,17 +157,36 @@ jobs:
       - name: Run functional and axe tests
         env:
           BLAIZIO_E2E: "1"
-        run: dotnet test tests/Blaizio.Docs.E2E --no-build --filter "FullyQualifiedName!~VisualRegression"
+          E2E_FILTER: ${{ matrix.filter }}
+        run: dotnet test tests/Blaizio.Docs.E2E --no-build --filter "$E2E_FILTER"
 
       # Every axe violation of every impact, pass or fail - moderate/minor findings are recorded
-      # evidence even when the serious/critical gate stays green.
+      # evidence even when the serious/critical gate stays green. One artifact per shard (a
+      # name can be uploaded once per run); a shard that ran no axe test uploads nothing.
       - name: Upload axe results
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: axe-results
+          name: axe-results-${{ matrix.shard }}
           path: tests/Blaizio.Docs.E2E/AxeResults/
           if-no-files-found: ignore
+
+  # Keeps the name the suite has always reported under, so a required status check on it holds.
+  # always(): a skipped job counts as passing for a required check, and this one must fail when
+  # a shard failed, was cancelled, or never started.
+  docs-e2e:
+    name: Docs E2E (functional + axe)
+    needs: [docs-e2e-plan, docs-e2e-shard]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every shard passed
+        env:
+          PLAN_RESULT: ${{ needs.docs-e2e-plan.result }}
+          SHARDS_RESULT: ${{ needs.docs-e2e-shard.result }}
+        run: |
+          echo "plan: $PLAN_RESULT, shards: $SHARDS_RESULT"
+          test "$PLAN_RESULT" = success && test "$SHARDS_RESULT" = success
 
   registry:
     name: Registry manifest
